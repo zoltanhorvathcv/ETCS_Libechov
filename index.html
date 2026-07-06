@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MERIDIAN — Projektová inteligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#08090d;
+  --bg2:#0c0e14;
+  --panel:#10131b;
+  --panel2:#151926;
+  --glass:rgba(21,25,38,.72);
+  --border:rgba(255,255,255,.065);
+  --border2:rgba(255,255,255,.12);
+  --text:#e8eaf2;
+  --text2:#9aa1b5;
+  --text3:#5d6478;
+  --accent:#6d8dff;
+  --accent2:#42d7c8;
+  --ok:#3ddc97;
+  --track:#6d8dff;
+  --risk:#ffb020;
+  --blocked:#ff5c6a;
+  --replanned:#b78cff;
+  --idle:#5d6478;
+  --gold:#ffb020;
+  --mono:'JetBrains Mono',monospace;
+  --r:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;line-height:1.55;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:
+  radial-gradient(1100px 500px at 75% -10%, rgba(109,141,255,.09), transparent 60%),
+  radial-gradient(800px 500px at -10% 110%, rgba(66,215,200,.05), transparent 60%);
+  pointer-events:none;z-index:0}
+::selection{background:rgba(109,141,255,.35)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#232838;border-radius:8px;border:2px solid var(--bg)}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ================= LANDING ================= */
+#landing{position:relative;min-height:100vh;display:flex;flex-direction:column;background:
+  radial-gradient(1200px 700px at 80% -20%, rgba(150,30,80,.22), transparent 60%),
+  radial-gradient(900px 600px at -10% 115%, rgba(120,40,180,.14), transparent 60%),
+  #0b070d;z-index:2;overflow:hidden}
+.tri{position:absolute;width:180px;height:180px;background:linear-gradient(135deg,rgba(200,40,80,.16),rgba(120,20,60,.02));clip-path:polygon(50% 0,100% 100%,0 100%);pointer-events:none;filter:blur(1px)}
+.tri.t1{top:6%;left:2%;transform:rotate(18deg) scale(1.2)}
+.tri.t2{top:12%;right:6%;transform:rotate(-28deg) scale(.8)}
+.tri.t3{bottom:8%;right:2%;transform:rotate(40deg) scale(1.4);opacity:.6}
+.tri.t4{bottom:20%;left:8%;transform:rotate(-10deg) scale(.6);opacity:.7}
+.land-top{display:flex;align-items:center;gap:12px;padding:22px 40px;position:relative;z-index:3}
+.land-top .spacer{flex:1}
+.land-hero{text-align:center;padding:34px 24px 4px;position:relative;z-index:3}
+.land-hero .code{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--gold)}
+.land-hero h1{font-size:clamp(24px,3.4vw,40px);font-weight:800;letter-spacing:-.02em;line-height:1.2;margin:14px auto 12px;max-width:820px}
+.land-hero p{color:var(--text2);font-size:14.5px;max-width:640px;margin:0 auto}
+.land-stats{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+.land-stat{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:24px;padding:8px 17px;font-size:12.5px;color:var(--text2)}
+.land-stat b{color:var(--text);font-weight:700}
+.land-stat .sdot{width:8px;height:8px;border-radius:50%;box-shadow:0 0 9px currentColor}
+.road-title{text-align:center;margin:44px 0 0;position:relative;z-index:3}
+.road-title h2{font-size:clamp(22px,2.6vw,30px);font-weight:800;color:var(--gold);letter-spacing:.01em}
+.road-title span{font-size:12px;color:var(--text3)}
+.wave-zone{position:relative;flex:1;min-height:440px;z-index:3;margin-top:-8px}
+.wave-viewport{position:absolute;inset:0;overflow:hidden}
+#wave-svg{position:absolute;left:0;top:0;height:100%;transition:transform .65s cubic-bezier(.25,.8,.3,1);will-change:transform}
+.wave-arrow{position:absolute;top:44%;z-index:5;width:52px;height:52px;border-radius:50%;border:1px solid rgba(255,255,255,.1);background:rgba(30,18,28,.6);backdrop-filter:blur(8px);color:#fff;font-size:19px;display:grid;place-items:center;cursor:pointer;transition:all .2s;user-select:none}
+.wave-arrow:hover{background:rgba(60,30,50,.8);transform:scale(1.07)}
+.wave-arrow.prev{left:26px}
+.wave-arrow.next{right:26px}
+.wave-arrow.off{opacity:.25;pointer-events:none}
+.period-tabs{display:flex;gap:26px;justify-content:center;padding:6px 20px 40px;position:relative;z-index:4;flex-wrap:wrap}
+.ptab{font-size:13px;color:var(--text3);cursor:pointer;padding:4px 2px;border:none;background:none;font-family:inherit;font-weight:600;letter-spacing:.04em;border-bottom:2px solid transparent;transition:all .2s}
+.ptab:hover{color:var(--text2)}
+.ptab.on{color:#fff;border-bottom-color:#fff}
+.land-cta{position:absolute;left:50%;transform:translateX(-50%);bottom:96px;z-index:6}
+.land-hint{text-align:center;font-size:11px;color:var(--text3);padding-bottom:18px;position:relative;z-index:3}
+.ms-hit{cursor:pointer}
+.ms-hit:hover .ms-name-l{fill:#fff}
+@keyframes nodePulse{0%,100%{opacity:1}50%{opacity:.35}}
+.node-pulse{animation:nodePulse 2.2s infinite}
+
+/* ---------- App layout ---------- */
+.app{display:none;grid-template-columns:236px 1fr;min-height:100vh;position:relative;z-index:1}
+body.in-app #landing{display:none}
+body.in-app .app{display:grid}
+.sidebar{position:sticky;top:0;height:100vh;background:var(--bg2);border-right:1px solid var(--border);padding:22px 14px;display:flex;flex-direction:column;gap:4px}
+.logo{display:flex;align-items:center;gap:10px;padding:4px 10px 22px}
+#landing .logo{padding:0}
+.logo-mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#4a5fd0 60%,var(--accent2));display:grid;place-items:center;font-weight:800;font-size:13px;color:#fff;box-shadow:0 0 24px rgba(109,141,255,.35)}
+#landing .logo-mark{background:linear-gradient(135deg,#d3208b,#ff5e3a);box-shadow:0 0 24px rgba(255,94,58,.35)}
+.logo-name{font-weight:700;letter-spacing:.14em;font-size:13px}
+.logo-name small{display:block;font-weight:500;letter-spacing:.06em;font-size:10px;color:var(--text3);text-transform:uppercase}
+.nav-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);padding:16px 12px 6px}
+.nav-item{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:var(--text2);cursor:pointer;font-size:13.5px;font-weight:500;border:1px solid transparent;transition:all .18s;user-select:none}
+.nav-item svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;flex:none}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.035)}
+.nav-item.active{color:var(--text);background:linear-gradient(90deg,rgba(109,141,255,.14),rgba(109,141,255,.04));border-color:rgba(109,141,255,.25)}
+.nav-item .count{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--text3);background:rgba(255,255,255,.05);padding:1px 7px;border-radius:6px}
+.nav-item.active .count{color:var(--accent);background:rgba(109,141,255,.12)}
+.sidebar-foot{margin-top:auto;padding:14px 12px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text3)}
+.sidebar-foot b{color:var(--text2);font-weight:600}
+.back-link{display:block;margin-bottom:10px;color:var(--text3);font-size:11.5px;cursor:pointer;transition:color .2s}
+.back-link:hover{color:var(--text)}
+
+.main{min-width:0}
+.topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:16px;padding:14px 32px;background:rgba(8,9,13,.8);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.crumb{font-size:12.5px;color:var(--text3)}
+.crumb b{color:var(--text2);font-weight:600}
+.search{margin-left:auto;display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:7px 13px;width:280px;color:var(--text3);font-size:12.5px;transition:border-color .2s}
+.search:hover{border-color:var(--border2)}
+.search kbd{margin-left:auto;font-family:var(--mono);font-size:10px;background:rgba(255,255,255,.06);padding:2px 6px;border-radius:5px;color:var(--text3)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:8px 15px;border-radius:9px;border:1px solid var(--border2);background:var(--panel2);color:var(--text);font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .18s;white-space:nowrap;text-decoration:none}
+.btn:hover{border-color:rgba(109,141,255,.45);transform:translateY(-1px)}
+.btn.primary{background:linear-gradient(135deg,#5f7ef0,#4a5fd0);border-color:rgba(109,141,255,.5);box-shadow:0 4px 18px rgba(90,120,240,.25)}
+.btn.primary:hover{box-shadow:0 6px 24px rgba(90,120,240,.4)}
+.btn.warm{background:linear-gradient(135deg,#d3208b,#ff5e3a);border-color:rgba(255,94,58,.5);box-shadow:0 6px 24px rgba(211,32,139,.3);padding:12px 26px;font-size:13.5px;border-radius:12px}
+.btn.warm:hover{box-shadow:0 10px 34px rgba(255,94,58,.45)}
+.btn.ghost{background:transparent;border-color:var(--border)}
+.btn.sm{padding:5px 11px;font-size:11.5px;border-radius:7px}
+.btn.ok{border-color:rgba(61,220,151,.4);color:var(--ok)}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#3b4260,#232838);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--text2);border:1px solid var(--border2);flex:none}
+.avatars{display:flex}
+.avatars .avatar{margin-left:-8px}
+.avatars .avatar:first-child{margin-left:0}
+
+.view{display:none;padding:30px 32px 80px;animation:viewIn .35s cubic-bezier(.2,.8,.3,1)}
+.view.active{display:block}
+@keyframes viewIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ---------- Cards / chips ---------- */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);transition:border-color .2s}
+.card:hover{border-color:var(--border2)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:600;letter-spacing:.04em;padding:3px 9px;border-radius:20px;text-transform:uppercase;white-space:nowrap}
+.chip .dot{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}
+.chip.ok{color:var(--ok);background:rgba(61,220,151,.1)}
+.chip.track{color:var(--track);background:rgba(109,141,255,.12)}
+.chip.risk{color:var(--risk);background:rgba(255,176,32,.1)}
+.chip.blocked{color:var(--blocked);background:rgba(255,92,106,.1)}
+.chip.replanned{color:var(--replanned);background:rgba(183,140,255,.1)}
+.chip.idle{color:var(--idle);background:rgba(255,255,255,.05)}
+.chip.neutral{color:var(--text2);background:rgba(255,255,255,.05);text-transform:none;letter-spacing:0}
+.tag{font-family:var(--mono);font-size:10.5px;color:var(--text3);background:rgba(255,255,255,.04);border:1px solid var(--border);padding:2px 7px;border-radius:6px}
+.section-title{display:flex;align-items:baseline;gap:12px;margin:38px 0 16px}
+.section-title h2{font-size:16px;font-weight:700;letter-spacing:-.01em}
+.section-title span{font-size:12px;color:var(--text3)}
+.section-title .spacer{flex:1}
+
+/* ---------- Exec header ---------- */
+.exec{background:linear-gradient(160deg,rgba(109,141,255,.08),rgba(16,19,27,.5) 45%),var(--panel);border:1px solid var(--border);border-radius:18px;padding:26px 28px;position:relative;overflow:hidden}
+.exec::after{content:'';position:absolute;top:-60px;right:-40px;width:340px;height:240px;background:radial-gradient(closest-side,rgba(109,141,255,.14),transparent);pointer-events:none}
+.exec-top{display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap}
+.exec-id{flex:1;min-width:340px}
+.exec-id .code{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.1em}
+.exec-id h1{font-size:23px;font-weight:800;letter-spacing:-.02em;margin:6px 0 8px;line-height:1.25;max-width:640px}
+.exec-meta{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--text3)}
+.exec-meta b{color:var(--text2);font-weight:600}
+.health{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.health-badge{display:flex;align-items:center;gap:9px;background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.3);padding:8px 16px;border-radius:11px}
+.health-badge .pulse{width:9px;height:9px;border-radius:50%;background:var(--risk);box-shadow:0 0 12px var(--risk);animation:pulse 2.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.health-badge span{font-size:12.5px;font-weight:700;color:var(--risk)}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:24px}
+.kpi{background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:12px;padding:15px 17px;transition:all .2s}
+.kpi:hover{border-color:var(--border2);background:rgba(255,255,255,.04)}
+.kpi .k-label{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:7px}
+.kpi .k-value{font-size:21px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi .k-sub{font-size:11.5px;color:var(--text3);margin-top:3px}
+.kpi .k-value .unit{font-size:12px;color:var(--text3);font-weight:600}
+.progress-ring{display:flex;align-items:center;gap:12px}
+.bar{height:5px;border-radius:4px;background:rgba(255,255,255,.06);overflow:hidden;flex:1}
+.bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 0 10px rgba(109,141,255,.5);transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.ai-summary{margin-top:22px;display:flex;gap:14px;background:rgba(66,215,200,.045);border:1px solid rgba(66,215,200,.16);border-radius:12px;padding:16px 18px}
+.ai-ico{width:32px;height:32px;flex:none;border-radius:9px;background:linear-gradient(135deg,rgba(66,215,200,.25),rgba(109,141,255,.25));border:1px solid rgba(66,215,200,.3);display:grid;place-items:center;color:var(--accent2);font-size:13px}
+.ai-summary .who{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent2);font-weight:700;margin-bottom:5px}
+.ai-summary p{font-size:13px;color:var(--text2);max-width:900px}
+.ai-summary p b{color:var(--text);font-weight:600}
+
+/* ---------- Timeline (app) ---------- */
+.timeline-card{padding:26px 28px 20px;margin-top:22px;overflow:hidden}
+.tl-head{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+.tl-head h2{font-size:15.5px;font-weight:700}
+.legend{margin-left:auto;display:flex;gap:14px;font-size:10.5px;color:var(--text3);flex-wrap:wrap}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:0}
+.tl-scroll{overflow-x:auto;padding:8px 0 4px}
+.tl{position:relative;min-width:980px;height:238px}
+.tl-track{position:absolute;left:0;right:0;top:118px;height:3px;background:rgba(255,255,255,.07);border-radius:2px}
+.tl-progress{position:absolute;left:0;top:118px;height:3px;border-radius:2px;background:linear-gradient(90deg,var(--ok),var(--accent));box-shadow:0 0 12px rgba(109,141,255,.55);width:0;transition:width 1.4s cubic-bezier(.2,.8,.2,1)}
+.tl-today{position:absolute;top:52px;bottom:14px;width:1px;background:linear-gradient(180deg,transparent,var(--accent2) 20%,var(--accent2) 80%,transparent)}
+.tl-today::before{content:'';position:absolute;top:44%;left:-4px;width:9px;height:9px;border-radius:50%;background:var(--accent2);box-shadow:0 0 16px var(--accent2),0 0 4px var(--accent2);animation:pulse 2s infinite}
+.tl-today .today-label{position:absolute;top:-26px;left:-30px;font-family:var(--mono);font-size:9.5px;color:var(--accent2);letter-spacing:.08em;background:rgba(66,215,200,.1);border:1px solid rgba(66,215,200,.3);padding:2px 8px;border-radius:5px;white-space:nowrap}
+.phase-band{position:absolute;top:88px;height:14px;border-radius:7px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;border:1px solid var(--border)}
+.phase-band.current{background:rgba(109,141,255,.1);border-color:rgba(109,141,255,.3);color:var(--accent)}
+.phase-band.done{background:rgba(61,220,151,.05);color:rgba(61,220,151,.6)}
+.phase-band.future{background:rgba(255,255,255,.02)}
+.ms{position:absolute;top:104px;transform:translateX(-50%);cursor:pointer;text-align:center;width:120px;transition:transform .2s}
+.ms:hover{transform:translateX(-50%) translateY(-3px)}
+.ms .node{width:15px;height:15px;border-radius:50%;margin:0 auto;border:2.5px solid;background:var(--bg);position:relative;z-index:2;transition:all .2s}
+.ms:hover .node{box-shadow:0 0 16px currentColor}
+.ms.done .node{border-color:var(--ok);background:var(--ok);color:var(--ok)}
+.ms.track .node{border-color:var(--track);color:var(--track)}
+.ms.risk .node{border-color:var(--risk);color:var(--risk);animation:pulse 2.4s infinite}
+.ms.blocked .node{border-color:var(--blocked);color:var(--blocked)}
+.ms.idle .node{border-color:#3a4054;color:#3a4054}
+.ms .ms-code{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:9px}
+.ms .ms-name{font-size:11.5px;font-weight:600;color:var(--text2);line-height:1.3;margin-top:2px}
+.ms .ms-date{font-family:var(--mono);font-size:9.5px;color:var(--text3);margin-top:3px}
+.ms.above{top:auto;bottom:96px;display:flex;flex-direction:column-reverse}
+.ms.above>div{padding-bottom:14px}
+.ms .ms-status{margin-top:5px}
+.ms.selected .node{box-shadow:0 0 0 5px rgba(109,141,255,.15),0 0 18px currentColor}
+.dep{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.dep path{stroke:rgba(109,141,255,.28);stroke-width:1.2;fill:none;stroke-dasharray:4 4}
+
+/* ---------- Drawer ---------- */
+.drawer-veil{position:fixed;inset:0;background:rgba(4,5,8,.55);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .3s;z-index:60}
+.drawer-veil.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:470px;max-width:92vw;background:var(--bg2);border-left:1px solid var(--border2);transform:translateX(105%);transition:transform .38s cubic-bezier(.2,.85,.25,1);z-index:70;overflow-y:auto;box-shadow:-30px 0 80px rgba(0,0,0,.5)}
+.drawer.open{transform:none}
+.drawer-in{padding:26px 26px 50px}
+.drawer-close{position:absolute;top:18px;right:18px;width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text2);cursor:pointer;font-size:15px;display:grid;place-items:center}
+.drawer-close:hover{color:var(--text);border-color:var(--border2)}
+.d-code{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.1em}
+.d-title{font-size:19px;font-weight:800;letter-spacing:-.015em;margin:7px 0 12px;line-height:1.3;padding-right:30px}
+.d-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+.d-cell{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:11px 13px}
+.d-cell .l{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
+.d-cell .v{font-size:13px;font-weight:600}
+.d-sec{margin-top:20px}
+.d-sec h4{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:9px;display:flex;align-items:center;gap:8px}
+.d-sec h4 .n{font-family:var(--mono);color:var(--accent);background:rgba(109,141,255,.1);padding:0 6px;border-radius:5px;font-size:10px}
+.d-item{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border:1px solid var(--border);border-radius:9px;margin-bottom:7px;background:var(--panel);font-size:12.5px;color:var(--text2)}
+.d-item .marker{width:7px;height:7px;border-radius:50%;flex:none;margin-top:5.5px}
+.d-item b{color:var(--text);font-weight:600}
+.next-action{margin-top:22px;background:linear-gradient(135deg,rgba(109,141,255,.1),rgba(66,215,200,.06));border:1px solid rgba(109,141,255,.3);border-radius:11px;padding:15px 16px}
+.next-action .l{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:6px}
+.next-action p{font-size:13px;color:var(--text)}
+
+/* ---------- Board ---------- */
+.board-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.fchip{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--panel);font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .18s;font-family:inherit}
+.fchip:hover{border-color:var(--border2);color:var(--text)}
+.fchip.on{background:rgba(109,141,255,.14);border-color:rgba(109,141,255,.45);color:var(--accent)}
+.board{display:grid;grid-template-columns:repeat(5,minmax(252px,1fr));gap:14px;overflow-x:auto;align-items:start;padding-bottom:8px}
+.col{background:rgba(255,255,255,.015);border:1px solid var(--border);border-radius:14px;padding:13px;min-width:252px}
+.col-head{display:flex;align-items:center;gap:9px;padding:2px 4px 12px}
+.col-head .cdot{width:8px;height:8px;border-radius:3px}
+.col-head h3{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text2)}
+.col-head .n{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--text3)}
+.bcard{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:12px 13px;margin-bottom:9px;transition:all .2s;cursor:default;position:relative}
+.bcard:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.bcard .b-title{font-size:12.5px;font-weight:600;line-height:1.4;color:var(--text);margin-bottom:8px}
+.bcard .b-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:10.5px;color:var(--text3)}
+.bcard .b-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
+.bcard .owner{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);font-weight:500}
+.bcard .owner .avatar{width:20px;height:20px;font-size:8.5px}
+.bcard .due{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.bcard .due.over{color:var(--blocked)}
+.bcard .rel{font-size:10px;color:var(--text3);margin-top:7px;padding-top:7px;border-top:1px dashed var(--border)}
+.bcard .rel b{color:var(--accent);font-family:var(--mono);font-weight:500}
+.prio{font-size:9.5px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:5px;text-transform:uppercase}
+.prio.p1{color:var(--blocked);background:rgba(255,92,106,.1)}
+.prio.p2{color:var(--risk);background:rgba(255,176,32,.1)}
+.prio.p3{color:var(--text3);background:rgba(255,255,255,.05)}
+.cred{display:inline-flex;gap:2.5px}
+.cred i{width:11px;height:4px;border-radius:2px;background:rgba(255,255,255,.1)}
+.cred i.f{background:var(--accent2)}
+.resolve-btn{width:100%;margin-top:9px;padding:6px;border-radius:7px;border:1px dashed rgba(61,220,151,.35);background:transparent;color:var(--ok);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .18s}
+.resolve-btn:hover{background:rgba(61,220,151,.08)}
+.sev-grid{display:flex;gap:4px;margin-top:8px}
+.sev-cell{flex:1;font-size:9px;text-align:center;color:var(--text3);padding:3px 0;border-radius:4px;background:rgba(255,255,255,.03)}
+.sev-cell.hot{background:rgba(255,92,106,.14);color:var(--blocked);font-weight:700}
+.sev-cell.warm{background:rgba(255,176,32,.12);color:var(--risk);font-weight:700}
+
+/* ---------- Tables ---------- */
+.table-card{overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);text-align:left;padding:13px 16px;border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap}
+td{padding:13px 16px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .15s}
+tbody tr:hover{background:rgba(255,255,255,.02)}
+td .t-main{color:var(--text);font-weight:600;margin-bottom:3px}
+td .t-sub{font-size:11.5px;color:var(--text3);max-width:420px}
+td.mono{font-family:var(--mono);font-size:11px;color:var(--text3);white-space:nowrap}
+
+/* ---------- Meetings ---------- */
+.meet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+.meet{padding:18px 19px}
+.meet .m-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.meet .m-date{font-family:var(--mono);font-size:10.5px;color:var(--text3);background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:7px;padding:6px 9px;text-align:center;line-height:1.35;flex:none}
+.meet .m-date b{display:block;font-size:14px;color:var(--text)}
+.meet h3{font-size:14px;font-weight:700;line-height:1.35}
+.meet .m-purpose{font-size:11px;color:var(--accent);margin-top:2px}
+.meet p{font-size:12.5px;color:var(--text2);margin:8px 0 12px}
+.meet .m-stats{display:flex;gap:14px;font-size:11px;color:var(--text3);border-top:1px solid var(--border);padding-top:11px;flex-wrap:wrap}
+.meet .m-stats b{color:var(--text);font-weight:700}
+.meet .m-foot{display:flex;align-items:center;gap:8px;margin-top:12px}
+
+/* ---------- AI panel ---------- */
+.ai-layout{display:grid;grid-template-columns:400px 1fr;gap:18px;align-items:start}
+.ai-input{padding:20px;position:sticky;top:76px}
+.ai-input h3{font-size:14px;font-weight:700;margin-bottom:4px}
+.ai-input .sub{font-size:12px;color:var(--text3);margin-bottom:14px}
+.src-opts{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}
+.src{padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:11px;color:var(--text2);cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:8px;background:transparent;font-family:inherit;text-align:left}
+.src:hover{border-color:var(--border2)}
+.src.on{border-color:rgba(109,141,255,.5);background:rgba(109,141,255,.08);color:var(--text)}
+textarea{width:100%;min-height:180px;background:var(--bg);border:1px solid var(--border);border-radius:11px;color:var(--text);font-family:var(--mono);font-size:11.5px;line-height:1.6;padding:13px;resize:vertical;transition:border-color .2s}
+textarea:focus{outline:none;border-color:rgba(109,141,255,.5)}
+textarea::placeholder{color:var(--text3)}
+.steps{display:flex;gap:0;margin-bottom:18px;overflow-x:auto}
+.step{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3);white-space:nowrap}
+.step .s-n{width:20px;height:20px;border-radius:50%;border:1px solid var(--border2);display:grid;place-items:center;font-family:var(--mono);font-size:9.5px}
+.step.done .s-n{background:var(--ok);border-color:var(--ok);color:#06281a}
+.step.now{color:var(--text)}
+.step.now .s-n{border-color:var(--accent);color:var(--accent);box-shadow:0 0 10px rgba(109,141,255,.4)}
+.step-sep{width:34px;height:1px;background:var(--border);margin:0 8px;align-self:center}
+.extract{padding:0;overflow:hidden}
+.extract-head{display:flex;align-items:center;gap:11px;padding:15px 18px;border-bottom:1px solid var(--border);background:rgba(66,215,200,.03)}
+.extract-head h3{font-size:13px;font-weight:700}
+.extract-head .conf{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--accent2)}
+.x-group{padding:14px 18px;border-bottom:1px solid var(--border)}
+.x-group:last-child{border-bottom:none}
+.x-group h4{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;display:flex;gap:8px;align-items:center}
+.x-item{display:flex;gap:12px;align-items:flex-start;padding:11px 13px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--bg2);transition:all .25s}
+.x-item.confirmed{border-color:rgba(61,220,151,.35);background:rgba(61,220,151,.04)}
+.x-item.rejected{opacity:.35;text-decoration:line-through}
+.x-body{flex:1;min-width:0}
+.x-body .x-t{font-size:12.5px;font-weight:600;color:var(--text);line-height:1.4}
+.x-body .x-m{font-size:11px;color:var(--text3);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap}
+.x-body .x-m b{color:var(--text2);font-weight:600}
+.x-act{display:flex;gap:6px;flex:none}
+.xbtn{width:28px;height:28px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;font-size:13px;display:grid;place-items:center;transition:all .15s}
+.xbtn:hover{border-color:var(--border2);color:var(--text)}
+.xbtn.yes:hover,.x-item.confirmed .xbtn.yes{border-color:var(--ok);color:var(--ok);background:rgba(61,220,151,.1)}
+.xbtn.no:hover{border-color:var(--blocked);color:var(--blocked)}
+.ai-empty{padding:60px 30px;text-align:center;color:var(--text3);font-size:13px}
+.ai-empty .big{font-size:30px;margin-bottom:12px;opacity:.5}
+.thinking{display:none;padding:50px;text-align:center}
+.thinking .dots{display:inline-flex;gap:6px}
+.thinking .dots i{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:th 1.2s infinite}
+.thinking .dots i:nth-child(2){animation-delay:.15s}
+.thinking .dots i:nth-child(3){animation-delay:.3s}
+@keyframes th{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-5px)}}
+.thinking p{margin-top:14px;color:var(--text3);font-size:12px;font-family:var(--mono)}
+.apply-bar{display:none;position:sticky;bottom:16px;margin:14px 18px 18px;background:var(--glass);backdrop-filter:blur(12px);border:1px solid rgba(109,141,255,.35);border-radius:12px;padding:12px 16px;align-items:center;gap:12px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.apply-bar span{font-size:12px;color:var(--text2)}
+.apply-bar b{color:var(--text)}
+
+/* ---------- Changes feed ---------- */
+.feed{position:relative;padding-left:24px}
+.feed::before{content:'';position:absolute;left:6px;top:8px;bottom:8px;width:1px;background:linear-gradient(180deg,var(--accent),transparent)}
+.f-item{position:relative;padding:0 0 20px 16px}
+.f-item::before{content:'';position:absolute;left:-21px;top:5px;width:11px;height:11px;border-radius:50%;background:var(--bg);border:2px solid var(--text3)}
+.f-item.new::before{border-color:var(--accent);box-shadow:0 0 10px rgba(109,141,255,.6)}
+.f-item .f-kind{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;margin-bottom:3px}
+.f-item .f-text{font-size:13px;color:var(--text2)}
+.f-item .f-text b{color:var(--text);font-weight:600}
+.f-item .f-when{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:4px}
+.delta-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.delta{padding:16px 18px;text-align:left}
+.delta .d-n{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+.delta .d-l{font-size:11px;color:var(--text3);margin-top:2px}
+.delta .d-trend{font-size:10.5px;font-family:var(--mono);margin-top:8px}
+
+/* ---------- Data model ---------- */
+.dm-wrap{padding:24px;overflow-x:auto}
+.dm-svg{min-width:860px;width:100%}
+.dm-legend{display:flex;gap:20px;font-size:11px;color:var(--text3);padding:0 24px 20px;flex-wrap:wrap}
+
+/* ---------- Chain strip ---------- */
+.chain{display:flex;align-items:center;gap:0;margin:20px 0 6px;overflow-x:auto;padding:4px 2px}
+.chain-node{flex:none;display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:9px 15px;font-size:12px;font-weight:600;color:var(--text2);transition:all .2s;cursor:default}
+.chain-node:hover{border-color:rgba(109,141,255,.4);color:var(--text);transform:translateY(-2px)}
+.chain-node .ci{width:7px;height:7px;border-radius:50%}
+.chain-arrow{flex:none;width:30px;height:1px;background:linear-gradient(90deg,var(--border2),rgba(109,141,255,.4));position:relative;margin:0 2px}
+.chain-arrow::after{content:'';position:absolute;right:0;top:-3px;border:3.5px solid transparent;border-left-color:rgba(109,141,255,.55)}
+
+/* ---------- Toast + modal ---------- */
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--glass);backdrop-filter:blur(14px);border:1px solid rgba(61,220,151,.4);color:var(--text);padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:100;transition:transform .35s cubic-bezier(.2,.9,.3,1.3);box-shadow:0 14px 44px rgba(0,0,0,.55);display:flex;gap:10px;align-items:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast .ti{color:var(--ok)}
+.modal-veil{position:fixed;inset:0;background:rgba(4,5,8,.6);backdrop-filter:blur(4px);display:none;place-items:center;z-index:80}
+.modal-veil.open{display:grid}
+.modal{width:520px;max-width:92vw;background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:24px;animation:viewIn .3s}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:16px}
+.modal label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin:12px 0 5px}
+.modal input,.modal select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:inherit;font-size:13px;padding:10px 12px}
+.modal input:focus,.modal select:focus{outline:none;border-color:rgba(109,141,255,.5)}
+.modal .m-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+
+/* ---------- Responsive ---------- */
+.burger{display:none}
+@media(max-width:1240px){.kpis{grid-template-columns:repeat(3,1fr)}.board{grid-template-columns:repeat(5,262px)}.ai-layout{grid-template-columns:1fr}.ai-input{position:static}.delta-cards{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:fixed;z-index:90;width:250px;transform:translateX(-100%);transition:transform .3s}
+  .sidebar.open{transform:none}
+  .burger{display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--border);border-radius:8px;background:var(--panel);color:var(--text2);cursor:pointer}
+  .view{padding:20px 16px 70px}
+  .topbar{padding:12px 16px}
+  .search{display:none}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .exec-id h1{font-size:19px}
+  .land-top{padding:16px 18px}
+  .wave-arrow{width:42px;height:42px}
+  .tl-scroll{overflow:visible}
+  .tl{min-width:0;height:auto;padding-left:26px}
+  .tl-track,.tl-progress,.tl-today,.phase-band,.dep{display:none}
+  .ms,.ms.above{position:relative;top:auto;bottom:auto;left:auto!important;transform:none;width:auto;text-align:left;display:flex;gap:14px;align-items:flex-start;padding:0 0 26px;flex-direction:row}
+  .ms.above>div{padding-bottom:0}
+  .ms::before{content:'';position:absolute;left:7px;top:18px;bottom:0;width:1px;background:var(--border2)}
+  .ms:last-child::before{display:none}
+  .ms .node{margin:2px 0 0}
+  .ms:hover{transform:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ LANDING ============ -->
+<section id="landing">
+  <div class="tri t1"></div><div class="tri t2"></div><div class="tri t3"></div><div class="tri t4"></div>
+  <div class="land-top">
+    <div class="logo"><div class="logo-mark">M</div><div class="logo-name">MERIDIAN<small>Projektová inteligence</small></div></div>
+    <div class="spacer"></div>
+    <button class="btn ghost sm" onclick="enterApp('changes')">Co se změnilo</button>
+    <button class="btn primary sm" onclick="enterApp()">Otevřít aplikaci →</button>
+  </div>
+  <div class="land-hero">
+    <div class="code">PRJ-2026-014 · ANALYTICKÝ PROJEKT · ÚNOR — PROSINEC 2026</div>
+    <h1>Strategická analýza nasazení C-ITS na železničních přejezdech</h1>
+    <p>Technická, organizační, právní a provozní proveditelnost C-ITS služeb na železničních přejezdech — řízená přes milníky, otázky, důkazy a rozhodnutí.</p>
+    <div class="land-stats" id="land-stats"></div>
+  </div>
+  <div class="road-title"><h2>Roadmapa</h2><span>automaticky generovaná z harmonogramu projektu · klikněte na milník pro detail</span></div>
+  <div class="wave-zone">
+    <div class="wave-arrow prev" id="wa-prev" onclick="wavePan(-1)">‹</div>
+    <div class="wave-arrow next" id="wa-next" onclick="wavePan(1)">›</div>
+    <div class="wave-viewport" id="wave-viewport"></div>
+  </div>
+  <div class="period-tabs" id="period-tabs"></div>
+  <div class="land-hint">MERIDIAN · prototyp v0.9 · fiktivní demonstrační data</div>
+</section>
+
+<div class="app">
+
+<!-- ============ SIDEBAR ============ -->
+<aside class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <div class="logo-name">MERIDIAN<small>Projektová inteligence</small></div>
+  </div>
+  <div class="nav-label">Pracovní prostor</div>
+  <div class="nav-item active" data-view="overview"><svg viewBox="0 0 24 24"><path d="M3 12l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg>Přehled</div>
+  <div class="nav-item" data-view="board"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="10" rx="1"/><rect x="17" y="4" width="4" height="13" rx="1"/></svg>Milníková nástěnka<span class="count" id="nav-open-q">5</span></div>
+  <div class="nav-item" data-view="meetings"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>Schůzky<span class="count">5</span></div>
+  <div class="nav-item" data-view="ai"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.9 2.3L22 18l-2.1.7L19 21l-.9-2.3L16 18l2.1-.7z"/></svg>AI analytik</div>
+  <div class="nav-label">Záznamy</div>
+  <div class="nav-item" data-view="decisions"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-5M12 21a9 9 0 100-18 9 9 0 000 18z"/></svg>Log rozhodnutí<span class="count" id="nav-dec">6</span></div>
+  <div class="nav-item" data-view="issues"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 114.1 1.9c-.8.7-1.6 1.2-1.6 2.3M12 17h.01"/></svg>Log otázek<span class="count" id="nav-iss">5</span></div>
+  <div class="nav-item" data-view="changes"><svg viewBox="0 0 24 24"><path d="M12 8v4l3 2M21 12a9 9 0 11-9-9c2.5 0 4.8 1 6.4 2.7L21 8"/><path d="M21 3v5h-5"/></svg>Co se změnilo<span class="count" id="nav-chg">7</span></div>
+  <div class="nav-label">Systém</div>
+  <div class="nav-item" data-view="model"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8 7.5l2.5 8M16 7.5l-2.5 8M8.5 6h7"/></svg>Datový model</div>
+  <div class="sidebar-foot">
+    <span class="back-link" onclick="exitApp()">← Zpět na úvodní stránku</span>
+    Přihlášen jako<br><b>Z. Horváth</b> · vedoucí projektu<br><span style="font-family:var(--mono);font-size:10px">prototyp v0.9</span>
+  </div>
+</aside>
+
+<!-- ============ MAIN ============ -->
+<div class="main">
+  <div class="topbar">
+    <button class="burger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+    <div class="crumb">Projekty / <b>C-ITS přejezdy</b> / <span id="crumb-view">Přehled</span></div>
+    <div class="search"><span>⌕</span> Hledat otázky, rozhodnutí, důkazy…<kbd>⌘K</kbd></div>
+    <button class="btn ghost sm" onclick="openModal()">+ Schůzka</button>
+    <button class="btn primary sm" onclick="go('ai')">✦ Analyzovat přepis</button>
+    <div class="avatar">ZH</div>
+  </div>
+
+  <!-- ================= PŘEHLED ================= -->
+  <section class="view active" id="view-overview">
+    <div class="exec">
+      <div class="exec-top">
+        <div class="exec-id">
+          <div class="code">PRJ-2026-014 · ANALYTICKÝ PROJEKT</div>
+          <h1>Strategická analýza nasazení C-ITS na železničních přejezdech</h1>
+          <div class="exec-meta">
+            <span>Fáze <b>Analytická validace</b></span>
+            <span>Vlastník <b>Z. Horváth</b></span>
+            <span>Sponzor <b>Ministerstvo dopravy / SŽ</b></span>
+            <span>Poslední aktualizace <b>3. 7. 2026</b></span>
+          </div>
+        </div>
+        <div class="health">
+          <div class="health-badge"><span class="pulse"></span><span>STAV: POZOR</span></div>
+          <div style="font-size:11px;color:var(--text3)">Klíčové riziko: <b style="color:var(--text2)">právní základ sdílení dat nevyřešen</b></div>
+        </div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="k-label">Celkový postup</div>
+          <div class="k-value">46<span class="unit">%</span></div>
+          <div class="progress-ring" style="margin-top:8px"><div class="bar"><i id="kpi-bar" style="width:0%"></i></div></div>
+        </div>
+        <div class="kpi"><div class="k-label">Další milník</div>
+          <div class="k-value" style="font-size:15px;line-height:1.3">M4 · Validace dat a stakeholderů</div>
+          <div class="k-sub">Termín 24. 7. 2026</div>
+        </div>
+        <div class="kpi"><div class="k-label">Zbývá dní</div>
+          <div class="k-value" id="kpi-days">18<span class="unit"> dní</span></div>
+          <div class="k-sub">do gate review M4</div>
+        </div>
+        <div class="kpi"><div class="k-label">Otevřené otázky</div>
+          <div class="k-value" id="kpi-q" style="color:var(--risk)">3</div>
+          <div class="k-sub">blokují M4 · <span style="color:var(--ok)">2 vyřešeny</span></div>
+        </div>
+        <div class="kpi"><div class="k-label">Úkoly po termínu</div>
+          <div class="k-value" style="color:var(--blocked)">1</div>
+          <div class="k-sub">z 5 otevřených akcí</div>
+        </div>
+      </div>
+      <div class="ai-summary">
+        <div class="ai-ico">✦</div>
+        <div>
+          <div class="who">AI projektový analytik · vygenerováno 3. 7. 2026 z přepisu revize rizik</div>
+          <p id="exec-summary">Projekt je ve fázi <b>analytické validace</b>. Dalším milníkem je <b>M4 Validace dat a stakeholderů</b> (24. 7.). Nevyřešené zůstávají <b>tři otevřené otázky</b> — spolehlivost datových zdrojů, právní základ sdílení provozních dat a vlastnictví rozhraní ŘSD. Právní otázka je nyní <b>kritickou cestou</b>: bez písemného výkladu právního týmu nelze přijmout rozhodnutí D-07 a M4 nelze uzavřít. Doporučené priority tohoto týdne: dokončit matici spolehlivosti datových zdrojů a eskalovat žádost o právní stanovisko.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chain -->
+    <div class="section-title"><h2>Analytický řetězec řízení</h2><span>jak je tento projekt řízen</span></div>
+    <div class="chain" id="chain"></div>
+
+    <!-- Timeline -->
+    <div class="card timeline-card">
+      <div class="tl-head">
+        <h2>Roadmapa · únor — prosinec 2026</h2>
+        <div class="legend">
+          <span><i style="background:var(--ok)"></i>Dokončeno</span>
+          <span><i style="background:var(--track)"></i>Podle plánu</span>
+          <span><i style="background:var(--risk)"></i>Ohroženo</span>
+          <span><i style="background:var(--blocked)"></i>Blokováno</span>
+          <span><i style="background:var(--replanned)"></i>Přeplánováno</span>
+          <span><i style="background:#3a4054"></i>Nezahájeno</span>
+        </div>
+      </div>
+      <div class="tl-scroll"><div class="tl" id="tl"></div></div>
+      <div style="font-size:11px;color:var(--text3);padding-top:4px">Kliknutím na milník otevřete detail. Čárkované linky značí závislosti.</div>
+    </div>
+
+    <!-- What changed (compact) + risks -->
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-top:22px" class="two-col">
+      <div class="card" style="padding:22px">
+        <div style="display:flex;align-items:center;margin-bottom:16px">
+          <h2 style="font-size:15px;font-weight:700">Co se změnilo od poslední aktualizace</h2>
+          <span class="chip track" style="margin-left:10px">od 26. 6.</span>
+          <button class="btn ghost sm" style="margin-left:auto" onclick="go('changes')">Celý přehled →</button>
+        </div>
+        <div class="feed" id="feed-compact"></div>
+      </div>
+      <div class="card" style="padding:22px">
+        <div style="display:flex;align-items:center;margin-bottom:16px">
+          <h2 style="font-size:15px;font-weight:700">Hlavní rizika</h2>
+          <button class="btn ghost sm" style="margin-left:auto" onclick="go('board')">Nástěnka →</button>
+        </div>
+        <div id="risk-compact"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= NÁSTĚNKA ================= -->
+  <section class="view" id="view-board">
+    <div class="section-title" style="margin-top:0"><h2>Milníková nástěnka</h2><span>vše, co se musí vyřešit před uzavřením brány</span>
+      <div class="spacer"></div><span style="font-size:11px">Úkoly podle vlastníka:</span>
+      <select id="owner-filter" onchange="renderBoard()" style="background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 10px;font-family:inherit;font-size:12px">
+        <option value="all">Všichni vlastníci</option>
+      </select>
+    </div>
+    <div class="board-filters" id="ms-filters"></div>
+    <div class="board" id="board"></div>
+  </section>
+
+  <!-- ================= SCHŮZKY ================= -->
+  <section class="view" id="view-meetings">
+    <div class="section-title" style="margin-top:0"><h2>Inteligence schůzek</h2><span>každá schůzka sytí log rozhodnutí a otázek</span>
+      <div class="spacer"></div>
+      <button class="btn ghost sm" onclick="openModal()">+ Přidat schůzku</button>
+      <button class="btn primary sm" onclick="go('ai')">✦ Zpracovat přepis</button>
+    </div>
+    <div class="meet-grid" id="meetings"></div>
+  </section>
+
+  <!-- ================= AI ================= -->
+  <section class="view" id="view-ai">
+    <div class="section-title" style="margin-top:0"><h2>AI projektový analytik</h2><span>přepis dovnitř → strukturovaná projektová inteligence ven</span></div>
+    <div class="steps" id="ai-steps">
+      <div class="step now" data-s="1"><span class="s-n">1</span>Vložit / nahrát</div><div class="step-sep"></div>
+      <div class="step" data-s="2"><span class="s-n">2</span>AI analýza</div><div class="step-sep"></div>
+      <div class="step" data-s="3"><span class="s-n">3</span>Kontrola extrakce</div><div class="step-sep"></div>
+      <div class="step" data-s="4"><span class="s-n">4</span>Potvrzení položek</div><div class="step-sep"></div>
+      <div class="step" data-s="5"><span class="s-n">5</span>Aktualizace projektu</div><div class="step-sep"></div>
+      <div class="step" data-s="6"><span class="s-n">6</span>Update pro tým</div>
+    </div>
+    <div class="ai-layout">
+      <div class="card ai-input">
+        <h3>Zdrojový materiál</h3>
+        <div class="sub">Bez nutnosti API — funguje s ručním vložením, nahráním souboru nebo exportem z Transkriptoru.</div>
+        <div class="src-opts">
+          <button class="src on">⌨ Vložit přepis</button>
+          <button class="src">📄 Nahrát TXT / DOCX / PDF</button>
+          <button class="src">⇪ Import z Transkriptoru</button>
+          <button class="src">✉ Souhrn z e-mailu</button>
+        </div>
+        <textarea id="transcript" placeholder="Vložte sem surový přepis schůzky, poznámky z hovoru nebo výstup voice-to-text…
+
+Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravili v ChatGPT/Claude — Meridian jej namapuje na projektové entity."></textarea>
+        <div style="display:flex;gap:9px;margin-top:12px">
+          <button class="btn primary" style="flex:1;justify-content:center" onclick="runExtraction()">✦ Spustit AI extrakci</button>
+          <button class="btn ghost" onclick="loadSample()">Načíst ukázku</button>
+        </div>
+        <div style="font-size:10.5px;color:var(--text3);margin-top:12px;line-height:1.6">Režimy zpracování: <b style="color:var(--text2)">lokální zástupný výstup</b> (prototyp) · ruční kolečko přes ChatGPT/Claude · budoucí integrace API. Nic se do projektu nezapíše bez vašeho potvrzení.</div>
+      </div>
+      <div class="card extract">
+        <div class="extract-head"><div class="ai-ico" style="width:26px;height:26px;font-size:11px">✦</div><h3>Výsledek extrakce</h3><span class="conf" id="x-conf"></span></div>
+        <div class="ai-empty" id="ai-empty"><div class="big">✦</div>Vložte přepis a spusťte extrakci.<br>AI navrhne rozhodnutí, otázky, úkoly a rizika — kontrolu máte vy.</div>
+        <div class="thinking" id="ai-thinking"><div class="dots"><i></i><i></i><i></i></div><p id="think-msg">analyzuji přepis…</p></div>
+        <div id="x-results"></div>
+        <div class="apply-bar" id="apply-bar">
+          <span><b id="apply-n">0</b> potvrzených položek · aktualizuje se roadmapa, log rozhodnutí a seznam úkolů</span>
+          <div style="flex:1"></div>
+          <button class="btn ok sm" onclick="applyExtraction()">Zapsat do projektu ✓</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ROZHODNUTÍ ================= -->
+  <section class="view" id="view-decisions">
+    <div class="section-title" style="margin-top:0"><h2>Log rozhodnutí</h2><span>co bylo rozhodnuto — a proč</span></div>
+    <div class="card table-card">
+      <div style="overflow-x:auto"><table id="dec-table">
+        <thead><tr><th>ID</th><th>Rozhodnutí</th><th>Datum</th><th>Vlastník</th><th>Zdroj</th><th>Milník</th><th>Vratnost</th><th>Stav</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- ================= OTÁZKY ================= -->
+  <section class="view" id="view-issues">
+    <div class="section-title" style="margin-top:0"><h2>Log otázek a problémů</h2><span>ne seznam úkolů — otázky, kvůli kterým projekt existuje</span></div>
+    <div id="issue-log"></div>
+  </section>
+
+  <!-- ================= ZMĚNY ================= -->
+  <section class="view" id="view-changes">
+    <div class="section-title" style="margin-top:0"><h2>Co se změnilo od poslední aktualizace</h2><span>reportovací okno: 26. 6. → 6. 7. 2026 · podklad pro řídicí schůzky</span>
+      <div class="spacer"></div><button class="btn ghost sm" onclick="toast('Jednostránkový stavový souhrn exportován')">Exportovat souhrn ↓</button></div>
+    <div class="delta-cards">
+      <div class="card delta"><div class="d-n" style="color:var(--ok)" id="dl-q">2</div><div class="d-l">Uzavřené otázky</div><div class="d-trend" style="color:var(--ok)">▲ důkazy potvrzeny</div></div>
+      <div class="card delta"><div class="d-n" style="color:var(--accent)" id="dl-d">2</div><div class="d-l">Nová rozhodnutí</div><div class="d-trend" style="color:var(--text3)">D-05, D-06</div></div>
+      <div class="card delta"><div class="d-n" style="color:var(--blocked)">1</div><div class="d-l">Nové riziko</div><div class="d-trend" style="color:var(--blocked)">▲ právní výklad</div></div>
+      <div class="card delta"><div class="d-n">+9<span style="font-size:13px;color:var(--text3)">%</span></div><div class="d-l">Postup M4</div><div class="d-trend" style="color:var(--ok)">53 % → 62 %</div></div>
+    </div>
+    <div class="card" style="padding:24px"><div class="feed" id="feed-full"></div></div>
+  </section>
+
+  <!-- ================= DATOVÝ MODEL ================= -->
+  <section class="view" id="view-model">
+    <div class="section-title" style="margin-top:0"><h2>Konceptuální datový model</h2><span>odlehčené schéma prototypu</span></div>
+    <div class="card dm-wrap">
+      <svg class="dm-svg" viewBox="0 0 900 520" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0 0L7 3L0 6" fill="none" stroke="#6d8dff" stroke-width="1.2"/></marker>
+          <linearGradient id="gA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d8dff" stop-opacity=".18"/><stop offset="1" stop-color="#6d8dff" stop-opacity=".04"/></linearGradient>
+          <linearGradient id="gB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#42d7c8" stop-opacity=".16"/><stop offset="1" stop-color="#42d7c8" stop-opacity=".03"/></linearGradient>
+        </defs>
+        <style>
+          .ent{fill:#10131b;stroke:rgba(255,255,255,.14)}
+          .ent-core{stroke:rgba(109,141,255,.55)}
+          .ent-ai{stroke:rgba(66,215,200,.5)}
+          .et{fill:#e8eaf2;font:600 12px Inter,sans-serif}
+          .ef{fill:#5d6478;font:9.5px 'JetBrains Mono',monospace}
+          .rel{stroke:rgba(109,141,255,.4);stroke-width:1.1;fill:none;marker-end:url(#arr)}
+          .rel-ai{stroke:rgba(66,215,200,.5)}
+          .rl{fill:#9aa1b5;font:9px 'JetBrains Mono',monospace}
+        </style>
+        <rect class="ent ent-core" x="20" y="20" width="130" height="52" rx="10" fill="url(#gA)"/><text class="et" x="34" y="42">Projekt</text><text class="ef" x="34" y="58">název · fáze · stav</text>
+        <rect class="ent" x="210" y="20" width="130" height="52" rx="10"/><text class="et" x="224" y="42">Fáze</text><text class="ef" x="224" y="58">start · konec · pořadí</text>
+        <rect class="ent ent-core" x="400" y="20" width="150" height="52" rx="10" fill="url(#gA)"/><text class="et" x="414" y="42">Milník</text><text class="ef" x="414" y="58">stav · datum · %</text>
+        <path class="rel" d="M150 46h58"/><path class="rel" d="M340 46h58"/>
+        <text class="rl" x="158" y="38">1‥n</text><text class="rl" x="348" y="38">1‥n</text>
+        <rect class="ent" x="120" y="150" width="140" height="46" rx="10"/><text class="et" x="134" y="169">Otevřená otázka</text><text class="ef" x="134" y="184">jistota · odpověď</text>
+        <rect class="ent" x="300" y="150" width="120" height="46" rx="10"/><text class="et" x="314" y="169">Úkol</text><text class="ef" x="314" y="184">vlastník · termín</text>
+        <rect class="ent" x="460" y="150" width="120" height="46" rx="10"/><text class="et" x="474" y="169">Riziko</text><text class="ef" x="474" y="184">záv. × pravd.</text>
+        <rect class="ent" x="620" y="150" width="130" height="46" rx="10"/><text class="et" x="634" y="169">Rozhodnutí</text><text class="ef" x="634" y="184">zdůvodnění · vrat.</text>
+        <rect class="ent" x="620" y="20" width="130" height="46" rx="10"/><text class="et" x="634" y="39">Aktualizace</text><text class="ef" x="634" y="54">delta · období</text>
+        <path class="rel" d="M455 72L230 150"/><path class="rel" d="M470 72L365 150"/><path class="rel" d="M490 72L515 150"/><path class="rel" d="M540 72L660 150"/><path class="rel" d="M550 46h70"/>
+        <text class="rl" x="562" y="38">reportuje</text>
+        <rect class="ent ent-core" x="300" y="280" width="150" height="52" rx="10" fill="url(#gA)"/><text class="et" x="314" y="302">Schůzka</text><text class="ef" x="314" y="318">účastníci · účel</text>
+        <path class="rel" d="M355 280l-135-84"/><text class="rl" x="235" y="246">otevírá</text>
+        <path class="rel" d="M390 280l-20-84"/><text class="rl" x="392" y="240">zadává</text>
+        <path class="rel" d="M420 280l85-84"/><text class="rl" x="468" y="246">hlásí</text>
+        <path class="rel" d="M450 300L640 196"/><text class="rl" x="560" y="258">vytváří</text>
+        <rect class="ent" x="620" y="280" width="140" height="52" rx="10"/><text class="et" x="634" y="302">Důkaz</text><text class="ef" x="634" y="318">věrohodnost · zdroj</text>
+        <path class="rel" d="M690 280l-8-84"/><text class="rl" x="696" y="240">podporuje</text>
+        <path class="rel" d="M620 300L260 180"/><text class="rl" x="380" y="228">odpovídá</text>
+        <path class="rel" d="M685 150l-6-84"/><text class="rl" x="692" y="110">uzavírá ?</text>
+        <rect class="ent" x="60" y="280" width="120" height="52" rx="10"/><text class="et" x="74" y="302">Osoba</text><text class="ef" x="74" y="318">role · organizace</text>
+        <path class="rel" d="M180 296l120 2"/><text class="rl" x="212" y="290">účastní se</text>
+        <path class="rel" d="M140 280l40-84"/><text class="rl" x="120" y="240">vlastní</text>
+        <rect class="ent ent-ai" x="120" y="410" width="150" height="52" rx="10" fill="url(#gB)"/><text class="et" x="134" y="432">Přepis</text><text class="ef" x="134" y="448">surový · nahraný · vložený</text>
+        <rect class="ent ent-ai" x="360" y="410" width="160" height="52" rx="10" fill="url(#gB)"/><text class="et" x="374" y="432">AI extrakce</text><text class="ef" x="374" y="448">položky · jistota</text>
+        <path class="rel rel-ai" d="M270 436h84"/><text class="rl" x="278" y="428">zpracován →</text>
+        <path class="rel rel-ai" d="M375 410l-10-78"/><text class="rl" x="330" y="378">ze schůzky</text>
+        <path class="rel rel-ai" d="M520 430c110 0 160-40 168-224"/><text class="rl" x="545" y="416">po potvrzení → Rozhodnutí / Úkol / Riziko / Otázka / Důkaz</text>
+      </svg>
+    </div>
+    <div class="dm-legend">
+      <span><i style="display:inline-block;width:10px;height:10px;border:1.5px solid rgba(109,141,255,.6);border-radius:3px;margin-right:6px;vertical-align:-1px"></i>Jádro (Projekt → Milník → Schůzka)</span>
+      <span><i style="display:inline-block;width:10px;height:10px;border:1.5px solid rgba(66,215,200,.6);border-radius:3px;margin-right:6px;vertical-align:-1px"></i>AI pipeline (nic se nezapisuje bez potvrzení)</span>
+      <span>Klíčová pravidla: Schůzka vytváří rozhodnutí, úkoly, rizika, důkazy a otázky · Rozhodnutí může uzavřít otázku · Důkaz podporuje rozhodnutí · Úkol odblokuje milník</span>
+    </div>
+  </section>
+
+</div>
+</div>
+
+<!-- Drawer -->
+<div class="drawer-veil" id="veil" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer"><div class="drawer-in" id="drawer-in"></div></aside>
+
+<!-- Modal -->
+<div class="modal-veil" id="modal">
+  <div class="modal">
+    <h3>Přidat schůzku</h3>
+    <label>Název</label><input id="mm-title" placeholder="např. Právní koordinační call">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><label>Datum</label><input type="date" id="mm-date" value="2026-07-09"></div>
+      <div><label>Navázaný milník</label><select id="mm-ms"><option>M4 · Validace dat a stakeholderů</option><option>M5 · Varianty řešení</option><option>M6 · Doporučená varianta</option></select></div>
+    </div>
+    <label>Účel</label><input id="mm-purpose" placeholder="Co má tato schůzka vyřešit?">
+    <div class="m-actions">
+      <button class="btn ghost" onclick="closeModal()">Zrušit</button>
+      <button class="btn primary" onclick="addMeeting()">Vytvořit schůzku</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="ti">✓</span><span id="toast-msg"></span></div>
+
+<script>
+/* ================= DATA ================= */
+const people = {ZH:'Zoltán Horváth',MK:'Marie Klimešová',PN:'Petr Novotný',JS:'Jana Svobodová',TB:'Tomáš Beneš',LEG:'Právní tým (ext.)'};
+const STATUS = {done:['Dokončeno','ok'],track:['Podle plánu','track'],risk:['Ohroženo','risk'],blocked:['Blokováno','blocked'],replanned:['Přeplánováno','replanned'],idle:['Nezahájeno','idle']};
+const TODAY='2026-07-06';
+
+const milestones=[
+ {id:'M1',name:'Zahájení projektu',date:'2026-02-10',pos:4,status:'done',progress:100,owner:'ZH',phase:'Zahájení',
+  short:'Governance a rozsah potvrzeny',
+  objective:'Potvrdit rozsah, řízení, stakeholdery a analytický model řízení studie C-ITS na železničních přejezdech.',
+  blocking:[],decisions:['D-01 Milníkové analytické řízení'],evidence:['Podepsaná projektová charta','Mapa stakeholderů v1'],meetings:['Zahajovací workshop'],
+  next:'Uzavřeno. Charta archivována, governance běží.'},
+ {id:'M2',name:'Analýza současného stavu',date:'2026-04-03',pos:20,status:'done',progress:100,owner:'MK',phase:'Analýza',
+  short:'Současný stav a datové toky zmapovány',
+  objective:'Zmapovat stávající zabezpečení přejezdů, datové toky a relevantní C-ITS piloty na české železniční síti.',
+  blocking:[],decisions:['D-02 Rozsah omezen na přejezdy P4b+'],evidence:['Zpráva o současném stavu v2.1','Rešerše pilotů C-Roads'],meetings:['Revize technické architektury'],
+  next:'Uzavřeno. Zjištění vstupují do definice problému.'},
+ {id:'M3',name:'Definice problému',date:'2026-05-22',pos:35,status:'done',progress:100,owner:'ZH',phase:'Analýza',
+  short:'Zadání a hodnoticí kritéria schválena',
+  objective:'Formulovat přesné zadání problému a hodnoticí kritéria pro kandidátské C-ITS služby.',
+  blocking:[],decisions:['D-03 Mezery v důkazech = blokátory','D-04 Hodnoticí kritéria stanovena'],evidence:['Zadání problému v1.0','Matice kritérií'],meetings:['Revize technické architektury'],
+  next:'Uzavřeno s jedním přeplánovaným výstupem (příloha rozhovorů → M4).'},
+ {id:'M4',name:'Validace dat a stakeholderů',date:'2026-07-24',pos:52,status:'risk',progress:62,owner:'MK',phase:'Validace',dep:'M3',
+  short:'3 otevřené otázky · právní stanovisko na kritické cestě',
+  objective:'Ověřit, že dostupné datové zdroje a závazky stakeholderů postačují pro realizovatelné doporučení.',
+  blocking:['Q-03 Právní základ sdílení provozních dat (LEG)','Q-01 Matice spolehlivosti datových zdrojů nedokončena','T-04 Souhrn rozhovorů se stakeholdery po termínu'],
+  decisions:['D-07 Právní výklad sdílení dat — ČEKÁ'],
+  evidence:['Matice spolehlivosti dat (rozpracováno)','Souhrn rozhovorů se stakeholdery (po termínu)','Právní stanovisko (vyžádáno 30. 6.)'],
+  meetings:['Validační schůzka se stakeholdery','Revize rizik'],
+  next:'Eskalovat právní stanovisko na sponzora do 10. 7.; dokončit matici spolehlivosti do 15. 7.; gate review 24. 7.'},
+ {id:'M5',name:'Varianty řešení',date:'2026-09-18',pos:68,status:'idle',progress:0,owner:'PN',phase:'Syntéza',dep:'M4',
+  short:'3–4 varianty nasazení k obodování',
+  objective:'Připravit a obodovat 3–4 varianty nasazení (roadside vs. hybridní vs. síťová) podle kritérií z M3.',
+  blocking:['Závisí na validované datové základně z M4'],decisions:['Očekává se rozhodnutí o užším výběru variant'],evidence:['Hodnoticí sešit variant (plán)'],meetings:['—'],
+  next:'Zahájit workshopy variant v týdnu 34 po uzavření M4.'},
+ {id:'M6',name:'Doporučená varianta',date:'2026-11-06',pos:83,status:'idle',progress:0,owner:'ZH',phase:'Syntéza',dep:'M5',
+  short:'Výběr preferované varianty pro řídicí výbor',
+  objective:'Vybrat a obhájit preferovaný přístup k nasazení vč. nákladů, governance a právního rámce.',
+  blocking:['Závisí na bodování variant z M5'],decisions:['Rozhodnutí o finálním doporučení'],evidence:['Každé doporučení dohledatelné ke zdrojové schůzce či důkazu (pravidlo D-03)'],meetings:['Závěrečná doporučovací rada (plán)'],
+  next:'Připravit podklad pro řídicí výbor dva týdny předem.'},
+ {id:'M7',name:'Závěrečná zpráva',date:'2026-12-18',pos:96,status:'idle',progress:0,owner:'JS',phase:'Dodání',dep:'M6',
+  short:'Finální studie a plán nasazení',
+  objective:'Odevzdat finální studii vč. plánu nasazení, možností financování (CEF/EU) a implementačních rizik.',
+  blocking:[],decisions:[],evidence:['Příloha úplné dohledatelnosti'],meetings:['—'],next:'Ediční plán po uzavření M6.'}
+];
+const phases=[
+ {name:'Zahájení',from:0,to:9,cls:'done'},{name:'Analýza',from:9,to:40,cls:'done'},
+ {name:'Validace',from:40,to:58,cls:'current'},{name:'Syntéza',from:58,to:88,cls:'future'},{name:'Dodání',from:88,to:100,cls:'future'}];
+const TODAY_POS=47.5;
+
+let questions=[
+ {id:'Q-01',q:'Které datové zdroje jsou dostatečně spolehlivé pro online varovné služby na přejezdech?',why:'Finální doporučení stojí a padá s kvalitou dat — nespolehlivý zdroj činí online varovnou službu nedoporučitelnou.',owner:'MK',status:'risk',due:'2026-07-15',prio:'p1',ms:'M4',evidence:'Matice spolehlivosti dat; logy dostupnosti feedu SŽ',answer:'Předběžně: feed zabezpečení SŽ splňuje latenční cíle; dopravní feed ŘSD neověřen.',conf:60},
+ {id:'Q-02',q:'Jaké minimální důkazy jsou nutné před doporučením provozního nasazení?',why:'Definuje důkazní břemeno pro M6 — brání tomu, aby se k řídicímu výboru dostalo nedoložené doporučení.',owner:'ZH',status:'done',due:'2026-06-20',prio:'p2',ms:'M4',evidence:'Matice kritérií v1.2; evaluační metodika C-Roads',answer:'Vyřešeno: dvě nezávislé validace dat + jedna reference provozního pilotu (D-05).',conf:95},
+ {id:'Q-03',q:'Jaká jsou právní omezení sdílení provozních železničních dat se silničními C-ITS službami?',why:'Blokuje rozhodnutí D-07. Bez právního základu nelze doporučit žádné datové rozhraní — kritická cesta k M4.',owner:'LEG',status:'blocked',due:'2026-07-10',prio:'p1',ms:'M4',evidence:'Písemné právní stanovisko (vyžádáno 30. 6.); analýza GDPR / zákona o drahách',answer:'Otevřeno. Ústní indikace pozitivní; písemný výklad chybí.',conf:30},
+ {id:'Q-04',q:'Který stakeholder vlastní jednotlivá datová rozhraní mezi železnicí a silnicí?',why:'Vlastnictví rozhraní určuje, kdo podepíše provozní dohody v doporučení.',owner:'PN',status:'track',due:'2026-07-18',prio:'p2',ms:'M4',evidence:'Souhrn rozhovorů se stakeholdery; návrh RACI',answer:'Návrh RACI pokrývá 7 z 9 rozhraní; vlastnictví I-06/I-07 ze strany ŘSD nepotvrzeno.',conf:70},
+ {id:'Q-05',q:'Která rizika zásadně ovlivňují přechod M4 → M5?',why:'Řídicí výbor požádal o explicitní rizikovou bránu před zahájením návrhu variant.',owner:'TB',status:'done',due:'2026-07-02',prio:'p3',ms:'M4',evidence:'Zápis z revize rizik 2. 7.',answer:'Vyřešeno: právní výklad (R-01) a zpoždění rozhovorů (R-03) vedeny jako rizika brány.',conf:90}
+];
+let evidence=[
+ {name:'Matice spolehlivosti dat',type:'Analýza',status:'track',cred:2,q:'Q-01',note:'11 ze 14 zdrojů posouzeno'},
+ {name:'Právní stanovisko — sdílení dat',type:'Externí zdroj',status:'blocked',cred:0,q:'Q-03',note:'Vyžádáno 30. 6., právní tým bez termínu'},
+ {name:'Souhrn rozhovorů se stakeholdery',type:'Dokument',status:'risk',cred:1,q:'Q-04',note:'9/12 rozhovorů hotovo, souhrn po termínu'},
+ {name:'Logy dostupnosti feedu SŽ',type:'Datový zdroj',status:'done',cred:3,q:'Q-01',note:'Dostupnost 99,2 % za 90 dní'},
+ {name:'Evaluace pilotů C-Roads CZ',type:'Externí zdroj',status:'done',cred:3,q:'Q-02',note:'Převzata recenzovaná metodika'},
+ {name:'Zápis z revize rizik',type:'Zápis ze schůzky',status:'done',cred:2,q:'Q-05',note:'Potvrzeno 2. 7.'}
+];
+let decisions=[
+ {id:'D-01',t:'Řídit projekt přes milníky a otázky, ne přes čistý task-tracking',date:'2026-02-10',owner:'ZH',rat:'Projekt uspěje zodpovězením otázek, ne odškrtáváním úkolů. Sledování je organizováno kolem milníkových bran a důkazů nutných k jejich průchodu.',src:'Zahajovací workshop',ms:'M1',rev:'Ano',status:'done'},
+ {id:'D-02',t:'Omezit rozsah na přejezdy kategorie P4b+ na koridorech TEN-T',date:'2026-03-12',owner:'MK',rat:'Nejvyšší nehodovost a nejlepší dostupnost dat; studie zůstává financovatelná z CEF.',src:'Revize technické architektury',ms:'M2',rev:'Ano',status:'done'},
+ {id:'D-03',t:'Nevyřešené mezery v důkazech řešit jako blokátory, ne poznámky pod čarou',date:'2026-05-14',owner:'ZH',rat:'Brání klasickému selhání analytických projektů: závěrům, které předběhnou důkazy.',src:'Setkání k definici problému',ms:'M3',rev:'Ne',status:'done'},
+ {id:'D-04',t:'Přijmout hodnoticí rámec s 5 kritérii (bezpečnost, latence, náklady, governance, právo)',date:'2026-05-22',owner:'PN',rat:'V souladu s evaluační metodikou C-Roads → srovnatelné s evropskými piloty.',src:'Revize technické architektury',ms:'M3',rev:'Ano',status:'done'},
+ {id:'D-05',t:'Minimální důkazní laťka: dvě nezávislé validace dat + jedna pilotní reference',date:'2026-06-24',owner:'ZH',rat:'Uzavírá Q-02. Stanovuje důkazní břemeno pro jakékoli provozní doporučení v M6.',src:'Validační schůzka se stakeholdery',ms:'M4',rev:'Ne',status:'done'},
+ {id:'D-06',t:'Právní výklad a zpoždění rozhovorů vést jako explicitní rizika brány M4',date:'2026-07-02',owner:'TB',rat:'Výbor požádal o explicitní rizikovou bránu; obě položky mohou samostatně zdržet milník.',src:'Revize rizik',ms:'M4',rev:'Ano',status:'done'},
+ {id:'D-07',t:'Schválit právní výklad sdílení dat jako základ návrhu rozhraní',date:'—',owner:'LEG',rat:'ČEKÁ — vyžaduje písemné právní stanovisko (Q-03). Kritická cesta k bráně M4.',src:'—',ms:'M4',rev:'Ne',status:'blocked'}
+];
+let tasks=[
+ {id:'T-01',t:'Ověřit dostupné datové zdroje (matice spolehlivosti)',owner:'MK',due:'2026-07-15',status:'track',dep:'—',impact:'Uzavírá Q-01 → odblokuje M4',upd:'3. 7. — posouzeno 11/14 zdrojů'},
+ {id:'T-02',t:'Potvrdit právní předpoklady s externí kanceláří',owner:'LEG',due:'2026-07-10',status:'blocked',dep:'Kapacita právního týmu',impact:'Uzavírá Q-03 → umožní D-07',upd:'30. 6. — žádost odeslána, eskalace připravena'},
+ {id:'T-03',t:'Dopracovat syntézní přílohu milníku M3',owner:'JS',due:'2026-07-08',status:'track',dep:'—',impact:'Úplnost dokumentace',upd:'2. 7. — hotovo z 80 %'},
+ {id:'T-04',t:'Připravit souhrn rozhovorů se stakeholdery',owner:'PN',due:'2026-07-01',status:'blocked',dep:'3 zbývající rozhovory',impact:'Uzavírá Q-04 → důkaz pro M4',upd:'PO TERMÍNU — 2 rozhovory přesunuty na 8. 7.',over:true},
+ {id:'T-05',t:'Zrevidovat registr rizik před fází doporučení',owner:'TB',due:'2026-07-20',status:'track',dep:'T-01',impact:'Podmínka brány M4→M5',upd:'4. 7. — návrh rozeslán'}
+];
+let risks=[
+ {id:'R-01',t:'Právní výklad zdrží návrh datových rozhraní',sev:'Vysoká',prob:'Střední',mit:'Eskalace na sponzora 10. 7.; záloha = podmíněné doporučení s právní výhradou',owner:'ZH',due:'2026-07-14',ms:'M4'},
+ {id:'R-02',t:'ŘSD nepotvrdí vlastnictví silničních rozhraní',sev:'Střední',prob:'Střední',mit:'Bilaterální jednání s odborem telematiky ŘSD v týdnu 29',owner:'PN',due:'2026-07-18',ms:'M4'},
+ {id:'R-03',t:'Program rozhovorů se protáhne za gate review M4',sev:'Střední',prob:'Vysoká',mit:'Redukovaný rozsah: 11/12 rozhovorů přijatelných dle D-06',owner:'PN',due:'2026-07-08',ms:'M4'},
+ {id:'R-04',t:'Změna kritérií financování CEF pro výzvu 2027',sev:'Nízká',prob:'Nízká',mit:'Měsíční sledování aktualizací INEA',owner:'JS',due:'2026-09-01',ms:'M7'}
+];
+const meetings=[
+ {t:'Zahajovací workshop',date:'2026-02-10',day:'10',mon:'ÚNO',parts:['ZH','MK','PN','JS','TB'],purpose:'Rozsah a governance',ms:'M1',
+  sum:'Potvrzen rozsah, governance a milníkový analytický model. Dohodnuto pravidlo dohledatelnosti všech budoucích doporučení.',dec:1,q:2,tasks:3,transcript:true},
+ {t:'Revize technické architektury',date:'2026-03-12',day:'12',mon:'BŘE',parts:['MK','PN','TB'],purpose:'Hloubková analýza současného stavu',ms:'M2',
+  sum:'Prověřeny stávající datové toky zabezpečení a architektury pilotů C-Roads. Rozsah zúžen na přejezdy P4b+; přijat rámec 5 kritérií.',dec:2,q:1,tasks:2,transcript:true},
+ {t:'Validační schůzka se stakeholdery',date:'2026-06-24',day:'24',mon:'ČVN',parts:['ZH','MK','PN','JS'],purpose:'Validace dat a závazků',ms:'M4',
+  sum:'SŽ potvrdila přístup k feedu zabezpečení. Stanovena důkazní laťka doporučení (D-05). Vlastnictví rozhraní ŘSD zůstává otevřené → Q-04.',dec:1,q:1,tasks:2,transcript:true},
+ {t:'Revize rizik',date:'2026-07-02',day:'02',mon:'ČVC',parts:['ZH','TB','PN'],purpose:'Kontrola rizik brány M4',ms:'M4',
+  sum:'Potvrzen právní výklad jako hlavní riziko brány. Uzavřena Q-05. Dohodnuta eskalace na sponzora, pokud stanovisko nedorazí do 10. 7.',dec:1,q:1,tasks:1,transcript:true},
+ {t:'Závěrečná doporučovací rada',date:'2026-11-06',day:'06',mon:'LIS',parts:['ZH','JS'],purpose:'Rozhodovací brána (plán)',ms:'M6',
+  sum:'Plánováno. Řídicí výbor rozhodne o preferované variantě nasazení na základě bodování z M5.',dec:0,q:0,tasks:0,transcript:false,planned:true}
+];
+let changes=[
+ {kind:'Rozhodnutí',color:'var(--accent)',text:'<b>D-06</b> — právní výklad a zpoždění rozhovorů formálně vedeny jako rizika brány M4',when:'2. 7. · Revize rizik',neu:true},
+ {kind:'Otázka uzavřena',color:'var(--ok)',text:'<b>Q-05</b> vyřešena — rizika přechodu M4→M5 potvrzena a zdokumentována',when:'2. 7. · Revize rizik',neu:true},
+ {kind:'Nové riziko',color:'var(--blocked)',text:'<b>R-01</b> Právní výklad může zdržet návrh rozhraní — závažnost Vysoká',when:'2. 7. · Revize rizik',neu:true},
+ {kind:'Otázka uzavřena',color:'var(--ok)',text:'<b>Q-02</b> vyřešena — stanovena minimální důkazní laťka (dvě validace + pilotní reference)',when:'24. 6. · Validační schůzka',neu:true},
+ {kind:'Rozhodnutí',color:'var(--accent)',text:'<b>D-05</b> — schválena minimální důkazní laťka pro provozní doporučení',when:'24. 6. · Validační schůzka',neu:true},
+ {kind:'Změna termínu',color:'var(--risk)',text:'<b>T-04</b> souhrn rozhovorů posunut z 1. 7. na 8. 7. (2 rozhovory přesunuty)',when:'1. 7.',neu:true},
+ {kind:'Postup',color:'var(--accent2)',text:'<b>M4</b> postup 53 % → 62 % — matice spolehlivosti 11/14 hotova',when:'3. 7. · týdenní update',neu:true}
+];
+
+/* ================= HELPERS ================= */
+const $=s=>document.querySelector(s);
+const chip=s=>{const[t,c]=STATUS[s]||[s,'neutral'];return `<span class="chip ${c}"><span class="dot"></span>${t}</span>`};
+const av=id=>`<span class="avatar" title="${people[id]||id}">${id.slice(0,2)}</span>`;
+const fdate=d=>d==='—'?'—':new Date(d).toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric'});
+function toast(msg){$('#toast-msg').textContent=msg;$('#toast').classList.add('show');clearTimeout(window._tt);window._tt=setTimeout(()=>$('#toast').classList.remove('show'),2800)}
+
+/* ================= LANDING / APP switching ================= */
+function enterApp(view){document.body.classList.add('in-app');if(view)go(view);
+  setTimeout(()=>{const p=$('#tlp');if(p)p.style.width=TODAY_POS+'%';$('#kpi-bar').style.width='46%'},200)}
+function exitApp(){document.body.classList.remove('in-app');window.scrollTo({top:0,behavior:'instant'})}
+
+/* ================= LANDING WAVE ROADMAP ================= */
+const WAVE={W:2400,H:470,base:322,pad:110};
+const pStart=+new Date('2026-02-01'),pEnd=+new Date('2026-12-31');
+const dateX=d=>WAVE.pad+((+new Date(d)-pStart)/(pEnd-pStart))*(WAVE.W-2*WAVE.pad);
+function waveY(x){return WAVE.base-46*Math.sin(x/150)-16*Math.sin(x/63+2)}
+const landColor={done:'#3ddc97',track:'#6d8dff',risk:'#ffb020',blocked:'#ff5c6a',idle:'#71627e',replanned:'#b78cff'};
+const landStatus={done:'Dokončeno',track:'Podle plánu',risk:'Ohroženo',blocked:'Blokováno',idle:'Nezahájeno',replanned:'Přeplánováno'};
+let waveOffset=0;
+
+function buildWave(){
+  let top='',topB='';
+  for(let x=0;x<=WAVE.W;x+=18){const y=waveY(x),y2=waveY(x+400)+26;
+    top+=(x===0?`M ${x} ${y}`:` L ${x} ${y}`);
+    topB+=(x===0?`M ${x} ${y2}`:` L ${x} ${y2}`)}
+  const fill=`${top} L ${WAVE.W} ${WAVE.H} L 0 ${WAVE.H} Z`;
+  const fillB=`${topB} L ${WAVE.W} ${WAVE.H} L 0 ${WAVE.H} Z`;
+  const tX=dateX(TODAY),tY=waveY(tX);
+
+  let nodes='',lastX=-1e9,lastHigh=false;
+  milestones.forEach(m=>{
+    const x=dateX(m.date),y=waveY(x),c=landColor[m.status]||'#888';
+    const cur=m.status==='risk'||m.status==='track';
+    const q='Q'+(Math.floor(new Date(m.date).getMonth()/3)+1);
+    const dim=m.status==='idle';
+    const flip=x>WAVE.W-280;
+    const tx=flip?x-13:x+13, ta=flip?'end':'start';
+    const high=(x-lastX<330)&&!lastHigh; lastX=x; lastHigh=high;
+    const dy=high?-84:0;
+    nodes+=`<g class="ms-hit" opacity="${dim?.55:1}" onclick="enterApp();setTimeout(()=>openMilestone('${m.id}'),350)">
+      <line x1="${x}" y1="${118+dy}" x2="${x}" y2="${y-13}" stroke="${c}" stroke-width="1" opacity=".5"/>
+      <circle cx="${x}" cy="${112+dy}" r="4" fill="${c}"/>
+      <text x="${tx}" y="${106+dy}" text-anchor="${ta}" fill="${c}" font-family="Inter" font-size="14.5" font-weight="700">${m.id} · ${q} 2026</text>
+      <text x="${tx}" y="${128+dy}" text-anchor="${ta}" class="ms-name-l" fill="${dim?'#8d93a6':'#e8eaf2'}" font-family="Inter" font-size="13" font-weight="600">${m.name}</text>
+      <text x="${tx}" y="${148+dy}" text-anchor="${ta}" fill="#9aa1b5" font-family="Inter" font-size="11">• ${m.short}</text>
+      <text x="${tx}" y="${168+dy}" text-anchor="${ta}" fill="${c}" font-family="Inter" font-size="10.5" font-weight="700" letter-spacing="1">● ${landStatus[m.status].toUpperCase()}${m.status!=='done'?' · '+fdate(m.date):''}</text>
+      ${m.status==='done'
+        ?`<circle cx="${x}" cy="${y}" r="10" fill="${c}"/><text x="${x}" y="${y+4}" text-anchor="middle" fill="#06281a" font-size="11" font-weight="800" font-family="Inter">✓</text>`
+        :cur
+        ?`<circle class="node-pulse" cx="${x}" cy="${y}" r="13" fill="none" stroke="${c}" stroke-width="1.5" opacity=".5"/><circle cx="${x}" cy="${y}" r="8" fill="#fff" stroke="${c}" stroke-width="3"/>`
+        :`<circle cx="${x}" cy="${y}" r="7" fill="#2a2233" stroke="${c}" stroke-width="2"/>`}
+    </g>`;
+  });
+
+  $('#wave-viewport').innerHTML=`
+  <svg id="wave-svg" width="${WAVE.W}" height="100%" viewBox="0 0 ${WAVE.W} ${WAVE.H}" preserveAspectRatio="xMinYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="wg" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#7b2ff7"/><stop offset=".33" stop-color="#d3208b"/>
+        <stop offset=".66" stop-color="#ff5e3a"/><stop offset="1" stop-color="#ff9e2c"/>
+      </linearGradient>
+      <linearGradient id="wgf" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ff5e3a" stop-opacity=".85"/>
+        <stop offset=".5" stop-color="#a1206b" stop-opacity=".35"/>
+        <stop offset="1" stop-color="#2a0a1c" stop-opacity="0"/>
+      </linearGradient>
+      <filter id="wglow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="7"/></filter>
+    </defs>
+    <path d="${fillB}" fill="#5c1140" opacity=".45"/>
+    <path d="${fill}" fill="url(#wgf)"/>
+    <path d="${top}" fill="none" stroke="url(#wg)" stroke-width="7" filter="url(#wglow)" opacity=".8"/>
+    <path d="${top}" fill="none" stroke="url(#wg)" stroke-width="3"/>
+    <line x1="${tX}" y1="86" x2="${tX}" y2="${tY-4}" stroke="#42d7c8" stroke-width="1" stroke-dasharray="3 4" opacity=".8"/>
+    <circle cx="${tX}" cy="${tY}" r="4.5" fill="#42d7c8"><animate attributeName="opacity" values="1;.4;1" dur="2s" repeatCount="indefinite"/></circle>
+    <rect x="${tX-34}" y="62" width="68" height="20" rx="5" fill="rgba(66,215,200,.12)" stroke="rgba(66,215,200,.4)"/>
+    <text x="${tX}" y="76" text-anchor="middle" fill="#42d7c8" font-family="'JetBrains Mono'" font-size="10" letter-spacing="1">DNES 6. 7.</text>
+    ${nodes}
+  </svg>`;
+
+  // period tabs — quarters covered by the schedule
+  const qs=[['Q1 2026','2026-02-15'],['Q2 2026','2026-05-15'],['Q3 2026','2026-08-15'],['Q4 2026','2026-11-15']];
+  $('#period-tabs').innerHTML=qs.map(([l,d],i)=>`<button class="ptab" data-x="${dateX(d)}" onclick="waveGoto(${dateX(d)},this)">${l}</button>`).join('');
+  waveGoto(tX,null,true);
+}
+function viewportW(){return $('#wave-viewport').clientWidth}
+function clampOffset(o){return Math.min(0,Math.max(viewportW()-WAVE.W*waveScale(),o))}
+function waveScale(){return $('#wave-viewport').clientHeight/WAVE.H}
+function applyOffset(){
+  $('#wave-svg').style.transform=`translateX(${waveOffset}px)`;
+  $('#wa-prev').classList.toggle('off',waveOffset>=0);
+  $('#wa-next').classList.toggle('off',waveOffset<=viewportW()-WAVE.W*waveScale());
+  // highlight nearest tab
+  const center=(-waveOffset+viewportW()/2)/waveScale();
+  let best=null,bd=1e9;
+  document.querySelectorAll('.ptab').forEach(t=>{const d=Math.abs(+t.dataset.x-center);if(d<bd){bd=d;best=t}});
+  document.querySelectorAll('.ptab').forEach(t=>t.classList.toggle('on',t===best));
+}
+function wavePan(dir){waveOffset=clampOffset(waveOffset-dir*viewportW()*.7);applyOffset()}
+function waveGoto(x,btn,instant){
+  waveOffset=clampOffset(viewportW()/2-x*waveScale());
+  if(instant)$('#wave-svg')&&($('#wave-svg').style.transition='none');
+  applyOffset();
+  if(instant)requestAnimationFrame(()=>$('#wave-svg').style.transition='');
+}
+window.addEventListener('resize',()=>{waveOffset=clampOffset(waveOffset);applyOffset()});
+
+/* ================= LANDING STATS ================= */
+const doneN=milestones.filter(m=>m.status==='done').length;
+$('#land-stats').innerHTML=`
+  <span class="land-stat"><span class="sdot" style="color:var(--ok);background:var(--ok)"></span><b>${doneN} / ${milestones.length}</b>&nbsp;milníků dokončeno</span>
+  <span class="land-stat"><span class="sdot" style="color:var(--accent);background:var(--accent)"></span>celkový postup&nbsp;<b>46 %</b></span>
+  <span class="land-stat"><span class="sdot" style="color:var(--risk);background:var(--risk)"></span>další: <b>&nbsp;M4 · 24. 7.</b>&nbsp;· zbývá <b>18 dní</b></span>
+  <span class="land-stat"><span class="sdot" style="color:var(--blocked);background:var(--blocked)"></span><b>3</b>&nbsp;otevřené otázky blokují bránu</span>`;
+
+/* ================= NAV ================= */
+const viewNames={overview:'Přehled',board:'Milníková nástěnka',meetings:'Schůzky',ai:'AI analytik',decisions:'Log rozhodnutí',issues:'Log otázek',changes:'Co se změnilo',model:'Datový model'};
+function go(v){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===v));
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id==='view-'+v));
+  $('#crumb-view').textContent=viewNames[v];
+  document.getElementById('sidebar').classList.remove('open');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>go(n.dataset.view)));
+
+/* ================= CHAIN ================= */
+const chainDefs=[['Milník','var(--accent)'],['Otevřené otázky','var(--risk)'],['Důkazy','var(--accent2)'],['Schůzky','var(--text2)'],['Rozhodnutí','var(--ok)'],['Úkoly','var(--track)'],['Stavová aktualizace','var(--replanned)'],['Další milník','var(--accent)']];
+$('#chain').innerHTML=chainDefs.map(([n,c],i)=>`<div class="chain-node"><span class="ci" style="background:${c};box-shadow:0 0 8px ${c}"></span>${n}</div>${i<chainDefs.length-1?'<div class="chain-arrow"></div>':''}`).join('');
+
+/* ================= TIMELINE (app) ================= */
+function renderTimeline(){
+  const tl=$('#tl');
+  let h=`<div class="tl-track"></div><div class="tl-progress" id="tlp"></div>`;
+  phases.forEach(p=>{h+=`<div class="phase-band ${p.cls}" style="left:${p.from}%;width:${p.to-p.from}%">${p.name}</div>`});
+  h+=`<svg class="dep" width="100%" height="100%">`;
+  milestones.filter(m=>m.dep).forEach(m=>{
+    const from=milestones.find(x=>x.id===m.dep);
+    if(from)h+=`<path d="M ${from.pos}% 119 C ${(from.pos+m.pos)/2}% 60, ${(from.pos+m.pos)/2}% 60, ${m.pos}% 119" style="stroke:rgba(109,141,255,.22);fill:none;stroke-dasharray:4 4"/>`;
+  });
+  h+=`</svg>`;
+  h+=`<div class="tl-today" style="left:${TODAY_POS}%"><span class="today-label">DNES · 6. 7.</span></div>`;
+  milestones.forEach((m,i)=>{
+    h+=`<div class="ms ${m.status}${i%2?' above':''}" style="left:${m.pos}%" onclick="openMilestone('${m.id}')" id="msn-${m.id}">
+      <div class="node"></div>
+      <div><div class="ms-code">${m.id} · ${fdate(m.date)}</div>
+      <div class="ms-name">${m.name}</div>
+      <div class="ms-status">${chip(m.status)}</div></div></div>`;
+  });
+  tl.innerHTML=h;
+}
+
+/* ================= DRAWER ================= */
+function openMilestone(id){
+  const m=milestones.find(x=>x.id===id);
+  document.querySelectorAll('.ms').forEach(n=>n.classList.remove('selected'));
+  const node=$('#msn-'+id); if(node)node.classList.add('selected');
+  const li=(arr,color)=>arr.length?arr.map(x=>`<div class="d-item"><span class="marker" style="background:${color}"></span><span>${x}</span></div>`).join(''):`<div class="d-item"><span class="marker" style="background:var(--text3)"></span><span style="color:var(--text3)">Nic</span></div>`;
+  $('#drawer-in').innerHTML=`
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    <div class="d-code">${m.id} · FÁZE: ${m.phase.toUpperCase()}</div>
+    <div class="d-title">${m.name}</div>
+    ${chip(m.status)}
+    <div class="d-grid">
+      <div class="d-cell"><div class="l">Plánované datum</div><div class="v">${fdate(m.date)} 2026</div></div>
+      <div class="d-cell"><div class="l">Vlastník</div><div class="v">${people[m.owner]}</div></div>
+      <div class="d-cell"><div class="l">Dokončení</div><div class="v">${m.progress} %<div class="bar" style="margin-top:7px"><i style="width:${m.progress}%"></i></div></div></div>
+      <div class="d-cell"><div class="l">Závislost</div><div class="v">${m.dep?'nejprve musí skončit '+m.dep:'—'}</div></div>
+    </div>
+    <div class="d-sec"><h4>Cíl milníku</h4><div class="d-item"><span class="marker" style="background:var(--accent)"></span><span>${m.objective}</span></div></div>
+    <div class="d-sec"><h4>Blokující problémy <span class="n">${m.blocking.length}</span></h4>${li(m.blocking,'var(--blocked)')}</div>
+    <div class="d-sec"><h4>Potřebná rozhodnutí <span class="n">${m.decisions.length}</span></h4>${li(m.decisions,'var(--accent)')}</div>
+    <div class="d-sec"><h4>Potřebné důkazy <span class="n">${m.evidence.length}</span></h4>${li(m.evidence,'var(--accent2)')}</div>
+    <div class="d-sec"><h4>Související schůzky</h4>${li(m.meetings,'var(--text2)')}</div>
+    <div class="next-action"><div class="l">Další nutný krok</div><p>${m.next}</p></div>
+    <div style="display:flex;gap:9px;margin-top:18px">
+      <button class="btn sm" onclick="closeDrawer();go('board');filterMs('${m.id}')">Otevřít nástěnku pro ${m.id}</button>
+      <button class="btn ghost sm" onclick="bumpProgress('${m.id}')">Postup +5 %</button>
+    </div>`;
+  $('#drawer').classList.add('open');$('#veil').classList.add('open');
+}
+function closeDrawer(){$('#drawer').classList.remove('open');$('#veil').classList.remove('open');document.querySelectorAll('.ms').forEach(n=>n.classList.remove('selected'))}
+function bumpProgress(id){const m=milestones.find(x=>x.id===id);m.progress=Math.min(100,m.progress+5);
+  changes.unshift({kind:'Postup',color:'var(--accent2)',text:`<b>${id}</b> postup ručně aktualizován na ${m.progress} %`,when:'6. 7. · ruční aktualizace',neu:true});
+  renderFeeds();openMilestone(id);toast(`Postup ${id} aktualizován na ${m.progress} %`)}
+
+/* ================= BOARD ================= */
+let msFilter='M4';
+function filterMs(id){msFilter=id;renderBoard()}
+function renderBoard(){
+  $('#ms-filters').innerHTML=['all',...milestones.map(m=>m.id)].map(id=>
+    `<button class="fchip ${msFilter===id?'on':''}" onclick="filterMs('${id}')">${id==='all'?'Všechny milníky':id+' · '+(milestones.find(m=>m.id===id)||{}).name}</button>`).join('');
+  const of=$('#owner-filter');
+  if(of.options.length===1)Object.keys(people).forEach(k=>of.add(new Option(people[k],k)));
+  const ow=of.value;
+  const inMs=x=>msFilter==='all'||x.ms===msFilter||!x.ms;
+  const prioName=p=>p==='p1'?'Kritická':p==='p2'?'Vysoká':'Běžná';
+
+  const qCards=questions.filter(inMs).map(q=>`
+    <div class="bcard"><div class="b-meta" style="margin-bottom:7px"><span class="tag">${q.id}</span><span class="prio ${q.prio}">${prioName(q.prio)}</span>${chip(q.status)}</div>
+    <div class="b-title">${q.q}</div>
+    <div class="b-row"><span class="owner">${av(q.owner)}${(people[q.owner]||q.owner).split(' ')[0]}</span><span class="due ${q.status!=='done'&&q.due<TODAY?'over':''}">${fdate(q.due)}</span></div>
+    <div class="rel">Blokuje <b>${q.ms}</b> · potřebuje: ${q.evidence.split(';')[0]}</div>
+    ${q.status!=='done'?`<button class="resolve-btn" onclick="resolveQ('${q.id}')">✓ Označit jako vyřešenou</button>`:''}</div>`).join('');
+
+  const eCards=evidence.map(e=>`
+    <div class="bcard"><div class="b-meta" style="margin-bottom:7px"><span class="tag">${e.type}</span>${chip(e.status)}</div>
+    <div class="b-title">${e.name}</div>
+    <div class="b-row"><span style="font-size:10.5px;color:var(--text3)">Věrohodnost</span><span class="cred">${[1,2,3].map(i=>`<i class="${i<=e.cred?'f':''}"></i>`).join('')}</span></div>
+    <div class="rel">Odpovídá na <b>${e.q}</b> · ${e.note}</div></div>`).join('');
+
+  const dCards=decisions.filter(inMs).map(d=>`
+    <div class="bcard"><div class="b-meta" style="margin-bottom:7px"><span class="tag">${d.id}</span>${chip(d.status==='blocked'?'blocked':'done')}<span class="tag">${d.rev==='Ano'?'vratné':'nevratné'}</span></div>
+    <div class="b-title">${d.t}</div>
+    <div class="b-row"><span class="owner">${av(d.owner)}${(people[d.owner]||d.owner).split(' ')[0]}</span><span class="due">${fdate(d.date)}</span></div>
+    <div class="rel">Zdroj: <b style="color:var(--text2);font-family:inherit">${d.src}</b></div></div>`).join('');
+
+  const tCards=tasks.filter(t=>(ow==='all'||t.owner===ow)).map(t=>`
+    <div class="bcard"><div class="b-meta" style="margin-bottom:7px"><span class="tag">${t.id}</span>${chip(t.over?'blocked':t.status)}${t.over?'<span class="prio p1">Po termínu</span>':''}</div>
+    <div class="b-title">${t.t}</div>
+    <div class="b-row"><span class="owner">${av(t.owner)}${(people[t.owner]||t.owner).split(' ')[0]}</span><span class="due ${t.over?'over':''}">${fdate(t.due)}</span></div>
+    <div class="rel">${t.impact} · závislost: ${t.dep}<br><span style="color:var(--text3)">${t.upd}</span></div></div>`).join('');
+
+  const rCards=risks.filter(inMs).map(r=>`
+    <div class="bcard"><div class="b-meta" style="margin-bottom:7px"><span class="tag">${r.id}</span><span class="prio ${r.sev==='Vysoká'?'p1':r.sev==='Střední'?'p2':'p3'}">${r.sev}</span></div>
+    <div class="b-title">${r.t}</div>
+    <div class="sev-grid"><div class="sev-cell ${r.sev==='Vysoká'?'hot':r.sev==='Střední'?'warm':''}">ZÁV. ${r.sev}</div><div class="sev-cell ${r.prob==='Vysoká'?'hot':r.prob==='Střední'?'warm':''}">PRAV. ${r.prob}</div></div>
+    <div class="b-row" style="margin-top:9px"><span class="owner">${av(r.owner)}${people[r.owner].split(' ')[0]}</span><span class="due">${fdate(r.due)}</span></div>
+    <div class="rel">Mitigace: ${r.mit}</div></div>`).join('');
+
+  const col=(title,color,cards,n)=>`<div class="col"><div class="col-head"><span class="cdot" style="background:${color}"></span><h3>${title}</h3><span class="n">${n}</span></div>${cards||'<div style="font-size:11px;color:var(--text3);padding:8px 4px">Nic tu není.</div>'}</div>`;
+  $('#board').innerHTML=
+    col('Otevřené otázky','var(--risk)',qCards,questions.filter(inMs).length)+
+    col('Důkazy','var(--accent2)',eCards,evidence.length)+
+    col('Rozhodnutí','var(--accent)',dCards,decisions.filter(inMs).length)+
+    col('Úkoly / akce','var(--track)',tCards,tasks.filter(t=>ow==='all'||t.owner===ow).length)+
+    col('Rizika / blokátory','var(--blocked)',rCards,risks.filter(inMs).length);
+}
+function resolveQ(id){const q=questions.find(x=>x.id===id);q.status='done';q.conf=90;
+  changes.unshift({kind:'Otázka uzavřena',color:'var(--ok)',text:`<b>${id}</b> označena jako vyřešená (${people[q.owner]||q.owner})`,when:'6. 7. · ručně',neu:true});
+  syncCounts();renderBoard();renderIssues();renderFeeds();toast(`${id} označena jako vyřešená`)}
+
+/* ================= MEETINGS ================= */
+function renderMeetings(){
+  $('#meetings').innerHTML=meetings.map(m=>`
+    <div class="card meet">
+      <div class="m-top">
+        <div class="m-date">${m.mon}<b>${m.day}</b></div>
+        <div><h3>${m.t}</h3><div class="m-purpose">${m.purpose} · navázáno na ${m.ms}</div></div>
+        ${m.planned?'<span class="chip idle" style="margin-left:auto">Plánováno</span>':''}
+      </div>
+      <p>${m.sum}</p>
+      <div class="m-stats"><span><b>${m.dec}</b> rozhodnutí</span><span><b>${m.q}</b> otázky</span><span><b>${m.tasks}</b> úkoly</span>
+        <span style="margin-left:auto" class="avatars">${m.parts.map(av).join('')}</span></div>
+      <div class="m-foot">
+        ${m.transcript?`<button class="btn ghost sm" onclick="go('ai');loadSample()">✦ Znovu spustit extrakci</button><span class="tag">přepis přiložen</span>`:`<button class="btn ghost sm" onclick="go('ai')">＋ Přiložit přepis</button>`}
+      </div>
+    </div>`).join('');
+}
+
+/* ================= ISSUES ================= */
+function renderIssues(){
+  const prioName=p=>p==='p1'?'Kritická':p==='p2'?'Vysoká':'Běžná';
+  $('#issue-log').innerHTML=questions.map(q=>`
+    <div class="card" style="padding:20px 22px;margin-bottom:12px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:9px">
+        <span class="tag">${q.id}</span>${chip(q.status)}<span class="prio ${q.prio}">${prioName(q.prio)}</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--text3)">Blokuje <b style="color:var(--accent);font-family:var(--mono)">${q.ms}</b> · termín <b style="color:${q.status!=='done'&&q.due<TODAY?'var(--blocked)':'var(--text2)'}">${fdate(q.due)}</b></span>
+      </div>
+      <div style="font-size:14.5px;font-weight:700;margin-bottom:6px">${q.q}</div>
+      <div style="font-size:12.5px;color:var(--text2);margin-bottom:14px"><b style="color:var(--text3);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase">Proč na tom záleží — </b>${q.why}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" class="two-col">
+        <div class="d-cell"><div class="l">Potřebné důkazy</div><div style="font-size:12px;color:var(--text2)">${q.evidence}</div></div>
+        <div class="d-cell"><div class="l">Aktuální odpověď</div><div style="font-size:12px;color:var(--text2)">${q.answer}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+        <span class="owner" style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2)">${av(q.owner)}${people[q.owner]||q.owner}</span>
+        <div style="flex:1"></div>
+        <span style="font-size:10.5px;color:var(--text3)">Jistota</span>
+        <div class="bar" style="width:110px"><i style="width:${q.conf}%;background:${q.conf>75?'var(--ok)':q.conf>45?'var(--risk)':'var(--blocked)'};box-shadow:none"></i></div>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--text2)">${q.conf} %</span>
+      </div>
+    </div>`).join('');
+}
+
+/* ================= DECISIONS TABLE ================= */
+function renderDecisions(){
+  $('#dec-table tbody').innerHTML=decisions.map(d=>`
+    <tr><td class="mono">${d.id}</td>
+    <td><div class="t-main">${d.t}</div><div class="t-sub">${d.rat}</div></td>
+    <td class="mono">${fdate(d.date)}</td>
+    <td><span style="display:flex;gap:7px;align-items:center">${av(d.owner)}${(people[d.owner]||d.owner).split(' ')[0]}</span></td>
+    <td style="font-size:11.5px">${d.src}</td>
+    <td class="mono" style="color:var(--accent)">${d.ms}</td>
+    <td>${d.rev==='Ano'?'<span class="chip neutral">Vratné</span>':'<span class="chip risk" style="text-transform:none;letter-spacing:0">Nevratné</span>'}</td>
+    <td>${chip(d.status==='blocked'?'blocked':'done')}</td></tr>`).join('');
+}
+
+/* ================= FEEDS ================= */
+function feedHTML(list){return list.map(c=>`
+  <div class="f-item ${c.neu?'new':''}"><div class="f-kind" style="color:${c.color}">${c.kind}</div>
+  <div class="f-text">${c.text}</div><div class="f-when">${c.when}</div></div>`).join('')}
+function renderFeeds(){
+  $('#feed-compact').innerHTML=feedHTML(changes.slice(0,4));
+  $('#feed-full').innerHTML=feedHTML(changes);
+  $('#nav-chg').textContent=changes.length;
+}
+function renderRiskCompact(){
+  $('#risk-compact').innerHTML=risks.slice(0,3).map(r=>`
+    <div style="display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--border)">
+      <span class="prio ${r.sev==='Vysoká'?'p1':r.sev==='Střední'?'p2':'p3'}" style="margin-top:2px;flex:none">${r.sev}</span>
+      <div><div style="font-size:12.5px;font-weight:600">${r.t}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">${r.id} · ${people[r.owner].split(' ')[0]} · vyřešit do ${fdate(r.due)}</div></div>
+    </div>`).join('');
+}
+
+/* ================= AI EXTRACTION ================= */
+const SAMPLE=`[Revize rizik — 2. července 2026, 14:00, online]
+ZH: Hlavní bod dneška je brána M4. Právníci stále neposlali písemné stanovisko ke sdílení dat.
+TB: Ústně řekli, že zákon o drahách umožňuje sdílet agregovaný stav obsazenosti, ale písemně se zatím nezaváží.
+ZH: Pak to vedeme jako riziko brány. Pokud nic nedorazí do 10. července, eskaluji na sponzora.
+PN: Dva rozhovory se stakeholdery se přesunuly na 8. července — telematika ŘSD a regionální dopravce. Souhrn se posune o týden.
+ZH: Dobře — rozhodnutí: obě položky vedeme jako explicitní rizika brány M4 a zapíšeme do logu.
+TB: Ještě matice spolehlivosti — Marie má hotovo 11 ze 14 zdrojů, feed SŽ vypadá výborně, dostupnost 99,2 %.
+ZH: Fajn. Q-05 k rizikům přechodu považuji touto schůzkou za zodpovězenou. Tomáši, připrav revizi registru rizik před fází doporučení, termín 20. července.
+PN: Vlastnictví rozhraní ŘSD potvrdím na bilaterálu příští týden.`;
+function loadSample(){$('#transcript').value=SAMPLE;toast('Ukázkový přepis načten (Revize rizik, 2. 7.)')}
+
+let extraction=null;
+const thinkMsgs=['analyzuji přepis…','identifikuji mluvčí a role…','extrahuji rozhodnutí a závazky…','mapuji položky na milníky…','odhaduji jistotu…'];
+function runExtraction(){
+  if(!$('#transcript').value.trim()){toast('Nejprve vložte přepis — nebo klikněte na „Načíst ukázku"');return}
+  $('#ai-empty').style.display='none';$('#x-results').innerHTML='';$('#apply-bar').style.display='none';$('#x-conf').textContent='';
+  $('#ai-thinking').style.display='block';setStep(2);
+  let i=0;const tm=setInterval(()=>{$('#think-msg').textContent=thinkMsgs[i%thinkMsgs.length];i++},700);
+  setTimeout(()=>{clearInterval(tm);$('#ai-thinking').style.display='none';showExtraction();setStep(3)},3600);
+}
+function setStep(n){document.querySelectorAll('#ai-steps .step').forEach(s=>{const k=+s.dataset.s;s.classList.toggle('done',k<n);s.classList.toggle('now',k===n)})}
+function showExtraction(){
+  extraction={
+    summary:'Revize rizik potvrdila právní stanovisko jako kritické riziko brány M4 s eskalační cestou na sponzora k 10. 7. Program rozhovorů se posouvá o týden; validace spolehlivosti dat běží podle plánu (11/14, feed SŽ ověřen). Q-05 je považována za zodpovězenou.',
+    groups:[
+      {name:'Rozhodnutí',color:'var(--accent)',items:[
+        {t:'Právní výklad a zpoždění rozhovorů vést jako explicitní rizika brány M4',m:'Vlastník: <b>Z. Horváth</b> · zapíše se do logu rozhodnutí · milník <b>M4</b>',state:0},
+        {t:'Eskalovat na sponzora, pokud právní stanovisko nedorazí do 10. 7.',m:'Vlastník: <b>Z. Horváth</b> · podmíněné rozhodnutí · milník <b>M4</b>',state:0}]},
+      {name:'Otevřené otázky',color:'var(--risk)',items:[
+        {t:'Q-05 (rizika přechodu) navržena jako VYŘEŠENÁ touto schůzkou',m:'Jistota 90 % · uzavírá otevřenou otázku',state:0}]},
+      {name:'Akční body',color:'var(--track)',items:[
+        {t:'Připravit revizi registru rizik před fází doporučení',m:'Vlastník: <b>T. Beneš</b> · termín <b>20. 7.</b> · → převede se na úkol',state:0},
+        {t:'Potvrdit vlastnictví rozhraní ŘSD na bilaterálním jednání',m:'Vlastník: <b>P. Novotný</b> · termín <b>týden 29</b> · podporuje Q-04',state:0}]},
+      {name:'Rizika',color:'var(--blocked)',items:[
+        {t:'Písemné právní stanovisko nemusí dorazit před gate review',m:'Závažnost <b>Vysoká</b> · pravděpodobnost <b>Střední</b> · ovlivňuje <b>M4</b>',state:0}]},
+      {name:'Změněné předpoklady a dopad na roadmapu',color:'var(--replanned)',items:[
+        {t:'Termín souhrnu rozhovorů se posouvá z 1. 7. na 8. 7.',m:'Změna termínu u <b>T-04</b> · datum milníku se zatím nemění',state:0}]}
+    ]};
+  $('#x-conf').textContent='jistota modelu 87 % · 7 položek';
+  renderExtraction();
+}
+function renderExtraction(){
+  $('#x-results').innerHTML=
+   `<div class="x-group"><h4><span style="color:var(--accent2)">✦</span> Manažerský souhrn</h4>
+    <div class="x-item confirmed" style="border-color:rgba(66,215,200,.3)"><div class="x-body"><div class="x-t" style="font-weight:500;color:var(--text2)">${extraction.summary}</div></div></div></div>`
+   +extraction.groups.map((g,gi)=>`<div class="x-group"><h4><span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:${g.color}"></span>${g.name}</h4>
+    ${g.items.map((it,ii)=>`<div class="x-item ${it.state===1?'confirmed':it.state===2?'rejected':''}">
+      <div class="x-body"><div class="x-t">${it.t}</div><div class="x-m">${it.m}</div></div>
+      <div class="x-act">
+        <button class="xbtn yes" title="Potvrdit" onclick="setX(${gi},${ii},1)">✓</button>
+        <button class="xbtn" title="Upravit" onclick="toast('Inline editace bude v plné verzi')">✎</button>
+        <button class="xbtn no" title="Zamítnout" onclick="setX(${gi},${ii},2)">✕</button>
+      </div></div>`).join('')}</div>`).join('');
+  const n=extraction.groups.flatMap(g=>g.items).filter(i=>i.state===1).length;
+  $('#apply-n').textContent=n;
+  $('#apply-bar').style.display='flex';
+  if(n>0)setStep(4);
+}
+function setX(g,i,s){extraction.groups[g].items[i].state=extraction.groups[g].items[i].state===s?0:s;renderExtraction()}
+function applyExtraction(){
+  const n=extraction.groups.flatMap(g=>g.items).filter(i=>i.state===1).length;
+  if(!n){toast('Nejprve potvrďte alespoň jednu položku');return}
+  setStep(5);
+  changes.unshift({kind:'AI aktualizace',color:'var(--accent2)',text:`<b>${n} položek</b> z přepisu revize rizik zapsáno — aktualizován log rozhodnutí, seznam úkolů a registr rizik`,when:'6. 7. · AI analytik',neu:true});
+  renderFeeds();
+  setTimeout(()=>{setStep(6);toast(`${n} položek zapsáno · vygenerován návrh updatu pro tým`);
+    $('#exec-summary').innerHTML='Projekt zůstává ve fázi <b>analytické validace</b>. Po poslední extrakci je <b>právní stanovisko (Q-03) jedinou položkou na kritické cestě</b> k M4 (24. 7.). Eskalace na sponzora je připravena k 10. 7. Validace spolehlivosti dat běží podle plánu (11/14 zdrojů; feed SŽ ověřen s dostupností 99,2 %). Souhrn rozhovorů má nový termín 8. 7.';
+  },900);
+}
+
+/* ================= MODAL ================= */
+function openModal(){$('#modal').classList.add('open')}
+function closeModal(){$('#modal').classList.remove('open')}
+function addMeeting(){
+  const t=$('#mm-title').value||'Schůzka bez názvu';const d=new Date($('#mm-date').value);
+  const monCz=['LED','ÚNO','BŘE','DUB','KVĚ','ČVN','ČVC','SRP','ZÁŘ','ŘÍJ','LIS','PRO'][d.getMonth()];
+  meetings.unshift({t,date:$('#mm-date').value,day:String(d.getDate()).padStart(2,'0'),mon:monCz,parts:['ZH'],purpose:$('#mm-purpose').value||'—',ms:$('#mm-ms').value.split(' ')[0],sum:'Naplánováno. Zatím bez souhrnu — po schůzce přiložte přepis a spusťte AI extrakci.',dec:0,q:0,tasks:0,transcript:false,planned:true});
+  renderMeetings();closeModal();go('meetings');toast('Schůzka vytvořena — přepis lze přiložit po jejím konání');
+}
+
+/* ================= COUNTS + INIT ================= */
+function syncCounts(){
+  const openQ=questions.filter(q=>q.status!=='done').length;
+  $('#nav-open-q').textContent=openQ;$('#nav-iss').textContent=questions.length;$('#nav-dec').textContent=decisions.length;
+  $('#kpi-q').textContent=openQ;
+}
+renderTimeline();renderBoard();renderMeetings();renderIssues();renderDecisions();renderFeeds();renderRiskCompact();syncCounts();buildWave();
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeModal()}});
+const mq=matchMedia('(max-width:1000px)');const fix=()=>{document.querySelectorAll('.two-col').forEach(n=>n.style.gridTemplateColumns=mq.matches?'1fr':'')};mq.addEventListener('change',fix);fix();
+</script>
+</body>
+</html>
