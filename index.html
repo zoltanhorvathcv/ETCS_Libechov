@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MERIDIAN — Projektová inteligence</title>
+<title>Projektová inteligence — Správa železnic</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -91,10 +91,10 @@ body.in-app .app{display:grid}
 .sidebar{position:sticky;top:0;height:100vh;background:var(--bg2);border-right:1px solid var(--border);padding:22px 14px;display:flex;flex-direction:column;gap:4px}
 .logo{display:flex;align-items:center;gap:10px;padding:4px 10px 22px}
 #landing .logo{padding:0}
-.logo-mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#4a5fd0 60%,var(--accent2));display:grid;place-items:center;font-weight:800;font-size:13px;color:#fff;box-shadow:0 0 24px rgba(109,141,255,.35)}
-#landing .logo-mark{background:linear-gradient(135deg,#d3208b,#ff5e3a);box-shadow:0 0 24px rgba(255,94,58,.35)}
-.logo-name{font-weight:700;letter-spacing:.14em;font-size:13px}
-.logo-name small{display:block;font-weight:500;letter-spacing:.06em;font-size:10px;color:var(--text3);text-transform:uppercase}
+.logo-badge{background:#fff;border-radius:8px;padding:7px 11px;display:flex;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.28);flex:none}
+.logo-badge svg{height:20px;width:auto;display:block}
+.logo-name{font-weight:700;letter-spacing:.06em;font-size:13px;color:var(--text)}
+.logo-name small{display:block;font-weight:500;letter-spacing:.1em;font-size:9.5px;color:var(--text3);text-transform:uppercase;margin-top:2px}
 .nav-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);padding:16px 12px 6px}
 .nav-item{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:var(--text2);cursor:pointer;font-size:13.5px;font-weight:500;border:1px solid transparent;transition:all .18s;user-select:none}
 .nav-item svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;flex:none}
@@ -433,7 +433,10 @@ body.editing #exec-name:hover{color:var(--accent)}
   .search{display:none}
   .kpis{grid-template-columns:repeat(2,1fr)}
   .exec-id h1{font-size:19px}
-  .land-top{padding:16px 18px}
+  .land-top{padding:16px 18px;flex-wrap:wrap;row-gap:12px}
+  .land-top .spacer{flex-basis:100%;height:0}
+  .logo-name{font-size:12px}
+  .logo-name small{font-size:8.5px}
   .wave-arrow{width:42px;height:42px}
   .tl-scroll{overflow:visible}
   .tl{min-width:0;height:auto;padding-left:26px}
@@ -453,7 +456,7 @@ body.editing #exec-name:hover{color:var(--accent)}
 <section id="landing">
   <div class="tri t1"></div><div class="tri t2"></div><div class="tri t3"></div><div class="tri t4"></div>
   <div class="land-top">
-    <div class="logo"><div class="logo-mark">M</div><div class="logo-name">MERIDIAN<small>Projektová inteligence</small></div></div>
+    <div class="logo"><div class="logo-badge"><svg viewBox="0 0 134.844 50.017" xmlns="http://www.w3.org/2000/svg"><style>.st0{fill:#002B59}.st1{fill:#FF5200}</style><g><path class="st0" d="M118.773,7.437l-0.974-2.375l-0.974,2.375H118.773z M119.557,9.317h-3.516l-0.459,1.12h-2.33l3.393-7.951 h2.475l3.371,7.951h-2.475L119.557,9.317z M110.463,10.437h-2.408l-3.404-7.951h2.643l2.015,5.106l2.005-5.106h2.396 L110.463,10.437z M100.629,0h2.307l-1.344,1.88h-2.217L100.629,0z M101.391,7.437l-0.974-2.375l-0.975,2.375H101.391z M102.175,9.317h-3.516l-0.46,1.12H95.87l3.393-7.951h2.475l3.371,7.951h-2.475L102.175,9.317z M89.586,4.422v1.346h2.286 c0.56,0,0.862-0.236,0.862-0.673c0-0.471-0.291-0.673-0.862-0.673H89.586z M87.291,2.486h4.872c1.769,0,2.922,0.895,2.922,2.62 c0,1.121-0.537,1.904-1.444,2.296l1.724,3.035h-2.418L91.39,7.67h-1.804v2.767h-2.295V2.486z M80.335,4.456v1.457h2.319 c0.594,0,0.885-0.269,0.885-0.728c0-0.482-0.28-0.729-0.885-0.729H80.335z M78.051,2.486h4.883c1.837,0,2.956,0.918,2.956,2.699 c0,1.769-1.119,2.698-2.956,2.698h-2.599v2.554h-2.284V2.486z M71.42,4.658c0,0.336,0.313,0.526,0.874,0.571l1.098,0.09 c2.049,0.156,3.202,0.874,3.202,2.61c0,1.691-1.276,2.653-3.662,2.653c-2.844,0-3.863-1.421-4.076-2.53h2.418 c0.134,0.336,0.65,0.74,1.658,0.74c0.897,0,1.267-0.269,1.267-0.695c0-0.426-0.348-0.582-0.93-0.65 c-0.404-0.045-0.718-0.067-1.11-0.101c-1.915-0.168-3.101-1.041-3.101-2.576c0-1.635,1.477-2.441,3.505-2.441 c2.721,0,3.617,1.265,3.841,2.295h-2.295c-0.135-0.19-0.628-0.504-1.546-0.504C71.857,4.12,71.42,4.299,71.42,4.658 M131.036,26.671c2.8,0,3.696-2.048,3.808-2.787h-2.318c-0.123,0.19-0.526,0.739-1.49,0.739c-1.131,0-1.803-0.919-1.803-2.061 c0-1.143,0.672-2.062,1.803-2.062c0.941,0,1.356,0.56,1.479,0.751h2.329c-0.145-0.897-1.097-2.799-3.808-2.799 c-2.441,0-4.142,1.712-4.142,4.11C126.894,24.948,128.595,26.671,131.036,26.671 M123.108,26.537h2.295v-7.951h-2.295V26.537z M119.233,26.537h1.925v-7.951h-2.194v4.244l-3.249-4.244h-2.563v7.951h2.249v-4.883L119.233,26.537z M111.818,24.567h-4.625 l4.154-4.705v-1.276h-7.637v1.948h3.998l-4.11,4.705v1.298h8.22V24.567z M95.333,26.537h7.289v-1.948h-4.995v-1.222h2.711v-1.891 h-2.711v-1.043h4.559v-1.847h-6.853V26.537z M93.999,24.545h-4.48v-5.959h-2.295v7.951h6.775V24.545z M78.6,26.537h7.29v-1.948 h-4.995v-1.222h2.71v-1.891h-2.71v-1.043h4.558v-1.847H78.6V26.537z M75.609,16.066h-1.982l-0.661,0.795l-0.661-0.795h-1.948 l1.534,1.914h2.15L75.609,16.066z M77.266,24.567h-4.625l4.155-4.705v-1.276h-7.637v1.948h3.997l-4.109,4.705v1.298h8.219V24.567z"/><path class="st1" d="M0,41.604v8.412h60.248v-8.412H30.054v-1.155c1.744-1.183,3.453-2.389,5.202-3.566 c8.125-5.465,15.144-10.186,24.992-10.186v-8.411H0v8.411h33.51v1.17c-0.963,0.674-1.939,1.356-2.949,2.035 c-8.93,6.007-17.368,11.679-30.485,11.702H0z M60.248,10.69H0V2.277h60.248V10.69z"/></g></svg></div><div class="logo-name">Projektová inteligence<small>Správa železnic</small></div></div>
     <div class="spacer"></div>
     <button class="btn ghost sm" onclick="enterApp('changes')">Co se změnilo</button>
     <button class="btn primary sm" onclick="enterApp()">Otevřít aplikaci →</button>
@@ -472,7 +475,7 @@ body.editing #exec-name:hover{color:var(--accent)}
     <div class="wave-viewport" id="wave-viewport"></div>
   </div>
   <div class="period-tabs" id="period-tabs"></div>
-  <div class="land-hint">MERIDIAN · prototyp v0.9 · fiktivní demonstrační data</div>
+  <div class="land-hint">Projektová inteligence · prototyp v0.9 · fiktivní demonstrační data</div>
 </section>
 
 <div class="app">
@@ -480,8 +483,8 @@ body.editing #exec-name:hover{color:var(--accent)}
 <!-- ============ SIDEBAR ============ -->
 <aside class="sidebar" id="sidebar">
   <div class="logo">
-    <div class="logo-mark">M</div>
-    <div class="logo-name">MERIDIAN<small>Projektová inteligence</small></div>
+    <div class="logo-badge"><svg viewBox="0 0 134.844 50.017" xmlns="http://www.w3.org/2000/svg"><style>.st0{fill:#002B59}.st1{fill:#FF5200}</style><g><path class="st0" d="M118.773,7.437l-0.974-2.375l-0.974,2.375H118.773z M119.557,9.317h-3.516l-0.459,1.12h-2.33l3.393-7.951 h2.475l3.371,7.951h-2.475L119.557,9.317z M110.463,10.437h-2.408l-3.404-7.951h2.643l2.015,5.106l2.005-5.106h2.396 L110.463,10.437z M100.629,0h2.307l-1.344,1.88h-2.217L100.629,0z M101.391,7.437l-0.974-2.375l-0.975,2.375H101.391z M102.175,9.317h-3.516l-0.46,1.12H95.87l3.393-7.951h2.475l3.371,7.951h-2.475L102.175,9.317z M89.586,4.422v1.346h2.286 c0.56,0,0.862-0.236,0.862-0.673c0-0.471-0.291-0.673-0.862-0.673H89.586z M87.291,2.486h4.872c1.769,0,2.922,0.895,2.922,2.62 c0,1.121-0.537,1.904-1.444,2.296l1.724,3.035h-2.418L91.39,7.67h-1.804v2.767h-2.295V2.486z M80.335,4.456v1.457h2.319 c0.594,0,0.885-0.269,0.885-0.728c0-0.482-0.28-0.729-0.885-0.729H80.335z M78.051,2.486h4.883c1.837,0,2.956,0.918,2.956,2.699 c0,1.769-1.119,2.698-2.956,2.698h-2.599v2.554h-2.284V2.486z M71.42,4.658c0,0.336,0.313,0.526,0.874,0.571l1.098,0.09 c2.049,0.156,3.202,0.874,3.202,2.61c0,1.691-1.276,2.653-3.662,2.653c-2.844,0-3.863-1.421-4.076-2.53h2.418 c0.134,0.336,0.65,0.74,1.658,0.74c0.897,0,1.267-0.269,1.267-0.695c0-0.426-0.348-0.582-0.93-0.65 c-0.404-0.045-0.718-0.067-1.11-0.101c-1.915-0.168-3.101-1.041-3.101-2.576c0-1.635,1.477-2.441,3.505-2.441 c2.721,0,3.617,1.265,3.841,2.295h-2.295c-0.135-0.19-0.628-0.504-1.546-0.504C71.857,4.12,71.42,4.299,71.42,4.658 M131.036,26.671c2.8,0,3.696-2.048,3.808-2.787h-2.318c-0.123,0.19-0.526,0.739-1.49,0.739c-1.131,0-1.803-0.919-1.803-2.061 c0-1.143,0.672-2.062,1.803-2.062c0.941,0,1.356,0.56,1.479,0.751h2.329c-0.145-0.897-1.097-2.799-3.808-2.799 c-2.441,0-4.142,1.712-4.142,4.11C126.894,24.948,128.595,26.671,131.036,26.671 M123.108,26.537h2.295v-7.951h-2.295V26.537z M119.233,26.537h1.925v-7.951h-2.194v4.244l-3.249-4.244h-2.563v7.951h2.249v-4.883L119.233,26.537z M111.818,24.567h-4.625 l4.154-4.705v-1.276h-7.637v1.948h3.998l-4.11,4.705v1.298h8.22V24.567z M95.333,26.537h7.289v-1.948h-4.995v-1.222h2.711v-1.891 h-2.711v-1.043h4.559v-1.847h-6.853V26.537z M93.999,24.545h-4.48v-5.959h-2.295v7.951h6.775V24.545z M78.6,26.537h7.29v-1.948 h-4.995v-1.222h2.71v-1.891h-2.71v-1.043h4.558v-1.847H78.6V26.537z M75.609,16.066h-1.982l-0.661,0.795l-0.661-0.795h-1.948 l1.534,1.914h2.15L75.609,16.066z M77.266,24.567h-4.625l4.155-4.705v-1.276h-7.637v1.948h3.997l-4.109,4.705v1.298h8.219V24.567z"/><path class="st1" d="M0,41.604v8.412h60.248v-8.412H30.054v-1.155c1.744-1.183,3.453-2.389,5.202-3.566 c8.125-5.465,15.144-10.186,24.992-10.186v-8.411H0v8.411h33.51v1.17c-0.963,0.674-1.939,1.356-2.949,2.035 c-8.93,6.007-17.368,11.679-30.485,11.702H0z M60.248,10.69H0V2.277h60.248V10.69z"/></g></svg></div>
+    <div class="logo-name">Projektová inteligence<small>Správa železnic</small></div>
   </div>
   <div class="nav-label">Pracovní prostor</div>
   <div class="nav-item active" data-view="overview"><svg viewBox="0 0 24 24"><path d="M3 12l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg>Přehled</div>
