@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Projektová inteligence — Správa železnic</title>
+<title>C-ITS přejezdy — Správa železnic</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -18,15 +18,15 @@
   --text:#e8eaf2;
   --text2:#9aa1b5;
   --text3:#5d6478;
-  --accent:#6d8dff;
-  --accent2:#42d7c8;
+  --accent:#FF5200;
+  --accent2:#3D82C4;
   --ok:#3ddc97;
   --track:#6d8dff;
   --risk:#ffb020;
   --blocked:#ff5c6a;
   --replanned:#b78cff;
   --idle:#5d6478;
-  --gold:#ffb020;
+  --gold:#FF5200;
   --mono:'JetBrains Mono',monospace;
   --r:14px;
 }
@@ -34,20 +34,20 @@
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;line-height:1.55;overflow-x:hidden}
 body::before{content:'';position:fixed;inset:0;background:
-  radial-gradient(1100px 500px at 75% -10%, rgba(109,141,255,.09), transparent 60%),
-  radial-gradient(800px 500px at -10% 110%, rgba(66,215,200,.05), transparent 60%);
+  radial-gradient(1100px 500px at 75% -10%, rgba(255,82,0,.09), transparent 60%),
+  radial-gradient(800px 500px at -10% 110%, rgba(61,130,196,.05), transparent 60%);
   pointer-events:none;z-index:0}
-::selection{background:rgba(109,141,255,.35)}
+::selection{background:rgba(255,82,0,.35)}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-thumb{background:#232838;border-radius:8px;border:2px solid var(--bg)}
 ::-webkit-scrollbar-track{background:transparent}
 
 /* ================= LANDING ================= */
 #landing{position:relative;min-height:100vh;display:flex;flex-direction:column;background:
-  radial-gradient(1200px 700px at 80% -20%, rgba(150,30,80,.22), transparent 60%),
-  radial-gradient(900px 600px at -10% 115%, rgba(120,40,180,.14), transparent 60%),
-  #0b070d;z-index:2;overflow:hidden}
-.tri{position:absolute;width:180px;height:180px;background:linear-gradient(135deg,rgba(200,40,80,.16),rgba(120,20,60,.02));clip-path:polygon(50% 0,100% 100%,0 100%);pointer-events:none;filter:blur(1px)}
+  radial-gradient(1200px 700px at 80% -20%, rgba(0,43,89,.32), transparent 60%),
+  radial-gradient(900px 600px at -10% 115%, rgba(255,82,0,.09), transparent 60%),
+  #06090d;z-index:2;overflow:hidden}
+.tri{position:absolute;width:180px;height:180px;background:linear-gradient(135deg,rgba(0,66,130,.2),rgba(0,20,40,.02));clip-path:polygon(50% 0,100% 100%,0 100%);pointer-events:none;filter:blur(1px)}
 .tri.t1{top:6%;left:2%;transform:rotate(18deg) scale(1.2)}
 .tri.t2{top:12%;right:6%;transform:rotate(-28deg) scale(.8)}
 .tri.t3{bottom:8%;right:2%;transform:rotate(40deg) scale(1.4);opacity:.6}
@@ -92,16 +92,14 @@ body.in-app .app{display:grid}
 .logo{display:flex;align-items:center;gap:10px;padding:4px 10px 22px}
 #landing .logo{padding:0}
 .logo-badge{background:#fff;border-radius:8px;padding:7px 11px;display:flex;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.28);flex:none}
-.logo-badge svg{height:20px;width:auto;display:block}
-.logo-name{font-weight:700;letter-spacing:.06em;font-size:13px;color:var(--text)}
-.logo-name small{display:block;font-weight:500;letter-spacing:.1em;font-size:9.5px;color:var(--text3);text-transform:uppercase;margin-top:2px}
+.logo-badge svg{height:22px;width:auto;display:block}
 .nav-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);padding:16px 12px 6px}
 .nav-item{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:var(--text2);cursor:pointer;font-size:13.5px;font-weight:500;border:1px solid transparent;transition:all .18s;user-select:none}
 .nav-item svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;flex:none}
 .nav-item:hover{color:var(--text);background:rgba(255,255,255,.035)}
-.nav-item.active{color:var(--text);background:linear-gradient(90deg,rgba(109,141,255,.14),rgba(109,141,255,.04));border-color:rgba(109,141,255,.25)}
+.nav-item.active{color:var(--text);background:linear-gradient(90deg,rgba(255,82,0,.14),rgba(255,82,0,.04));border-color:rgba(255,82,0,.25)}
 .nav-item .count{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--text3);background:rgba(255,255,255,.05);padding:1px 7px;border-radius:6px}
-.nav-item.active .count{color:var(--accent);background:rgba(109,141,255,.12)}
+.nav-item.active .count{color:var(--accent);background:rgba(255,82,0,.12)}
 .sidebar-foot{margin-top:auto;padding:14px 12px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text3)}
 .sidebar-foot b{color:var(--text2);font-weight:600}
 .back-link{display:block;margin-bottom:10px;color:var(--text3);font-size:11.5px;cursor:pointer;transition:color .2s}
@@ -115,11 +113,11 @@ body.in-app .app{display:grid}
 .search:hover{border-color:var(--border2)}
 .search kbd{margin-left:auto;font-family:var(--mono);font-size:10px;background:rgba(255,255,255,.06);padding:2px 6px;border-radius:5px;color:var(--text3)}
 .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 15px;border-radius:9px;border:1px solid var(--border2);background:var(--panel2);color:var(--text);font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .18s;white-space:nowrap;text-decoration:none}
-.btn:hover{border-color:rgba(109,141,255,.45);transform:translateY(-1px)}
-.btn.primary{background:linear-gradient(135deg,#5f7ef0,#4a5fd0);border-color:rgba(109,141,255,.5);box-shadow:0 4px 18px rgba(90,120,240,.25)}
-.btn.primary:hover{box-shadow:0 6px 24px rgba(90,120,240,.4)}
-.btn.warm{background:linear-gradient(135deg,#d3208b,#ff5e3a);border-color:rgba(255,94,58,.5);box-shadow:0 6px 24px rgba(211,32,139,.3);padding:12px 26px;font-size:13.5px;border-radius:12px}
-.btn.warm:hover{box-shadow:0 10px 34px rgba(255,94,58,.45)}
+.btn:hover{border-color:rgba(255,82,0,.45);transform:translateY(-1px)}
+.btn.primary{background:linear-gradient(135deg,#FF6A2E,#E64500);border-color:rgba(255,82,0,.5);box-shadow:0 4px 18px rgba(230,69,0,.28)}
+.btn.primary:hover{box-shadow:0 6px 24px rgba(230,69,0,.42)}
+.btn.warm{background:linear-gradient(135deg,#FF7A3D,#CC3F00);border-color:rgba(255,82,0,.5);box-shadow:0 6px 24px rgba(230,69,0,.32);padding:12px 26px;font-size:13.5px;border-radius:12px}
+.btn.warm:hover{box-shadow:0 10px 34px rgba(230,69,0,.48)}
 .btn.ghost{background:transparent;border-color:var(--border)}
 .btn.sm{padding:5px 11px;font-size:11.5px;border-radius:7px}
 .btn.ok{border-color:rgba(61,220,151,.4);color:var(--ok)}
@@ -151,8 +149,8 @@ body.in-app .app{display:grid}
 .section-title .spacer{flex:1}
 
 /* ---------- Exec header ---------- */
-.exec{background:linear-gradient(160deg,rgba(109,141,255,.08),rgba(16,19,27,.5) 45%),var(--panel);border:1px solid var(--border);border-radius:18px;padding:26px 28px;position:relative;overflow:hidden}
-.exec::after{content:'';position:absolute;top:-60px;right:-40px;width:340px;height:240px;background:radial-gradient(closest-side,rgba(109,141,255,.14),transparent);pointer-events:none}
+.exec{background:linear-gradient(160deg,rgba(255,82,0,.08),rgba(16,19,27,.5) 45%),var(--panel);border:1px solid var(--border);border-radius:18px;padding:26px 28px;position:relative;overflow:hidden}
+.exec::after{content:'';position:absolute;top:-60px;right:-40px;width:340px;height:240px;background:radial-gradient(closest-side,rgba(255,82,0,.14),transparent);pointer-events:none}
 .exec-top{display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap}
 .exec-id{flex:1;min-width:340px}
 .exec-id .code{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.1em}
@@ -173,9 +171,9 @@ body.in-app .app{display:grid}
 .kpi .k-value .unit{font-size:12px;color:var(--text3);font-weight:600}
 .progress-ring{display:flex;align-items:center;gap:12px}
 .bar{height:5px;border-radius:4px;background:rgba(255,255,255,.06);overflow:hidden;flex:1}
-.bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 0 10px rgba(109,141,255,.5);transition:width 1s cubic-bezier(.2,.8,.2,1)}
-.ai-summary{margin-top:22px;display:flex;gap:14px;background:rgba(66,215,200,.045);border:1px solid rgba(66,215,200,.16);border-radius:12px;padding:16px 18px}
-.ai-ico{width:32px;height:32px;flex:none;border-radius:9px;background:linear-gradient(135deg,rgba(66,215,200,.25),rgba(109,141,255,.25));border:1px solid rgba(66,215,200,.3);display:grid;place-items:center;color:var(--accent2);font-size:13px}
+.bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 0 10px rgba(255,82,0,.5);transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.ai-summary{margin-top:22px;display:flex;gap:14px;background:rgba(61,130,196,.045);border:1px solid rgba(61,130,196,.16);border-radius:12px;padding:16px 18px}
+.ai-ico{width:32px;height:32px;flex:none;border-radius:9px;background:linear-gradient(135deg,rgba(61,130,196,.25),rgba(255,82,0,.25));border:1px solid rgba(61,130,196,.3);display:grid;place-items:center;color:var(--accent2);font-size:13px}
 .ai-summary .who{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent2);font-weight:700;margin-bottom:5px}
 .ai-summary p{font-size:13px;color:var(--text2);max-width:900px}
 .ai-summary p b{color:var(--text);font-weight:600}
@@ -189,12 +187,12 @@ body.in-app .app{display:grid}
 .tl-scroll{overflow-x:auto;padding:8px 0 4px}
 .tl{position:relative;min-width:980px;height:238px}
 .tl-track{position:absolute;left:0;right:0;top:118px;height:3px;background:rgba(255,255,255,.07);border-radius:2px}
-.tl-progress{position:absolute;left:0;top:118px;height:3px;border-radius:2px;background:linear-gradient(90deg,var(--ok),var(--accent));box-shadow:0 0 12px rgba(109,141,255,.55);width:0;transition:width 1.4s cubic-bezier(.2,.8,.2,1)}
+.tl-progress{position:absolute;left:0;top:118px;height:3px;border-radius:2px;background:linear-gradient(90deg,var(--ok),var(--accent));box-shadow:0 0 12px rgba(255,82,0,.55);width:0;transition:width 1.4s cubic-bezier(.2,.8,.2,1)}
 .tl-today{position:absolute;top:52px;bottom:14px;width:1px;background:linear-gradient(180deg,transparent,var(--accent2) 20%,var(--accent2) 80%,transparent)}
 .tl-today::before{content:'';position:absolute;top:44%;left:-4px;width:9px;height:9px;border-radius:50%;background:var(--accent2);box-shadow:0 0 16px var(--accent2),0 0 4px var(--accent2);animation:pulse 2s infinite}
-.tl-today .today-label{position:absolute;top:-26px;left:-30px;font-family:var(--mono);font-size:9.5px;color:var(--accent2);letter-spacing:.08em;background:rgba(66,215,200,.1);border:1px solid rgba(66,215,200,.3);padding:2px 8px;border-radius:5px;white-space:nowrap}
+.tl-today .today-label{position:absolute;top:-26px;left:-30px;font-family:var(--mono);font-size:9.5px;color:var(--accent2);letter-spacing:.08em;background:rgba(61,130,196,.1);border:1px solid rgba(61,130,196,.3);padding:2px 8px;border-radius:5px;white-space:nowrap}
 .phase-band{position:absolute;top:88px;height:14px;border-radius:7px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;border:1px solid var(--border)}
-.phase-band.current{background:rgba(109,141,255,.1);border-color:rgba(109,141,255,.3);color:var(--accent)}
+.phase-band.current{background:rgba(255,82,0,.1);border-color:rgba(255,82,0,.3);color:var(--accent)}
 .phase-band.done{background:rgba(61,220,151,.05);color:rgba(61,220,151,.6)}
 .phase-band.future{background:rgba(255,255,255,.02)}
 .ms{position:absolute;top:104px;transform:translateX(-50%);cursor:pointer;text-align:center;width:120px;transition:transform .2s}
@@ -212,9 +210,9 @@ body.in-app .app{display:grid}
 .ms.above{top:auto;bottom:96px;display:flex;flex-direction:column-reverse}
 .ms.above>div{padding-bottom:14px}
 .ms .ms-status{margin-top:5px}
-.ms.selected .node{box-shadow:0 0 0 5px rgba(109,141,255,.15),0 0 18px currentColor}
+.ms.selected .node{box-shadow:0 0 0 5px rgba(255,82,0,.15),0 0 18px currentColor}
 .dep{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
-.dep path{stroke:rgba(109,141,255,.28);stroke-width:1.2;fill:none;stroke-dasharray:4 4}
+.dep path{stroke:rgba(255,82,0,.28);stroke-width:1.2;fill:none;stroke-dasharray:4 4}
 
 /* ---------- Drawer ---------- */
 .drawer-veil{position:fixed;inset:0;background:rgba(4,5,8,.55);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .3s;z-index:60}
@@ -232,11 +230,11 @@ body.in-app .app{display:grid}
 .d-cell .v{font-size:13px;font-weight:600}
 .d-sec{margin-top:20px}
 .d-sec h4{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:9px;display:flex;align-items:center;gap:8px}
-.d-sec h4 .n{font-family:var(--mono);color:var(--accent);background:rgba(109,141,255,.1);padding:0 6px;border-radius:5px;font-size:10px}
+.d-sec h4 .n{font-family:var(--mono);color:var(--accent);background:rgba(255,82,0,.1);padding:0 6px;border-radius:5px;font-size:10px}
 .d-item{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border:1px solid var(--border);border-radius:9px;margin-bottom:7px;background:var(--panel);font-size:12.5px;color:var(--text2)}
 .d-item .marker{width:7px;height:7px;border-radius:50%;flex:none;margin-top:5.5px}
 .d-item b{color:var(--text);font-weight:600}
-.next-action{margin-top:22px;background:linear-gradient(135deg,rgba(109,141,255,.1),rgba(66,215,200,.06));border:1px solid rgba(109,141,255,.3);border-radius:11px;padding:15px 16px}
+.next-action{margin-top:22px;background:linear-gradient(135deg,rgba(255,82,0,.1),rgba(61,130,196,.06));border:1px solid rgba(255,82,0,.3);border-radius:11px;padding:15px 16px}
 .next-action .l{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:6px}
 .next-action p{font-size:13px;color:var(--text)}
 
@@ -244,7 +242,7 @@ body.in-app .app{display:grid}
 .board-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
 .fchip{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--panel);font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .18s;font-family:inherit}
 .fchip:hover{border-color:var(--border2);color:var(--text)}
-.fchip.on{background:rgba(109,141,255,.14);border-color:rgba(109,141,255,.45);color:var(--accent)}
+.fchip.on{background:rgba(255,82,0,.14);border-color:rgba(255,82,0,.45);color:var(--accent)}
 .board{display:grid;grid-template-columns:repeat(5,minmax(252px,1fr));gap:14px;overflow-x:auto;align-items:start;padding-bottom:8px}
 .col{background:rgba(255,255,255,.015);border:1px solid var(--border);border-radius:14px;padding:13px;min-width:252px}
 .col-head{display:flex;align-items:center;gap:9px;padding:2px 4px 12px}
@@ -309,19 +307,19 @@ td.mono{font-family:var(--mono);font-size:11px;color:var(--text3);white-space:no
 .src-opts{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}
 .src{padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:11px;color:var(--text2);cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:8px;background:transparent;font-family:inherit;text-align:left}
 .src:hover{border-color:var(--border2)}
-.src.on{border-color:rgba(109,141,255,.5);background:rgba(109,141,255,.08);color:var(--text)}
+.src.on{border-color:rgba(255,82,0,.5);background:rgba(255,82,0,.08);color:var(--text)}
 textarea{width:100%;min-height:180px;background:var(--bg);border:1px solid var(--border);border-radius:11px;color:var(--text);font-family:var(--mono);font-size:11.5px;line-height:1.6;padding:13px;resize:vertical;transition:border-color .2s}
-textarea:focus{outline:none;border-color:rgba(109,141,255,.5)}
+textarea:focus{outline:none;border-color:rgba(255,82,0,.5)}
 textarea::placeholder{color:var(--text3)}
 .steps{display:flex;gap:0;margin-bottom:18px;overflow-x:auto}
 .step{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3);white-space:nowrap}
 .step .s-n{width:20px;height:20px;border-radius:50%;border:1px solid var(--border2);display:grid;place-items:center;font-family:var(--mono);font-size:9.5px}
 .step.done .s-n{background:var(--ok);border-color:var(--ok);color:#06281a}
 .step.now{color:var(--text)}
-.step.now .s-n{border-color:var(--accent);color:var(--accent);box-shadow:0 0 10px rgba(109,141,255,.4)}
+.step.now .s-n{border-color:var(--accent);color:var(--accent);box-shadow:0 0 10px rgba(255,82,0,.4)}
 .step-sep{width:34px;height:1px;background:var(--border);margin:0 8px;align-self:center}
 .extract{padding:0;overflow:hidden}
-.extract-head{display:flex;align-items:center;gap:11px;padding:15px 18px;border-bottom:1px solid var(--border);background:rgba(66,215,200,.03)}
+.extract-head{display:flex;align-items:center;gap:11px;padding:15px 18px;border-bottom:1px solid var(--border);background:rgba(61,130,196,.03)}
 .extract-head h3{font-size:13px;font-weight:700}
 .extract-head .conf{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--accent2)}
 .x-group{padding:14px 18px;border-bottom:1px solid var(--border)}
@@ -348,7 +346,7 @@ textarea::placeholder{color:var(--text3)}
 .thinking .dots i:nth-child(3){animation-delay:.3s}
 @keyframes th{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-5px)}}
 .thinking p{margin-top:14px;color:var(--text3);font-size:12px;font-family:var(--mono)}
-.apply-bar{display:none;position:sticky;bottom:16px;margin:14px 18px 18px;background:var(--glass);backdrop-filter:blur(12px);border:1px solid rgba(109,141,255,.35);border-radius:12px;padding:12px 16px;align-items:center;gap:12px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.apply-bar{display:none;position:sticky;bottom:16px;margin:14px 18px 18px;background:var(--glass);backdrop-filter:blur(12px);border:1px solid rgba(255,82,0,.35);border-radius:12px;padding:12px 16px;align-items:center;gap:12px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
 .apply-bar span{font-size:12px;color:var(--text2)}
 .apply-bar b{color:var(--text)}
 
@@ -357,7 +355,7 @@ textarea::placeholder{color:var(--text3)}
 .feed::before{content:'';position:absolute;left:6px;top:8px;bottom:8px;width:1px;background:linear-gradient(180deg,var(--accent),transparent)}
 .f-item{position:relative;padding:0 0 20px 16px}
 .f-item::before{content:'';position:absolute;left:-21px;top:5px;width:11px;height:11px;border-radius:50%;background:var(--bg);border:2px solid var(--text3)}
-.f-item.new::before{border-color:var(--accent);box-shadow:0 0 10px rgba(109,141,255,.6)}
+.f-item.new::before{border-color:var(--accent);box-shadow:0 0 10px rgba(255,82,0,.6)}
 .f-item .f-kind{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;margin-bottom:3px}
 .f-item .f-text{font-size:13px;color:var(--text2)}
 .f-item .f-text b{color:var(--text);font-weight:600}
@@ -376,10 +374,10 @@ textarea::placeholder{color:var(--text3)}
 /* ---------- Chain strip ---------- */
 .chain{display:flex;align-items:center;gap:0;margin:20px 0 6px;overflow-x:auto;padding:4px 2px}
 .chain-node{flex:none;display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:9px 15px;font-size:12px;font-weight:600;color:var(--text2);transition:all .2s;cursor:default}
-.chain-node:hover{border-color:rgba(109,141,255,.4);color:var(--text);transform:translateY(-2px)}
+.chain-node:hover{border-color:rgba(255,82,0,.4);color:var(--text);transform:translateY(-2px)}
 .chain-node .ci{width:7px;height:7px;border-radius:50%}
-.chain-arrow{flex:none;width:30px;height:1px;background:linear-gradient(90deg,var(--border2),rgba(109,141,255,.4));position:relative;margin:0 2px}
-.chain-arrow::after{content:'';position:absolute;right:0;top:-3px;border:3.5px solid transparent;border-left-color:rgba(109,141,255,.55)}
+.chain-arrow{flex:none;width:30px;height:1px;background:linear-gradient(90deg,var(--border2),rgba(255,82,0,.4));position:relative;margin:0 2px}
+.chain-arrow::after{content:'';position:absolute;right:0;top:-3px;border:3.5px solid transparent;border-left-color:rgba(255,82,0,.55)}
 
 /* ---------- Toast + modal ---------- */
 .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--glass);backdrop-filter:blur(14px);border:1px solid rgba(61,220,151,.4);color:var(--text);padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:100;transition:transform .35s cubic-bezier(.2,.9,.3,1.3);box-shadow:0 14px 44px rgba(0,0,0,.55);display:flex;gap:10px;align-items:center}
@@ -391,7 +389,7 @@ textarea::placeholder{color:var(--text3)}
 .modal h3{font-size:16px;font-weight:700;margin-bottom:16px}
 .modal label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin:12px 0 5px}
 .modal input,.modal select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:inherit;font-size:13px;padding:10px 12px}
-.modal input:focus,.modal select:focus{outline:none;border-color:rgba(109,141,255,.5)}
+.modal input:focus,.modal select:focus{outline:none;border-color:rgba(255,82,0,.5)}
 .modal .m-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
 .modal textarea{min-height:0}
 .modal .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -403,16 +401,16 @@ textarea::placeholder{color:var(--text3)}
 #edit-toggle{display:none}
 body.authed #edit-toggle{display:inline-flex}
 body.authed #auth-btn{border-color:rgba(61,220,151,.35);color:var(--ok)}
-#edit-toggle.on{background:linear-gradient(135deg,#5f7ef0,#4a5fd0);border-color:rgba(109,141,255,.5);color:#fff}
+#edit-toggle.on{background:linear-gradient(135deg,#FF6A2E,#E64500);border-color:rgba(255,82,0,.5);color:#fff}
 .edit-dot{display:none;position:absolute;top:9px;right:9px;width:24px;height:24px;border-radius:7px;border:1px solid var(--border2);background:var(--panel2);color:var(--text2);cursor:pointer;font-size:12px;align-items:center;justify-content:center;z-index:5;transition:all .15s}
 .edit-dot:hover{border-color:var(--accent);color:var(--accent)}
 body.editing .edit-dot{display:inline-flex}
 .add-row{display:none;margin-bottom:14px}
 body.editing .add-row{display:flex;gap:8px;flex-wrap:wrap}
 .add-btn{padding:7px 13px;border-radius:9px;border:1px dashed var(--border2);background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .18s}
-.add-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(109,141,255,.06)}
+.add-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(255,82,0,.06)}
 body.editing .bcard,body.editing tbody tr,body.editing .meet,body.editing .exec-id,body.editing .ms{position:relative}
-.edit-hint{display:none;align-items:center;gap:8px;background:rgba(109,141,255,.08);border:1px solid rgba(109,141,255,.25);border-radius:10px;padding:9px 14px;margin-bottom:16px;font-size:12px;color:var(--accent)}
+.edit-hint{display:none;align-items:center;gap:8px;background:rgba(255,82,0,.08);border:1px solid rgba(255,82,0,.25);border-radius:10px;padding:9px 14px;margin-bottom:16px;font-size:12px;color:var(--accent)}
 body.editing .edit-hint{display:flex}
 td .row-edit{opacity:0}
 body.editing td .row-edit{opacity:1}
@@ -435,8 +433,6 @@ body.editing #exec-name:hover{color:var(--accent)}
   .exec-id h1{font-size:19px}
   .land-top{padding:16px 18px;flex-wrap:wrap;row-gap:12px}
   .land-top .spacer{flex-basis:100%;height:0}
-  .logo-name{font-size:12px}
-  .logo-name small{font-size:8.5px}
   .wave-arrow{width:42px;height:42px}
   .tl-scroll{overflow:visible}
   .tl{min-width:0;height:auto;padding-left:26px}
@@ -456,7 +452,7 @@ body.editing #exec-name:hover{color:var(--accent)}
 <section id="landing">
   <div class="tri t1"></div><div class="tri t2"></div><div class="tri t3"></div><div class="tri t4"></div>
   <div class="land-top">
-    <div class="logo"><div class="logo-badge"><svg viewBox="0 0 134.844 50.017" xmlns="http://www.w3.org/2000/svg"><style>.st0{fill:#002B59}.st1{fill:#FF5200}</style><g><path class="st0" d="M118.773,7.437l-0.974-2.375l-0.974,2.375H118.773z M119.557,9.317h-3.516l-0.459,1.12h-2.33l3.393-7.951 h2.475l3.371,7.951h-2.475L119.557,9.317z M110.463,10.437h-2.408l-3.404-7.951h2.643l2.015,5.106l2.005-5.106h2.396 L110.463,10.437z M100.629,0h2.307l-1.344,1.88h-2.217L100.629,0z M101.391,7.437l-0.974-2.375l-0.975,2.375H101.391z M102.175,9.317h-3.516l-0.46,1.12H95.87l3.393-7.951h2.475l3.371,7.951h-2.475L102.175,9.317z M89.586,4.422v1.346h2.286 c0.56,0,0.862-0.236,0.862-0.673c0-0.471-0.291-0.673-0.862-0.673H89.586z M87.291,2.486h4.872c1.769,0,2.922,0.895,2.922,2.62 c0,1.121-0.537,1.904-1.444,2.296l1.724,3.035h-2.418L91.39,7.67h-1.804v2.767h-2.295V2.486z M80.335,4.456v1.457h2.319 c0.594,0,0.885-0.269,0.885-0.728c0-0.482-0.28-0.729-0.885-0.729H80.335z M78.051,2.486h4.883c1.837,0,2.956,0.918,2.956,2.699 c0,1.769-1.119,2.698-2.956,2.698h-2.599v2.554h-2.284V2.486z M71.42,4.658c0,0.336,0.313,0.526,0.874,0.571l1.098,0.09 c2.049,0.156,3.202,0.874,3.202,2.61c0,1.691-1.276,2.653-3.662,2.653c-2.844,0-3.863-1.421-4.076-2.53h2.418 c0.134,0.336,0.65,0.74,1.658,0.74c0.897,0,1.267-0.269,1.267-0.695c0-0.426-0.348-0.582-0.93-0.65 c-0.404-0.045-0.718-0.067-1.11-0.101c-1.915-0.168-3.101-1.041-3.101-2.576c0-1.635,1.477-2.441,3.505-2.441 c2.721,0,3.617,1.265,3.841,2.295h-2.295c-0.135-0.19-0.628-0.504-1.546-0.504C71.857,4.12,71.42,4.299,71.42,4.658 M131.036,26.671c2.8,0,3.696-2.048,3.808-2.787h-2.318c-0.123,0.19-0.526,0.739-1.49,0.739c-1.131,0-1.803-0.919-1.803-2.061 c0-1.143,0.672-2.062,1.803-2.062c0.941,0,1.356,0.56,1.479,0.751h2.329c-0.145-0.897-1.097-2.799-3.808-2.799 c-2.441,0-4.142,1.712-4.142,4.11C126.894,24.948,128.595,26.671,131.036,26.671 M123.108,26.537h2.295v-7.951h-2.295V26.537z M119.233,26.537h1.925v-7.951h-2.194v4.244l-3.249-4.244h-2.563v7.951h2.249v-4.883L119.233,26.537z M111.818,24.567h-4.625 l4.154-4.705v-1.276h-7.637v1.948h3.998l-4.11,4.705v1.298h8.22V24.567z M95.333,26.537h7.289v-1.948h-4.995v-1.222h2.711v-1.891 h-2.711v-1.043h4.559v-1.847h-6.853V26.537z M93.999,24.545h-4.48v-5.959h-2.295v7.951h6.775V24.545z M78.6,26.537h7.29v-1.948 h-4.995v-1.222h2.71v-1.891h-2.71v-1.043h4.558v-1.847H78.6V26.537z M75.609,16.066h-1.982l-0.661,0.795l-0.661-0.795h-1.948 l1.534,1.914h2.15L75.609,16.066z M77.266,24.567h-4.625l4.155-4.705v-1.276h-7.637v1.948h3.997l-4.109,4.705v1.298h8.219V24.567z"/><path class="st1" d="M0,41.604v8.412h60.248v-8.412H30.054v-1.155c1.744-1.183,3.453-2.389,5.202-3.566 c8.125-5.465,15.144-10.186,24.992-10.186v-8.411H0v8.411h33.51v1.17c-0.963,0.674-1.939,1.356-2.949,2.035 c-8.93,6.007-17.368,11.679-30.485,11.702H0z M60.248,10.69H0V2.277h60.248V10.69z"/></g></svg></div><div class="logo-name">Projektová inteligence<small>Správa železnic</small></div></div>
+    <div class="logo"><div class="logo-badge"><svg viewBox="0 0 134.844 50.017" xmlns="http://www.w3.org/2000/svg"><style>.st0{fill:#002B59}.st1{fill:#FF5200}</style><g><path class="st0" d="M118.773,7.437l-0.974-2.375l-0.974,2.375H118.773z M119.557,9.317h-3.516l-0.459,1.12h-2.33l3.393-7.951 h2.475l3.371,7.951h-2.475L119.557,9.317z M110.463,10.437h-2.408l-3.404-7.951h2.643l2.015,5.106l2.005-5.106h2.396 L110.463,10.437z M100.629,0h2.307l-1.344,1.88h-2.217L100.629,0z M101.391,7.437l-0.974-2.375l-0.975,2.375H101.391z M102.175,9.317h-3.516l-0.46,1.12H95.87l3.393-7.951h2.475l3.371,7.951h-2.475L102.175,9.317z M89.586,4.422v1.346h2.286 c0.56,0,0.862-0.236,0.862-0.673c0-0.471-0.291-0.673-0.862-0.673H89.586z M87.291,2.486h4.872c1.769,0,2.922,0.895,2.922,2.62 c0,1.121-0.537,1.904-1.444,2.296l1.724,3.035h-2.418L91.39,7.67h-1.804v2.767h-2.295V2.486z M80.335,4.456v1.457h2.319 c0.594,0,0.885-0.269,0.885-0.728c0-0.482-0.28-0.729-0.885-0.729H80.335z M78.051,2.486h4.883c1.837,0,2.956,0.918,2.956,2.699 c0,1.769-1.119,2.698-2.956,2.698h-2.599v2.554h-2.284V2.486z M71.42,4.658c0,0.336,0.313,0.526,0.874,0.571l1.098,0.09 c2.049,0.156,3.202,0.874,3.202,2.61c0,1.691-1.276,2.653-3.662,2.653c-2.844,0-3.863-1.421-4.076-2.53h2.418 c0.134,0.336,0.65,0.74,1.658,0.74c0.897,0,1.267-0.269,1.267-0.695c0-0.426-0.348-0.582-0.93-0.65 c-0.404-0.045-0.718-0.067-1.11-0.101c-1.915-0.168-3.101-1.041-3.101-2.576c0-1.635,1.477-2.441,3.505-2.441 c2.721,0,3.617,1.265,3.841,2.295h-2.295c-0.135-0.19-0.628-0.504-1.546-0.504C71.857,4.12,71.42,4.299,71.42,4.658 M131.036,26.671c2.8,0,3.696-2.048,3.808-2.787h-2.318c-0.123,0.19-0.526,0.739-1.49,0.739c-1.131,0-1.803-0.919-1.803-2.061 c0-1.143,0.672-2.062,1.803-2.062c0.941,0,1.356,0.56,1.479,0.751h2.329c-0.145-0.897-1.097-2.799-3.808-2.799 c-2.441,0-4.142,1.712-4.142,4.11C126.894,24.948,128.595,26.671,131.036,26.671 M123.108,26.537h2.295v-7.951h-2.295V26.537z M119.233,26.537h1.925v-7.951h-2.194v4.244l-3.249-4.244h-2.563v7.951h2.249v-4.883L119.233,26.537z M111.818,24.567h-4.625 l4.154-4.705v-1.276h-7.637v1.948h3.998l-4.11,4.705v1.298h8.22V24.567z M95.333,26.537h7.289v-1.948h-4.995v-1.222h2.711v-1.891 h-2.711v-1.043h4.559v-1.847h-6.853V26.537z M93.999,24.545h-4.48v-5.959h-2.295v7.951h6.775V24.545z M78.6,26.537h7.29v-1.948 h-4.995v-1.222h2.71v-1.891h-2.71v-1.043h4.558v-1.847H78.6V26.537z M75.609,16.066h-1.982l-0.661,0.795l-0.661-0.795h-1.948 l1.534,1.914h2.15L75.609,16.066z M77.266,24.567h-4.625l4.155-4.705v-1.276h-7.637v1.948h3.997l-4.109,4.705v1.298h8.219V24.567z"/><path class="st1" d="M0,41.604v8.412h60.248v-8.412H30.054v-1.155c1.744-1.183,3.453-2.389,5.202-3.566 c8.125-5.465,15.144-10.186,24.992-10.186v-8.411H0v8.411h33.51v1.17c-0.963,0.674-1.939,1.356-2.949,2.035 c-8.93,6.007-17.368,11.679-30.485,11.702H0z M60.248,10.69H0V2.277h60.248V10.69z"/></g></svg></div></div>
     <div class="spacer"></div>
     <button class="btn ghost sm" onclick="enterApp('changes')">Co se změnilo</button>
     <button class="btn primary sm" onclick="enterApp()">Otevřít aplikaci →</button>
@@ -475,7 +471,7 @@ body.editing #exec-name:hover{color:var(--accent)}
     <div class="wave-viewport" id="wave-viewport"></div>
   </div>
   <div class="period-tabs" id="period-tabs"></div>
-  <div class="land-hint">Projektová inteligence · prototyp v0.9 · fiktivní demonstrační data</div>
+  <div class="land-hint">Prototyp v0.9 · fiktivní demonstrační data</div>
 </section>
 
 <div class="app">
@@ -484,7 +480,6 @@ body.editing #exec-name:hover{color:var(--accent)}
 <aside class="sidebar" id="sidebar">
   <div class="logo">
     <div class="logo-badge"><svg viewBox="0 0 134.844 50.017" xmlns="http://www.w3.org/2000/svg"><style>.st0{fill:#002B59}.st1{fill:#FF5200}</style><g><path class="st0" d="M118.773,7.437l-0.974-2.375l-0.974,2.375H118.773z M119.557,9.317h-3.516l-0.459,1.12h-2.33l3.393-7.951 h2.475l3.371,7.951h-2.475L119.557,9.317z M110.463,10.437h-2.408l-3.404-7.951h2.643l2.015,5.106l2.005-5.106h2.396 L110.463,10.437z M100.629,0h2.307l-1.344,1.88h-2.217L100.629,0z M101.391,7.437l-0.974-2.375l-0.975,2.375H101.391z M102.175,9.317h-3.516l-0.46,1.12H95.87l3.393-7.951h2.475l3.371,7.951h-2.475L102.175,9.317z M89.586,4.422v1.346h2.286 c0.56,0,0.862-0.236,0.862-0.673c0-0.471-0.291-0.673-0.862-0.673H89.586z M87.291,2.486h4.872c1.769,0,2.922,0.895,2.922,2.62 c0,1.121-0.537,1.904-1.444,2.296l1.724,3.035h-2.418L91.39,7.67h-1.804v2.767h-2.295V2.486z M80.335,4.456v1.457h2.319 c0.594,0,0.885-0.269,0.885-0.728c0-0.482-0.28-0.729-0.885-0.729H80.335z M78.051,2.486h4.883c1.837,0,2.956,0.918,2.956,2.699 c0,1.769-1.119,2.698-2.956,2.698h-2.599v2.554h-2.284V2.486z M71.42,4.658c0,0.336,0.313,0.526,0.874,0.571l1.098,0.09 c2.049,0.156,3.202,0.874,3.202,2.61c0,1.691-1.276,2.653-3.662,2.653c-2.844,0-3.863-1.421-4.076-2.53h2.418 c0.134,0.336,0.65,0.74,1.658,0.74c0.897,0,1.267-0.269,1.267-0.695c0-0.426-0.348-0.582-0.93-0.65 c-0.404-0.045-0.718-0.067-1.11-0.101c-1.915-0.168-3.101-1.041-3.101-2.576c0-1.635,1.477-2.441,3.505-2.441 c2.721,0,3.617,1.265,3.841,2.295h-2.295c-0.135-0.19-0.628-0.504-1.546-0.504C71.857,4.12,71.42,4.299,71.42,4.658 M131.036,26.671c2.8,0,3.696-2.048,3.808-2.787h-2.318c-0.123,0.19-0.526,0.739-1.49,0.739c-1.131,0-1.803-0.919-1.803-2.061 c0-1.143,0.672-2.062,1.803-2.062c0.941,0,1.356,0.56,1.479,0.751h2.329c-0.145-0.897-1.097-2.799-3.808-2.799 c-2.441,0-4.142,1.712-4.142,4.11C126.894,24.948,128.595,26.671,131.036,26.671 M123.108,26.537h2.295v-7.951h-2.295V26.537z M119.233,26.537h1.925v-7.951h-2.194v4.244l-3.249-4.244h-2.563v7.951h2.249v-4.883L119.233,26.537z M111.818,24.567h-4.625 l4.154-4.705v-1.276h-7.637v1.948h3.998l-4.11,4.705v1.298h8.22V24.567z M95.333,26.537h7.289v-1.948h-4.995v-1.222h2.711v-1.891 h-2.711v-1.043h4.559v-1.847h-6.853V26.537z M93.999,24.545h-4.48v-5.959h-2.295v7.951h6.775V24.545z M78.6,26.537h7.29v-1.948 h-4.995v-1.222h2.71v-1.891h-2.71v-1.043h4.558v-1.847H78.6V26.537z M75.609,16.066h-1.982l-0.661,0.795l-0.661-0.795h-1.948 l1.534,1.914h2.15L75.609,16.066z M77.266,24.567h-4.625l4.155-4.705v-1.276h-7.637v1.948h3.997l-4.109,4.705v1.298h8.219V24.567z"/><path class="st1" d="M0,41.604v8.412h60.248v-8.412H30.054v-1.155c1.744-1.183,3.453-2.389,5.202-3.566 c8.125-5.465,15.144-10.186,24.992-10.186v-8.411H0v8.411h33.51v1.17c-0.963,0.674-1.939,1.356-2.949,2.035 c-8.93,6.007-17.368,11.679-30.485,11.702H0z M60.248,10.69H0V2.277h60.248V10.69z"/></g></svg></div>
-    <div class="logo-name">Projektová inteligence<small>Správa železnic</small></div>
   </div>
   <div class="nav-label">Pracovní prostor</div>
   <div class="nav-item active" data-view="overview"><svg viewBox="0 0 24 24"><path d="M3 12l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg>Přehled</div>
@@ -715,18 +710,18 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
     <div class="card dm-wrap">
       <svg class="dm-svg" viewBox="0 0 900 520" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0 0L7 3L0 6" fill="none" stroke="#6d8dff" stroke-width="1.2"/></marker>
-          <linearGradient id="gA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d8dff" stop-opacity=".18"/><stop offset="1" stop-color="#6d8dff" stop-opacity=".04"/></linearGradient>
-          <linearGradient id="gB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#42d7c8" stop-opacity=".16"/><stop offset="1" stop-color="#42d7c8" stop-opacity=".03"/></linearGradient>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0 0L7 3L0 6" fill="none" stroke="#FF5200" stroke-width="1.2"/></marker>
+          <linearGradient id="gA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF5200" stop-opacity=".18"/><stop offset="1" stop-color="#FF5200" stop-opacity=".04"/></linearGradient>
+          <linearGradient id="gB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3D82C4" stop-opacity=".16"/><stop offset="1" stop-color="#3D82C4" stop-opacity=".03"/></linearGradient>
         </defs>
         <style>
           .ent{fill:#10131b;stroke:rgba(255,255,255,.14)}
-          .ent-core{stroke:rgba(109,141,255,.55)}
-          .ent-ai{stroke:rgba(66,215,200,.5)}
+          .ent-core{stroke:rgba(255,82,0,.55)}
+          .ent-ai{stroke:rgba(61,130,196,.5)}
           .et{fill:#e8eaf2;font:600 12px Inter,sans-serif}
           .ef{fill:#5d6478;font:9.5px 'JetBrains Mono',monospace}
-          .rel{stroke:rgba(109,141,255,.4);stroke-width:1.1;fill:none;marker-end:url(#arr)}
-          .rel-ai{stroke:rgba(66,215,200,.5)}
+          .rel{stroke:rgba(255,82,0,.4);stroke-width:1.1;fill:none;marker-end:url(#arr)}
+          .rel-ai{stroke:rgba(61,130,196,.5)}
           .rl{fill:#9aa1b5;font:9px 'JetBrains Mono',monospace}
         </style>
         <rect class="ent ent-core" x="20" y="20" width="130" height="52" rx="10" fill="url(#gA)"/><text class="et" x="34" y="42">Projekt</text><text class="ef" x="34" y="58">název · fáze · stav</text>
@@ -761,8 +756,8 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       </svg>
     </div>
     <div class="dm-legend">
-      <span><i style="display:inline-block;width:10px;height:10px;border:1.5px solid rgba(109,141,255,.6);border-radius:3px;margin-right:6px;vertical-align:-1px"></i>Jádro (Projekt → Milník → Schůzka)</span>
-      <span><i style="display:inline-block;width:10px;height:10px;border:1.5px solid rgba(66,215,200,.6);border-radius:3px;margin-right:6px;vertical-align:-1px"></i>AI pipeline (nic se nezapisuje bez potvrzení)</span>
+      <span><i style="display:inline-block;width:10px;height:10px;border:1.5px solid rgba(255,82,0,.6);border-radius:3px;margin-right:6px;vertical-align:-1px"></i>Jádro (Projekt → Milník → Schůzka)</span>
+      <span><i style="display:inline-block;width:10px;height:10px;border:1.5px solid rgba(61,130,196,.6);border-radius:3px;margin-right:6px;vertical-align:-1px"></i>AI pipeline (nic se nezapisuje bez potvrzení)</span>
       <span>Klíčová pravidla: Schůzka vytváří rozhodnutí, úkoly, rizika, důkazy a otázky · Rozhodnutí může uzavřít otázku · Důkaz podporuje rozhodnutí · Úkol odblokuje milník</span>
     </div>
   </section>
@@ -1003,7 +998,7 @@ function buildWave(){
   let mNodes='';
   meetings.forEach(m=>{
     if(!m.date||m.date==='—')return;
-    const x=dateX(m.date),y=waveY(x),pl=!!m.planned,c=pl?'#42d7c8':'#c9a6d8';
+    const x=dateX(m.date),y=waveY(x),pl=!!m.planned,c=pl?'#FF5200':'#5F80A8';
     mNodes+=`<g class="ms-hit" opacity="${pl?1:.7}" onclick="enterApp('meetings')">
       <rect x="${x-4.5}" y="${y+22}" width="9" height="9" rx="1.5" transform="rotate(45 ${x} ${y+26.5})" fill="${pl?'none':c}" stroke="${c}" stroke-width="1.6"/>
       ${pl?`<text x="${x}" y="${y+50}" text-anchor="middle" fill="${c}" font-family="Inter" font-size="10.5" font-weight="600">⌂ ${m.t.length>24?m.t.slice(0,22)+'…':m.t}</text>
@@ -1040,24 +1035,24 @@ function buildWave(){
   <svg id="wave-svg" width="${WAVE.W}" height="100%" viewBox="0 0 ${WAVE.W} ${WAVE.H}" preserveAspectRatio="xMinYMid meet" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="wg" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0" stop-color="#7b2ff7"/><stop offset=".33" stop-color="#d3208b"/>
-        <stop offset=".66" stop-color="#ff5e3a"/><stop offset="1" stop-color="#ff9e2c"/>
+        <stop offset="0" stop-color="#0F3E73"/><stop offset=".38" stop-color="#1F63A8"/>
+        <stop offset=".7" stop-color="#FF5200"/><stop offset="1" stop-color="#FF8A3D"/>
       </linearGradient>
       <linearGradient id="wgf" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#ff5e3a" stop-opacity=".85"/>
-        <stop offset=".5" stop-color="#a1206b" stop-opacity=".35"/>
-        <stop offset="1" stop-color="#2a0a1c" stop-opacity="0"/>
+        <stop offset="0" stop-color="#FF5200" stop-opacity=".8"/>
+        <stop offset=".5" stop-color="#0B2C52" stop-opacity=".4"/>
+        <stop offset="1" stop-color="#04162e" stop-opacity="0"/>
       </linearGradient>
       <filter id="wglow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="7"/></filter>
     </defs>
-    <path d="${fillB}" fill="#5c1140" opacity=".45"/>
+    <path d="${fillB}" fill="#0B2C52" opacity=".4"/>
     <path d="${fill}" fill="url(#wgf)"/>
     <path d="${top}" fill="none" stroke="url(#wg)" stroke-width="7" filter="url(#wglow)" opacity=".8"/>
     <path d="${top}" fill="none" stroke="url(#wg)" stroke-width="3"/>
-    <line x1="${tX}" y1="86" x2="${tX}" y2="${tY-4}" stroke="#42d7c8" stroke-width="1" stroke-dasharray="3 4" opacity=".8"/>
-    <circle cx="${tX}" cy="${tY}" r="4.5" fill="#42d7c8"><animate attributeName="opacity" values="1;.4;1" dur="2s" repeatCount="indefinite"/></circle>
-    <rect x="${tX-38}" y="62" width="76" height="20" rx="5" fill="rgba(66,215,200,.12)" stroke="rgba(66,215,200,.4)"/>
-    <text x="${tX}" y="76" text-anchor="middle" fill="#42d7c8" font-family="'JetBrains Mono'" font-size="10" letter-spacing="1">DNES ${fdate(TODAY)}</text>
+    <line x1="${tX}" y1="86" x2="${tX}" y2="${tY-4}" stroke="#3D82C4" stroke-width="1" stroke-dasharray="3 4" opacity=".8"/>
+    <circle cx="${tX}" cy="${tY}" r="4.5" fill="#3D82C4"><animate attributeName="opacity" values="1;.4;1" dur="2s" repeatCount="indefinite"/></circle>
+    <rect x="${tX-38}" y="62" width="76" height="20" rx="5" fill="rgba(61,130,196,.12)" stroke="rgba(61,130,196,.4)"/>
+    <text x="${tX}" y="76" text-anchor="middle" fill="#3D82C4" font-family="'JetBrains Mono'" font-size="10" letter-spacing="1">DNES ${fdate(TODAY)}</text>
     ${mNodes}
     ${nodes}
   </svg>`;
@@ -1130,7 +1125,7 @@ function renderTimeline(){
   h+=`<svg class="dep" width="100%" height="100%">`;
   milestones.filter(m=>m.dep).forEach(m=>{
     const from=milestones.find(x=>x.id===m.dep);
-    if(from)h+=`<path d="M ${from.pos}% 119 C ${(from.pos+m.pos)/2}% 60, ${(from.pos+m.pos)/2}% 60, ${m.pos}% 119" style="stroke:rgba(109,141,255,.22);fill:none;stroke-dasharray:4 4"/>`;
+    if(from)h+=`<path d="M ${from.pos}% 119 C ${(from.pos+m.pos)/2}% 60, ${(from.pos+m.pos)/2}% 60, ${m.pos}% 119" style="stroke:rgba(255,82,0,.22);fill:none;stroke-dasharray:4 4"/>`;
   });
   h+=`</svg>`;
   h+=`<div class="tl-today" style="left:${TODAY_POS}%"><span class="today-label">DNES · ${fdate(TODAY)}</span></div>`;
@@ -1355,7 +1350,7 @@ function showExtraction(){
 function renderExtraction(){
   $('#x-results').innerHTML=
    `<div class="x-group"><h4><span style="color:var(--accent2)">✦</span> Manažerský souhrn</h4>
-    <div class="x-item confirmed" style="border-color:rgba(66,215,200,.3)"><div class="x-body"><div class="x-t" style="font-weight:500;color:var(--text2)">${extraction.summary}</div></div></div></div>`
+    <div class="x-item confirmed" style="border-color:rgba(61,130,196,.3)"><div class="x-body"><div class="x-t" style="font-weight:500;color:var(--text2)">${extraction.summary}</div></div></div></div>`
    +extraction.groups.map((g,gi)=>`<div class="x-group"><h4><span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:${g.color}"></span>${g.name}</h4>
     ${g.items.map((it,ii)=>`<div class="x-item ${it.state===1?'confirmed':it.state===2?'rejected':''}">
       <div class="x-body"><div class="x-t">${it.t}</div><div class="x-m">${it.m}</div></div>
