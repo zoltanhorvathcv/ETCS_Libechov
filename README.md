@@ -57,11 +57,18 @@ Vyplňte `url` a `anonKey`, uložte, `git push`. Po nasazení se aplikace při
 prvním načtení sama naplní výchozím obsahem a od té chvíle ukládá každou úpravu
 do Supabase — sdílenou napříč zařízeními i členy týmu.
 
-### Bezpečnost
-Výchozí pravidla (Varianta A ve schématu) dovolují anonymnímu klíči i zápis —
-vhodné pro interní tým na neveřejné URL. Pro ostrý provoz přepněte na
-**Variantu B** (zápis jen pro přihlášené uživatele) — postup je v komentářích
-v `supabase-schema.sql`.
+### Bezpečnost a přihlášení (aktivní)
+Nasazená je **Varianta B**: kdokoli s odkazem vidí celou aplikaci **jen ke
+čtení**, upravovat data může pouze **přihlášený správce**.
+
+- V horní liště je tlačítko **Přihlásit** → e-mail + heslo (Supabase Auth).
+- Po přihlášení se objeví **✎ Úpravy**; odhlášením se vrátíte do režimu čtení.
+- Veřejná registrace je **vypnutá** — nový účet nelze založit z aplikace.
+- Nový správcovský účet přidáte v Supabase → **Authentication → Users → Add
+  user**. Heslo si lze kdykoli změnit tamtéž.
+
+Zápis je vynucen na úrovni databáze (RLS): anonymní klíč smí `select`, ale
+`insert/update/delete` jen role `authenticated`.
 
 ---
 

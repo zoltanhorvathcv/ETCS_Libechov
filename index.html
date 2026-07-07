@@ -400,6 +400,9 @@ textarea::placeholder{color:var(--text3)}
 .modal .del{margin-right:auto}
 
 /* ---------- Edit mode ---------- */
+#edit-toggle{display:none}
+body.authed #edit-toggle{display:inline-flex}
+body.authed #auth-btn{border-color:rgba(61,220,151,.35);color:var(--ok)}
 #edit-toggle.on{background:linear-gradient(135deg,#5f7ef0,#4a5fd0);border-color:rgba(109,141,255,.5);color:#fff}
 .edit-dot{display:none;position:absolute;top:9px;right:9px;width:24px;height:24px;border-radius:7px;border:1px solid var(--border2);background:var(--panel2);color:var(--text2);cursor:pointer;font-size:12px;align-items:center;justify-content:center;z-index:5;transition:all .15s}
 .edit-dot:hover{border-color:var(--accent);color:var(--accent)}
@@ -459,7 +462,7 @@ body.editing .exec-id:hover{outline:1px dashed rgba(109,141,255,.3);outline-offs
     <h1 id="land-name">Strategická analýza nasazení C-ITS na železničních přejezdech</h1>
     <p id="land-sub">Technická, organizační, právní a provozní proveditelnost C-ITS služeb na železničních přejezdech — řízená přes milníky, otázky, důkazy a rozhodnutí.</p>
     <div class="land-stats" id="land-stats"></div>
-    <div style="margin-top:22px"><button class="btn ghost sm" onclick="enterApp('overview');setTimeout(()=>{setEdit(true);openEditor('project','${'PRJ'}')},400)" style="border-color:rgba(255,255,255,.14)">⚙ Spravovat projekt</button></div>
+    <div style="margin-top:22px"><button class="btn ghost sm" onclick="manageProject()" style="border-color:rgba(255,255,255,.14)">⚙ Spravovat projekt</button></div>
   </div>
   <div class="road-title"><h2>Roadmapa</h2><span>automaticky generovaná z harmonogramu projektu · klikněte na milník pro detail</span></div>
   <div class="wave-zone">
@@ -503,6 +506,7 @@ body.editing .exec-id:hover{outline:1px dashed rgba(109,141,255,.3);outline-offs
     <div class="crumb">Projekty / <b>C-ITS přejezdy</b> / <span id="crumb-view">Přehled</span></div>
     <div class="search"><span>⌕</span> Hledat otázky, rozhodnutí, důkazy…<kbd>⌘K</kbd></div>
     <span id="sync-badge" class="tag" style="display:none">DEMO režim</span>
+    <button class="btn ghost sm" id="auth-btn" onclick="openLogin()">Přihlásit</button>
     <button class="btn ghost sm" id="edit-toggle" onclick="setEdit()">✎ Úpravy</button>
     <button class="btn primary sm" onclick="go('ai')">✦ Analyzovat přepis</button>
     <div class="avatar">ZH</div>
@@ -791,6 +795,21 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       <button class="btn danger del" id="ed-del" onclick="deleteEditor()" style="display:none">Smazat</button>
       <button class="btn ghost" onclick="closeEditor()">Zrušit</button>
       <button class="btn primary" onclick="saveEditor()">Uložit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Přihlášení správce -->
+<div class="modal-veil" id="login">
+  <div class="modal" style="width:390px">
+    <h3>Přihlášení správce</h3>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:6px">Úpravy projektu může provádět jen přihlášený správce. Návštěvníci vidí vše jen ke čtení.</div>
+    <label>E-mail</label><input id="lg-email" type="email" autocomplete="username" placeholder="vas@email.cz">
+    <label>Heslo</label><input id="lg-pass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <div id="lg-err" style="color:var(--blocked);font-size:12px;margin-top:10px;display:none"></div>
+    <div class="m-actions">
+      <button class="btn ghost" onclick="closeLogin()">Zrušit</button>
+      <button class="btn primary" onclick="doLogin()">Přihlásit se</button>
     </div>
   </div>
 </div>
@@ -1401,7 +1420,9 @@ function renderAll(){
 let editMode=false;
 const edDot=(key,id)=>`<button class="edit-dot" title="Upravit" onclick='event.stopPropagation();openEditor("${key}",${JSON.stringify(String(id))})'>✎</button>`;
 function setEdit(force){
-  editMode = force===undefined? !editMode : !!force;
+  const want = force===undefined? !editMode : !!force;
+  if(want && !AUTH){ openLogin(); return; }   // úpravy jen pro přihlášeného správce
+  editMode = want;
   document.body.classList.toggle('editing',editMode);
   $('#edit-toggle').classList.toggle('on',editMode);
   $('#edit-toggle').textContent = editMode? '✓ Hotovo' : '✎ Úpravy';
@@ -1563,6 +1584,8 @@ async function boot(){
       if(error)throw error;
       if(data&&data.length){ hydrate(data); ONLINE=true; badge('● Supabase','var(--ok)'); }
       else { ONLINE=true; await persistAll(); badge('● Supabase · nasazeno','var(--ok)'); }
+      sb.auth.onAuthStateChange(()=>refreshAuth());
+      await refreshAuth();
     }catch(e){ console.warn('Supabase nedostupné → DEMO režim:',e.message||e); badge('DEMO režim (offline)','var(--risk)'); }
   } else { badge('DEMO režim','var(--text3)'); }
   normalizeData(); renderAll();
@@ -1591,8 +1614,31 @@ async function persist(entity,o,i){ if(ONLINE)try{await sb.from('pi_entities').u
 async function persistDelete(entity,o){ if(ONLINE)try{await sb.from('pi_entities').delete().match({project_id:SUPA.projectId,entity,id:idOf(entity,o)})}catch(e){console.warn(e)} }
 async function persistMeta(){ if(ONLINE)try{await sb.from('pi_entities').upsert([rowFor('project',project,0),{project_id:SUPA.projectId,entity:'people',id:'meta',sort:0,data:people}])}catch(e){console.warn(e)} }
 
+/* ================= AUTH (veřejné čtení / zápis jen správce) ================= */
+let AUTH=false;
+async function refreshAuth(){
+  if(sb){try{const {data}=await sb.auth.getSession();AUTH=!!(data&&data.session)}catch(e){AUTH=false}}else AUTH=false;
+  applyAuthUI();
+}
+function applyAuthUI(){
+  document.body.classList.toggle('authed',AUTH);
+  const ab=$('#auth-btn'); if(ab)ab.textContent=AUTH?'Odhlásit':'Přihlásit';
+  if(!AUTH&&editMode)setEdit(false);
+}
+function openLogin(){ if(AUTH){doLogout();return;} if(!sb){toast('Supabase není nakonfigurováno');return;} $('#lg-err').style.display='none'; $('#login').classList.add('open'); setTimeout(()=>$('#lg-email').focus(),60); }
+function closeLogin(){$('#login').classList.remove('open')}
+async function doLogin(){
+  const email=$('#lg-email').value.trim(), password=$('#lg-pass').value;
+  if(!email||!password){$('#lg-err').textContent='Vyplňte e-mail i heslo.';$('#lg-err').style.display='block';return}
+  const {error}=await sb.auth.signInWithPassword({email,password});
+  if(error){$('#lg-err').textContent='Přihlášení selhalo: '+error.message;$('#lg-err').style.display='block';return}
+  await refreshAuth(); closeLogin(); $('#lg-pass').value=''; toast('Přihlášeno — úpravy povoleny');
+}
+async function doLogout(){ if(sb)await sb.auth.signOut(); await refreshAuth(); toast('Odhlášeno — režim jen pro čtení'); }
+function manageProject(){ enterApp('overview'); setTimeout(()=>{ if(AUTH){setEdit(true);openEditor('project','PRJ')} else openLogin(); },400); }
+
 /* ================= INIT ================= */
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeModal();closeEditor()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeModal();closeEditor();closeLogin()}});
 const mq=matchMedia('(max-width:1000px)');const fix=()=>{document.querySelectorAll('.two-col').forEach(n=>n.style.gridTemplateColumns=mq.matches?'1fr':'')};mq.addEventListener('change',fix);fix();
 boot();
 </script>
