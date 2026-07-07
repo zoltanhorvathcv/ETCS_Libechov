@@ -393,6 +393,28 @@ textarea::placeholder{color:var(--text3)}
 .modal input,.modal select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:inherit;font-size:13px;padding:10px 12px}
 .modal input:focus,.modal select:focus{outline:none;border-color:rgba(109,141,255,.5)}
 .modal .m-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.modal textarea{min-height:0}
+.modal .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal .full{grid-column:1/-1}
+.modal .hint{font-size:11px;color:var(--text3);margin-top:4px}
+.modal .del{margin-right:auto}
+
+/* ---------- Edit mode ---------- */
+#edit-toggle.on{background:linear-gradient(135deg,#5f7ef0,#4a5fd0);border-color:rgba(109,141,255,.5);color:#fff}
+.edit-dot{display:none;position:absolute;top:9px;right:9px;width:24px;height:24px;border-radius:7px;border:1px solid var(--border2);background:var(--panel2);color:var(--text2);cursor:pointer;font-size:12px;align-items:center;justify-content:center;z-index:5;transition:all .15s}
+.edit-dot:hover{border-color:var(--accent);color:var(--accent)}
+body.editing .edit-dot{display:inline-flex}
+.add-row{display:none;margin-bottom:14px}
+body.editing .add-row{display:flex;gap:8px;flex-wrap:wrap}
+.add-btn{padding:7px 13px;border-radius:9px;border:1px dashed var(--border2);background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .18s}
+.add-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(109,141,255,.06)}
+body.editing .bcard,body.editing tbody tr,body.editing .meet,body.editing .exec-id,body.editing .ms{position:relative}
+.edit-hint{display:none;align-items:center;gap:8px;background:rgba(109,141,255,.08);border:1px solid rgba(109,141,255,.25);border-radius:10px;padding:9px 14px;margin-bottom:16px;font-size:12px;color:var(--accent)}
+body.editing .edit-hint{display:flex}
+td .row-edit{opacity:0}
+body.editing td .row-edit{opacity:1}
+.pi-chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:7px;padding:4px 9px;cursor:pointer}
+body.editing .exec-id:hover{outline:1px dashed rgba(109,141,255,.3);outline-offset:8px;border-radius:8px}
 
 /* ---------- Responsive ---------- */
 .burger{display:none}
@@ -433,10 +455,11 @@ textarea::placeholder{color:var(--text3)}
     <button class="btn primary sm" onclick="enterApp()">Otevřít aplikaci →</button>
   </div>
   <div class="land-hero">
-    <div class="code">PRJ-2026-014 · ANALYTICKÝ PROJEKT · ÚNOR — PROSINEC 2026</div>
-    <h1>Strategická analýza nasazení C-ITS na železničních přejezdech</h1>
-    <p>Technická, organizační, právní a provozní proveditelnost C-ITS služeb na železničních přejezdech — řízená přes milníky, otázky, důkazy a rozhodnutí.</p>
+    <div class="code" id="land-code">PRJ-2026-014 · ANALYTICKÝ PROJEKT · ÚNOR — PROSINEC 2026</div>
+    <h1 id="land-name">Strategická analýza nasazení C-ITS na železničních přejezdech</h1>
+    <p id="land-sub">Technická, organizační, právní a provozní proveditelnost C-ITS služeb na železničních přejezdech — řízená přes milníky, otázky, důkazy a rozhodnutí.</p>
     <div class="land-stats" id="land-stats"></div>
+    <div style="margin-top:22px"><button class="btn ghost sm" onclick="enterApp('overview');setTimeout(()=>{setEdit(true);openEditor('project','${'PRJ'}')},400)" style="border-color:rgba(255,255,255,.14)">⚙ Spravovat projekt</button></div>
   </div>
   <div class="road-title"><h2>Roadmapa</h2><span>automaticky generovaná z harmonogramu projektu · klikněte na milník pro detail</span></div>
   <div class="wave-zone">
@@ -479,7 +502,8 @@ textarea::placeholder{color:var(--text3)}
     <button class="burger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
     <div class="crumb">Projekty / <b>C-ITS přejezdy</b> / <span id="crumb-view">Přehled</span></div>
     <div class="search"><span>⌕</span> Hledat otázky, rozhodnutí, důkazy…<kbd>⌘K</kbd></div>
-    <button class="btn ghost sm" onclick="openModal()">+ Schůzka</button>
+    <span id="sync-badge" class="tag" style="display:none">DEMO režim</span>
+    <button class="btn ghost sm" id="edit-toggle" onclick="setEdit()">✎ Úpravy</button>
     <button class="btn primary sm" onclick="go('ai')">✦ Analyzovat přepis</button>
     <div class="avatar">ZH</div>
   </div>
@@ -489,32 +513,32 @@ textarea::placeholder{color:var(--text3)}
     <div class="exec">
       <div class="exec-top">
         <div class="exec-id">
-          <div class="code">PRJ-2026-014 · ANALYTICKÝ PROJEKT</div>
-          <h1>Strategická analýza nasazení C-ITS na železničních přejezdech</h1>
+          <div class="code" id="exec-code">PRJ-2026-014 · ANALYTICKÝ PROJEKT</div>
+          <h1 id="exec-name">Strategická analýza nasazení C-ITS na železničních přejezdech</h1>
           <div class="exec-meta">
-            <span>Fáze <b>Analytická validace</b></span>
-            <span>Vlastník <b>Z. Horváth</b></span>
-            <span>Sponzor <b>Ministerstvo dopravy / SŽ</b></span>
-            <span>Poslední aktualizace <b>3. 7. 2026</b></span>
+            <span>Fáze <b id="exec-phase">Analytická validace</b></span>
+            <span>Vlastník <b id="exec-owner">Z. Horváth</b></span>
+            <span>Sponzor <b id="exec-sponsor">Ministerstvo dopravy / SŽ</b></span>
+            <span>Poslední aktualizace <b id="exec-updated">3. 7. 2026</b></span>
           </div>
         </div>
         <div class="health">
-          <div class="health-badge"><span class="pulse"></span><span>STAV: POZOR</span></div>
-          <div style="font-size:11px;color:var(--text3)">Klíčové riziko: <b style="color:var(--text2)">právní základ sdílení dat nevyřešen</b></div>
+          <div class="health-badge"><span class="pulse"></span><span id="exec-health">STAV: POZOR</span></div>
+          <div style="font-size:11px;color:var(--text3)">Klíčové riziko: <b style="color:var(--text2)" id="exec-risk">právní základ sdílení dat nevyřešen</b></div>
         </div>
       </div>
       <div class="kpis">
         <div class="kpi"><div class="k-label">Celkový postup</div>
-          <div class="k-value">46<span class="unit">%</span></div>
+          <div class="k-value"><span id="kpi-progress">46</span><span class="unit">%</span></div>
           <div class="progress-ring" style="margin-top:8px"><div class="bar"><i id="kpi-bar" style="width:0%"></i></div></div>
         </div>
         <div class="kpi"><div class="k-label">Další milník</div>
-          <div class="k-value" style="font-size:15px;line-height:1.3">M4 · Validace dat a stakeholderů</div>
-          <div class="k-sub">Termín 24. 7. 2026</div>
+          <div class="k-value" id="kpi-next" style="font-size:15px;line-height:1.3">M4 · Validace dat a stakeholderů</div>
+          <div class="k-sub" id="kpi-next-sub">Termín 24. 7. 2026</div>
         </div>
         <div class="kpi"><div class="k-label">Zbývá dní</div>
           <div class="k-value" id="kpi-days">18<span class="unit"> dní</span></div>
-          <div class="k-sub">do gate review M4</div>
+          <div class="k-sub" id="kpi-days-sub">do gate review M4</div>
         </div>
         <div class="kpi"><div class="k-label">Otevřené otázky</div>
           <div class="k-value" id="kpi-q" style="color:var(--risk)">3</div>
@@ -583,6 +607,8 @@ textarea::placeholder{color:var(--text3)}
         <option value="all">Všichni vlastníci</option>
       </select>
     </div>
+    <div class="edit-hint">✎ Editační režim je zapnutý — u karet klikněte na tužku pro úpravu, nebo přidejte novou položku pomocí ＋ v hlavičce sloupce.</div>
+    <div class="add-row"><button class="add-btn" onclick="openEditor('milestone')">＋ Nový milník</button></div>
     <div class="board-filters" id="ms-filters"></div>
     <div class="board" id="board"></div>
   </section>
@@ -591,9 +617,10 @@ textarea::placeholder{color:var(--text3)}
   <section class="view" id="view-meetings">
     <div class="section-title" style="margin-top:0"><h2>Inteligence schůzek</h2><span>každá schůzka sytí log rozhodnutí a otázek</span>
       <div class="spacer"></div>
-      <button class="btn ghost sm" onclick="openModal()">+ Přidat schůzku</button>
+      <button class="btn ghost sm" onclick="openEditor('meeting')">+ Přidat schůzku</button>
       <button class="btn primary sm" onclick="go('ai')">✦ Zpracovat přepis</button>
     </div>
+    <div class="edit-hint">✎ Tip: schůzku označenou jako „plánovaná" uvidíte jako kosočtverec přímo na roadmapě na úvodní stránce.</div>
     <div class="meet-grid" id="meetings"></div>
   </section>
 
@@ -644,6 +671,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
   <!-- ================= ROZHODNUTÍ ================= -->
   <section class="view" id="view-decisions">
     <div class="section-title" style="margin-top:0"><h2>Log rozhodnutí</h2><span>co bylo rozhodnuto — a proč</span></div>
+    <div class="add-row"><button class="add-btn" onclick="openEditor('decision')">＋ Nové rozhodnutí</button></div>
     <div class="card table-card">
       <div style="overflow-x:auto"><table id="dec-table">
         <thead><tr><th>ID</th><th>Rozhodnutí</th><th>Datum</th><th>Vlastník</th><th>Zdroj</th><th>Milník</th><th>Vratnost</th><th>Stav</th></tr></thead>
@@ -655,6 +683,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
   <!-- ================= OTÁZKY ================= -->
   <section class="view" id="view-issues">
     <div class="section-title" style="margin-top:0"><h2>Log otázek a problémů</h2><span>ne seznam úkolů — otázky, kvůli kterým projekt existuje</span></div>
+    <div class="add-row"><button class="add-btn" onclick="openEditor('question')">＋ Nová otázka</button></div>
     <div id="issue-log"></div>
   </section>
 
@@ -753,15 +782,56 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
   </div>
 </div>
 
+<!-- Univerzální editor (schema-driven) -->
+<div class="modal-veil" id="editor">
+  <div class="modal" style="width:600px">
+    <h3 id="ed-title">Upravit</h3>
+    <div id="ed-fields"></div>
+    <div class="m-actions">
+      <button class="btn danger del" id="ed-del" onclick="deleteEditor()" style="display:none">Smazat</button>
+      <button class="btn ghost" onclick="closeEditor()">Zrušit</button>
+      <button class="btn primary" onclick="saveEditor()">Uložit</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"><span class="ti">✓</span><span id="toast-msg"></span></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-/* ================= DATA ================= */
-const people = {ZH:'Zoltán Horváth',MK:'Marie Klimešová',PN:'Petr Novotný',JS:'Jana Svobodová',TB:'Tomáš Beneš',LEG:'Právní tým (ext.)'};
-const STATUS = {done:['Dokončeno','ok'],track:['Podle plánu','track'],risk:['Ohroženo','risk'],blocked:['Blokováno','blocked'],replanned:['Přeplánováno','replanned'],idle:['Nezahájeno','idle']};
-const TODAY='2026-07-06';
+/* ================= SUPABASE CONFIG =================
+   Vyplňte po založení tabulek (viz supabase-schema.sql a README).
+   Dokud jsou hodnoty prázdné, aplikace běží v DEMO režimu (data níže,
+   změny se neukládají). Po vyplnění se data načítají a ukládají do Supabase. */
+const SUPA = {
+  url: '',              // např. https://xxxx.supabase.co
+  anonKey: '',          // veřejný anon klíč (public)
+  projectId: 'PRJ-2026-014'
+};
 
-const milestones=[
+/* ================= DATA (výchozí / DEMO) ================= */
+let people = {ZH:'Zoltán Horváth',MK:'Marie Klimešová',PN:'Petr Novotný',JS:'Jana Svobodová',TB:'Tomáš Beneš',LEG:'Právní tým (ext.)'};
+const STATUS = {done:['Dokončeno','ok'],track:['Podle plánu','track'],risk:['Ohroženo','risk'],blocked:['Blokováno','blocked'],replanned:['Přeplánováno','replanned'],idle:['Nezahájeno','idle']};
+let TODAY='2026-07-06';
+
+/* Editovatelné parametry projektu (název, kód, vlastník…) */
+let project={
+  id:'PRJ-2026-014',
+  code:'PRJ-2026-014 · ANALYTICKÝ PROJEKT',
+  name:'Strategická analýza nasazení C-ITS na železničních přejezdech',
+  subtitle:'Technická, organizační, právní a provozní proveditelnost C-ITS služeb na železničních přejezdech — řízená přes milníky, otázky, důkazy a rozhodnutí.',
+  phase:'Analytická validace',
+  owner:'ZH',
+  sponsor:'Ministerstvo dopravy / SŽ',
+  progress:46,
+  health:'POZOR',
+  risk:'právní základ sdílení dat nevyřešen',
+  updated:'3. 7. 2026',
+  start:'2026-02-01',
+  end:'2026-12-31'
+};
+
+let milestones=[
  {id:'M1',name:'Zahájení projektu',date:'2026-02-10',pos:4,status:'done',progress:100,owner:'ZH',phase:'Zahájení',
   short:'Governance a rozsah potvrzeny',
   objective:'Potvrdit rozsah, řízení, stakeholdery a analytický model řízení studie C-ITS na železničních přejezdech.',
@@ -800,10 +870,19 @@ const milestones=[
   objective:'Odevzdat finální studii vč. plánu nasazení, možností financování (CEF/EU) a implementačních rizik.',
   blocking:[],decisions:[],evidence:['Příloha úplné dohledatelnosti'],meetings:['—'],next:'Ediční plán po uzavření M6.'}
 ];
-const phases=[
+let phases=[
  {name:'Zahájení',from:0,to:9,cls:'done'},{name:'Analýza',from:9,to:40,cls:'done'},
  {name:'Validace',from:40,to:58,cls:'current'},{name:'Syntéza',from:58,to:88,cls:'future'},{name:'Dodání',from:88,to:100,cls:'future'}];
-const TODAY_POS=47.5;
+let TODAY_POS=47.5;
+
+/* Přepočítá pozice milníků na časové ose (0–100 %) z jejich data a rozsahu projektu.
+   Díky tomu se milník po změně data sám posune na roadmapě i na časové ose. */
+function computePositions(){
+  const s=+new Date(project.start), e=+new Date(project.end), span=Math.max(1,e-s);
+  const pct=d=>Math.max(2,Math.min(98,((+new Date(d)-s)/span)*100));
+  milestones.forEach(m=>{ if(m.date&&m.date!=='—') m.pos=+pct(m.date).toFixed(2); });
+  TODAY_POS=+pct(TODAY).toFixed(2);
+}
 
 let questions=[
  {id:'Q-01',q:'Které datové zdroje jsou dostatečně spolehlivé pro online varovné služby na přejezdech?',why:'Finální doporučení stojí a padá s kvalitou dat — nespolehlivý zdroj činí online varovnou službu nedoporučitelnou.',owner:'MK',status:'risk',due:'2026-07-15',prio:'p1',ms:'M4',evidence:'Matice spolehlivosti dat; logy dostupnosti feedu SŽ',answer:'Předběžně: feed zabezpečení SŽ splňuje latenční cíle; dopravní feed ŘSD neověřen.',conf:60},
@@ -842,7 +921,7 @@ let risks=[
  {id:'R-03',t:'Program rozhovorů se protáhne za gate review M4',sev:'Střední',prob:'Vysoká',mit:'Redukovaný rozsah: 11/12 rozhovorů přijatelných dle D-06',owner:'PN',due:'2026-07-08',ms:'M4'},
  {id:'R-04',t:'Změna kritérií financování CEF pro výzvu 2027',sev:'Nízká',prob:'Nízká',mit:'Měsíční sledování aktualizací INEA',owner:'JS',due:'2026-09-01',ms:'M7'}
 ];
-const meetings=[
+let meetings=[
  {t:'Zahajovací workshop',date:'2026-02-10',day:'10',mon:'ÚNO',parts:['ZH','MK','PN','JS','TB'],purpose:'Rozsah a governance',ms:'M1',
   sum:'Potvrzen rozsah, governance a milníkový analytický model. Dohodnuto pravidlo dohledatelnosti všech budoucích doporučení.',dec:1,q:2,tasks:3,transcript:true},
  {t:'Revize technické architektury',date:'2026-03-12',day:'12',mon:'BŘE',parts:['MK','PN','TB'],purpose:'Hloubková analýza současného stavu',ms:'M2',
@@ -873,12 +952,12 @@ function toast(msg){$('#toast-msg').textContent=msg;$('#toast').classList.add('s
 
 /* ================= LANDING / APP switching ================= */
 function enterApp(view){document.body.classList.add('in-app');if(view)go(view);
-  setTimeout(()=>{const p=$('#tlp');if(p)p.style.width=TODAY_POS+'%';$('#kpi-bar').style.width='46%'},200)}
+  setTimeout(()=>{const p=$('#tlp');if(p)p.style.width=TODAY_POS+'%';const b=$('#kpi-bar');if(b)b.style.width=project.progress+'%'},200)}
 function exitApp(){document.body.classList.remove('in-app');window.scrollTo({top:0,behavior:'instant'})}
 
 /* ================= LANDING WAVE ROADMAP ================= */
 const WAVE={W:2400,H:470,base:322,pad:110};
-const pStart=+new Date('2026-02-01'),pEnd=+new Date('2026-12-31');
+let pStart=+new Date('2026-02-01'),pEnd=+new Date('2026-12-31');
 const dateX=d=>WAVE.pad+((+new Date(d)-pStart)/(pEnd-pStart))*(WAVE.W-2*WAVE.pad);
 function waveY(x){return WAVE.base-46*Math.sin(x/150)-16*Math.sin(x/63+2)}
 const landColor={done:'#3ddc97',track:'#6d8dff',risk:'#ffb020',blocked:'#ff5c6a',idle:'#71627e',replanned:'#b78cff'};
@@ -886,6 +965,7 @@ const landStatus={done:'Dokončeno',track:'Podle plánu',risk:'Ohroženo',blocke
 let waveOffset=0;
 
 function buildWave(){
+  pStart=+new Date(project.start); pEnd=+new Date(project.end);
   let top='',topB='';
   for(let x=0;x<=WAVE.W;x+=18){const y=waveY(x),y2=waveY(x+400)+26;
     top+=(x===0?`M ${x} ${y}`:` L ${x} ${y}`);
@@ -893,6 +973,18 @@ function buildWave(){
   const fill=`${top} L ${WAVE.W} ${WAVE.H} L 0 ${WAVE.H} Z`;
   const fillB=`${topB} L ${WAVE.W} ${WAVE.H} L 0 ${WAVE.H} Z`;
   const tX=dateX(TODAY),tY=waveY(tX);
+
+  // Plánované i proběhlé schůzky jako kosočtverce na roadmapě
+  let mNodes='';
+  meetings.forEach(m=>{
+    if(!m.date||m.date==='—')return;
+    const x=dateX(m.date),y=waveY(x),pl=!!m.planned,c=pl?'#42d7c8':'#c9a6d8';
+    mNodes+=`<g class="ms-hit" opacity="${pl?1:.7}" onclick="enterApp('meetings')">
+      <rect x="${x-4.5}" y="${y+22}" width="9" height="9" rx="1.5" transform="rotate(45 ${x} ${y+26.5})" fill="${pl?'none':c}" stroke="${c}" stroke-width="1.6"/>
+      ${pl?`<text x="${x}" y="${y+50}" text-anchor="middle" fill="${c}" font-family="Inter" font-size="10.5" font-weight="600">⌂ ${m.t.length>24?m.t.slice(0,22)+'…':m.t}</text>
+      <text x="${x}" y="${y+64}" text-anchor="middle" fill="#c8b6d4" font-family="'JetBrains Mono'" font-size="9">plánováno · ${fdate(m.date)}</text>`:''}
+    </g>`;
+  });
 
   let nodes='',lastX=-1e9,lastHigh=false;
   milestones.forEach(m=>{
@@ -939,14 +1031,16 @@ function buildWave(){
     <path d="${top}" fill="none" stroke="url(#wg)" stroke-width="3"/>
     <line x1="${tX}" y1="86" x2="${tX}" y2="${tY-4}" stroke="#42d7c8" stroke-width="1" stroke-dasharray="3 4" opacity=".8"/>
     <circle cx="${tX}" cy="${tY}" r="4.5" fill="#42d7c8"><animate attributeName="opacity" values="1;.4;1" dur="2s" repeatCount="indefinite"/></circle>
-    <rect x="${tX-34}" y="62" width="68" height="20" rx="5" fill="rgba(66,215,200,.12)" stroke="rgba(66,215,200,.4)"/>
-    <text x="${tX}" y="76" text-anchor="middle" fill="#42d7c8" font-family="'JetBrains Mono'" font-size="10" letter-spacing="1">DNES 6. 7.</text>
+    <rect x="${tX-38}" y="62" width="76" height="20" rx="5" fill="rgba(66,215,200,.12)" stroke="rgba(66,215,200,.4)"/>
+    <text x="${tX}" y="76" text-anchor="middle" fill="#42d7c8" font-family="'JetBrains Mono'" font-size="10" letter-spacing="1">DNES ${fdate(TODAY)}</text>
+    ${mNodes}
     ${nodes}
   </svg>`;
 
-  // period tabs — quarters covered by the schedule
-  const qs=[['Q1 2026','2026-02-15'],['Q2 2026','2026-05-15'],['Q3 2026','2026-08-15'],['Q4 2026','2026-11-15']];
-  $('#period-tabs').innerHTML=qs.map(([l,d],i)=>`<button class="ptab" data-x="${dateX(d)}" onclick="waveGoto(${dateX(d)},this)">${l}</button>`).join('');
+  // period tabs — čtvrtletí pokrytá harmonogramem (odvozeno z rozsahu projektu)
+  const qs=[]; let d=new Date(pStart); d.setDate(15); d.setMonth(Math.floor(d.getMonth()/3)*3+1);
+  while(+d<=pEnd){ qs.push(['Q'+(Math.floor(d.getMonth()/3)+1)+' '+d.getFullYear(), d.toISOString().slice(0,10)]); d.setMonth(d.getMonth()+3); }
+  $('#period-tabs').innerHTML=qs.map(([l,dd])=>`<button class="ptab" data-x="${dateX(dd)}" onclick="waveGoto(${dateX(dd)},this)">${l}</button>`).join('');
   waveGoto(tX,null,true);
 }
 function viewportW(){return $('#wave-viewport').clientWidth}
@@ -972,12 +1066,21 @@ function waveGoto(x,btn,instant){
 window.addEventListener('resize',()=>{waveOffset=clampOffset(waveOffset);applyOffset()});
 
 /* ================= LANDING STATS ================= */
-const doneN=milestones.filter(m=>m.status==='done').length;
-$('#land-stats').innerHTML=`
+/* Vrátí nejbližší nedokončený milník podle data (další brána) */
+function nextMilestone(){
+  const up=milestones.filter(m=>m.status!=='done'&&m.date&&m.date!=='—').sort((a,b)=>+new Date(a.date)-+new Date(b.date));
+  return up[0]||milestones[milestones.length-1];
+}
+function daysTo(d){return Math.round((+new Date(d)-+new Date(TODAY))/864e5)}
+function renderLandStats(){
+  const doneN=milestones.filter(m=>m.status==='done').length;
+  const nm=nextMilestone(), blockingQ=questions.filter(q=>q.status!=='done'&&q.ms===nm.id).length;
+  $('#land-stats').innerHTML=`
   <span class="land-stat"><span class="sdot" style="color:var(--ok);background:var(--ok)"></span><b>${doneN} / ${milestones.length}</b>&nbsp;milníků dokončeno</span>
-  <span class="land-stat"><span class="sdot" style="color:var(--accent);background:var(--accent)"></span>celkový postup&nbsp;<b>46 %</b></span>
-  <span class="land-stat"><span class="sdot" style="color:var(--risk);background:var(--risk)"></span>další: <b>&nbsp;M4 · 24. 7.</b>&nbsp;· zbývá <b>18 dní</b></span>
-  <span class="land-stat"><span class="sdot" style="color:var(--blocked);background:var(--blocked)"></span><b>3</b>&nbsp;otevřené otázky blokují bránu</span>`;
+  <span class="land-stat"><span class="sdot" style="color:var(--accent);background:var(--accent)"></span>celkový postup&nbsp;<b>${project.progress} %</b></span>
+  <span class="land-stat"><span class="sdot" style="color:var(--risk);background:var(--risk)"></span>další: <b>&nbsp;${nm.id} · ${fdate(nm.date)}</b>&nbsp;· zbývá <b>${daysTo(nm.date)} dní</b></span>
+  <span class="land-stat"><span class="sdot" style="color:var(--blocked);background:var(--blocked)"></span><b>${blockingQ}</b>&nbsp;otevřené otázky blokují bránu</span>`;
+}
 
 /* ================= NAV ================= */
 const viewNames={overview:'Přehled',board:'Milníková nástěnka',meetings:'Schůzky',ai:'AI analytik',decisions:'Log rozhodnutí',issues:'Log otázek',changes:'Co se změnilo',model:'Datový model'};
@@ -1005,13 +1108,14 @@ function renderTimeline(){
     if(from)h+=`<path d="M ${from.pos}% 119 C ${(from.pos+m.pos)/2}% 60, ${(from.pos+m.pos)/2}% 60, ${m.pos}% 119" style="stroke:rgba(109,141,255,.22);fill:none;stroke-dasharray:4 4"/>`;
   });
   h+=`</svg>`;
-  h+=`<div class="tl-today" style="left:${TODAY_POS}%"><span class="today-label">DNES · 6. 7.</span></div>`;
+  h+=`<div class="tl-today" style="left:${TODAY_POS}%"><span class="today-label">DNES · ${fdate(TODAY)}</span></div>`;
   milestones.forEach((m,i)=>{
     h+=`<div class="ms ${m.status}${i%2?' above':''}" style="left:${m.pos}%" onclick="openMilestone('${m.id}')" id="msn-${m.id}">
       <div class="node"></div>
       <div><div class="ms-code">${m.id} · ${fdate(m.date)}</div>
       <div class="ms-name">${m.name}</div>
-      <div class="ms-status">${chip(m.status)}</div></div></div>`;
+      <div class="ms-status">${chip(m.status)}</div></div>
+      ${edDot('milestone',m.id)}</div>`;
   });
   tl.innerHTML=h;
 }
@@ -1028,8 +1132,8 @@ function openMilestone(id){
     <div class="d-title">${m.name}</div>
     ${chip(m.status)}
     <div class="d-grid">
-      <div class="d-cell"><div class="l">Plánované datum</div><div class="v">${fdate(m.date)} 2026</div></div>
-      <div class="d-cell"><div class="l">Vlastník</div><div class="v">${people[m.owner]}</div></div>
+      <div class="d-cell"><div class="l">Plánované datum</div><div class="v">${fdate(m.date)} ${m.date&&m.date!=='—'?new Date(m.date).getFullYear():''}</div></div>
+      <div class="d-cell"><div class="l">Vlastník</div><div class="v">${people[m.owner]||m.owner||'—'}</div></div>
       <div class="d-cell"><div class="l">Dokončení</div><div class="v">${m.progress} %<div class="bar" style="margin-top:7px"><i style="width:${m.progress}%"></i></div></div></div>
       <div class="d-cell"><div class="l">Závislost</div><div class="v">${m.dep?'nejprve musí skončit '+m.dep:'—'}</div></div>
     </div>
@@ -1039,7 +1143,8 @@ function openMilestone(id){
     <div class="d-sec"><h4>Potřebné důkazy <span class="n">${m.evidence.length}</span></h4>${li(m.evidence,'var(--accent2)')}</div>
     <div class="d-sec"><h4>Související schůzky</h4>${li(m.meetings,'var(--text2)')}</div>
     <div class="next-action"><div class="l">Další nutný krok</div><p>${m.next}</p></div>
-    <div style="display:flex;gap:9px;margin-top:18px">
+    <div style="display:flex;gap:9px;margin-top:18px;flex-wrap:wrap">
+      <button class="btn primary sm" onclick="openEditor('milestone','${m.id}')">✎ Upravit milník</button>
       <button class="btn sm" onclick="closeDrawer();go('board');filterMs('${m.id}')">Otevřít nástěnku pro ${m.id}</button>
       <button class="btn ghost sm" onclick="bumpProgress('${m.id}')">Postup +5 %</button>
     </div>`;
@@ -1063,44 +1168,44 @@ function renderBoard(){
   const prioName=p=>p==='p1'?'Kritická':p==='p2'?'Vysoká':'Běžná';
 
   const qCards=questions.filter(inMs).map(q=>`
-    <div class="bcard"><div class="b-meta" style="margin-bottom:7px"><span class="tag">${q.id}</span><span class="prio ${q.prio}">${prioName(q.prio)}</span>${chip(q.status)}</div>
+    <div class="bcard">${edDot('question',q.id)}<div class="b-meta" style="margin-bottom:7px"><span class="tag">${q.id}</span><span class="prio ${q.prio}">${prioName(q.prio)}</span>${chip(q.status)}</div>
     <div class="b-title">${q.q}</div>
     <div class="b-row"><span class="owner">${av(q.owner)}${(people[q.owner]||q.owner).split(' ')[0]}</span><span class="due ${q.status!=='done'&&q.due<TODAY?'over':''}">${fdate(q.due)}</span></div>
-    <div class="rel">Blokuje <b>${q.ms}</b> · potřebuje: ${q.evidence.split(';')[0]}</div>
+    <div class="rel">Blokuje <b>${q.ms}</b> · potřebuje: ${(q.evidence||'').split(';')[0]}</div>
     ${q.status!=='done'?`<button class="resolve-btn" onclick="resolveQ('${q.id}')">✓ Označit jako vyřešenou</button>`:''}</div>`).join('');
 
   const eCards=evidence.map(e=>`
-    <div class="bcard"><div class="b-meta" style="margin-bottom:7px"><span class="tag">${e.type}</span>${chip(e.status)}</div>
+    <div class="bcard">${edDot('evidence',e.uid||e.name)}<div class="b-meta" style="margin-bottom:7px"><span class="tag">${e.type}</span>${chip(e.status)}</div>
     <div class="b-title">${e.name}</div>
     <div class="b-row"><span style="font-size:10.5px;color:var(--text3)">Věrohodnost</span><span class="cred">${[1,2,3].map(i=>`<i class="${i<=e.cred?'f':''}"></i>`).join('')}</span></div>
     <div class="rel">Odpovídá na <b>${e.q}</b> · ${e.note}</div></div>`).join('');
 
   const dCards=decisions.filter(inMs).map(d=>`
-    <div class="bcard"><div class="b-meta" style="margin-bottom:7px"><span class="tag">${d.id}</span>${chip(d.status==='blocked'?'blocked':'done')}<span class="tag">${d.rev==='Ano'?'vratné':'nevratné'}</span></div>
+    <div class="bcard">${edDot('decision',d.id)}<div class="b-meta" style="margin-bottom:7px"><span class="tag">${d.id}</span>${chip(d.status==='blocked'?'blocked':'done')}<span class="tag">${d.rev==='Ano'?'vratné':'nevratné'}</span></div>
     <div class="b-title">${d.t}</div>
     <div class="b-row"><span class="owner">${av(d.owner)}${(people[d.owner]||d.owner).split(' ')[0]}</span><span class="due">${fdate(d.date)}</span></div>
     <div class="rel">Zdroj: <b style="color:var(--text2);font-family:inherit">${d.src}</b></div></div>`).join('');
 
   const tCards=tasks.filter(t=>(ow==='all'||t.owner===ow)).map(t=>`
-    <div class="bcard"><div class="b-meta" style="margin-bottom:7px"><span class="tag">${t.id}</span>${chip(t.over?'blocked':t.status)}${t.over?'<span class="prio p1">Po termínu</span>':''}</div>
+    <div class="bcard">${edDot('task',t.id)}<div class="b-meta" style="margin-bottom:7px"><span class="tag">${t.id}</span>${chip(t.over?'blocked':t.status)}${t.over?'<span class="prio p1">Po termínu</span>':''}</div>
     <div class="b-title">${t.t}</div>
     <div class="b-row"><span class="owner">${av(t.owner)}${(people[t.owner]||t.owner).split(' ')[0]}</span><span class="due ${t.over?'over':''}">${fdate(t.due)}</span></div>
     <div class="rel">${t.impact} · závislost: ${t.dep}<br><span style="color:var(--text3)">${t.upd}</span></div></div>`).join('');
 
   const rCards=risks.filter(inMs).map(r=>`
-    <div class="bcard"><div class="b-meta" style="margin-bottom:7px"><span class="tag">${r.id}</span><span class="prio ${r.sev==='Vysoká'?'p1':r.sev==='Střední'?'p2':'p3'}">${r.sev}</span></div>
+    <div class="bcard">${edDot('risk',r.id)}<div class="b-meta" style="margin-bottom:7px"><span class="tag">${r.id}</span><span class="prio ${r.sev==='Vysoká'?'p1':r.sev==='Střední'?'p2':'p3'}">${r.sev}</span></div>
     <div class="b-title">${r.t}</div>
     <div class="sev-grid"><div class="sev-cell ${r.sev==='Vysoká'?'hot':r.sev==='Střední'?'warm':''}">ZÁV. ${r.sev}</div><div class="sev-cell ${r.prob==='Vysoká'?'hot':r.prob==='Střední'?'warm':''}">PRAV. ${r.prob}</div></div>
-    <div class="b-row" style="margin-top:9px"><span class="owner">${av(r.owner)}${people[r.owner].split(' ')[0]}</span><span class="due">${fdate(r.due)}</span></div>
+    <div class="b-row" style="margin-top:9px"><span class="owner">${av(r.owner)}${(people[r.owner]||r.owner).split(' ')[0]}</span><span class="due">${fdate(r.due)}</span></div>
     <div class="rel">Mitigace: ${r.mit}</div></div>`).join('');
 
-  const col=(title,color,cards,n)=>`<div class="col"><div class="col-head"><span class="cdot" style="background:${color}"></span><h3>${title}</h3><span class="n">${n}</span></div>${cards||'<div style="font-size:11px;color:var(--text3);padding:8px 4px">Nic tu není.</div>'}</div>`;
+  const col=(title,color,cards,n,addKey)=>`<div class="col"><div class="col-head"><span class="cdot" style="background:${color}"></span><h3>${title}</h3><span class="n">${n}</span>${addKey?`<button class="edit-dot" style="position:static;width:auto;height:22px;padding:0 8px;margin-left:6px" title="Přidat" onclick="openEditor('${addKey}')">＋</button>`:''}</div>${cards||'<div style="font-size:11px;color:var(--text3);padding:8px 4px">Nic tu není.</div>'}</div>`;
   $('#board').innerHTML=
-    col('Otevřené otázky','var(--risk)',qCards,questions.filter(inMs).length)+
-    col('Důkazy','var(--accent2)',eCards,evidence.length)+
-    col('Rozhodnutí','var(--accent)',dCards,decisions.filter(inMs).length)+
-    col('Úkoly / akce','var(--track)',tCards,tasks.filter(t=>ow==='all'||t.owner===ow).length)+
-    col('Rizika / blokátory','var(--blocked)',rCards,risks.filter(inMs).length);
+    col('Otevřené otázky','var(--risk)',qCards,questions.filter(inMs).length,'question')+
+    col('Důkazy','var(--accent2)',eCards,evidence.length,'evidence')+
+    col('Rozhodnutí','var(--accent)',dCards,decisions.filter(inMs).length,'decision')+
+    col('Úkoly / akce','var(--track)',tCards,tasks.filter(t=>ow==='all'||t.owner===ow).length,'task')+
+    col('Rizika / blokátory','var(--blocked)',rCards,risks.filter(inMs).length,'risk');
 }
 function resolveQ(id){const q=questions.find(x=>x.id===id);q.status='done';q.conf=90;
   changes.unshift({kind:'Otázka uzavřena',color:'var(--ok)',text:`<b>${id}</b> označena jako vyřešená (${people[q.owner]||q.owner})`,when:'6. 7. · ručně',neu:true});
@@ -1109,7 +1214,7 @@ function resolveQ(id){const q=questions.find(x=>x.id===id);q.status='done';q.con
 /* ================= MEETINGS ================= */
 function renderMeetings(){
   $('#meetings').innerHTML=meetings.map(m=>`
-    <div class="card meet">
+    <div class="card meet" style="position:relative">${edDot('meeting',m.uid||m.t)}
       <div class="m-top">
         <div class="m-date">${m.mon}<b>${m.day}</b></div>
         <div><h3>${m.t}</h3><div class="m-purpose">${m.purpose} · navázáno na ${m.ms}</div></div>
@@ -1117,7 +1222,7 @@ function renderMeetings(){
       </div>
       <p>${m.sum}</p>
       <div class="m-stats"><span><b>${m.dec}</b> rozhodnutí</span><span><b>${m.q}</b> otázky</span><span><b>${m.tasks}</b> úkoly</span>
-        <span style="margin-left:auto" class="avatars">${m.parts.map(av).join('')}</span></div>
+        <span style="margin-left:auto" class="avatars">${(m.parts||[]).map(av).join('')}</span></div>
       <div class="m-foot">
         ${m.transcript?`<button class="btn ghost sm" onclick="go('ai');loadSample()">✦ Znovu spustit extrakci</button><span class="tag">přepis přiložen</span>`:`<button class="btn ghost sm" onclick="go('ai')">＋ Přiložit přepis</button>`}
       </div>
@@ -1128,7 +1233,7 @@ function renderMeetings(){
 function renderIssues(){
   const prioName=p=>p==='p1'?'Kritická':p==='p2'?'Vysoká':'Běžná';
   $('#issue-log').innerHTML=questions.map(q=>`
-    <div class="card" style="padding:20px 22px;margin-bottom:12px">
+    <div class="card" style="padding:20px 22px;margin-bottom:12px;position:relative">${edDot('question',q.id)}
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:9px">
         <span class="tag">${q.id}</span>${chip(q.status)}<span class="prio ${q.prio}">${prioName(q.prio)}</span>
         <span style="margin-left:auto;font-size:11px;color:var(--text3)">Blokuje <b style="color:var(--accent);font-family:var(--mono)">${q.ms}</b> · termín <b style="color:${q.status!=='done'&&q.due<TODAY?'var(--blocked)':'var(--text2)'}">${fdate(q.due)}</b></span>
@@ -1159,7 +1264,7 @@ function renderDecisions(){
     <td style="font-size:11.5px">${d.src}</td>
     <td class="mono" style="color:var(--accent)">${d.ms}</td>
     <td>${d.rev==='Ano'?'<span class="chip neutral">Vratné</span>':'<span class="chip risk" style="text-transform:none;letter-spacing:0">Nevratné</span>'}</td>
-    <td>${chip(d.status==='blocked'?'blocked':'done')}</td></tr>`).join('');
+    <td>${chip(d.status==='blocked'?'blocked':'done')}<button class="edit-dot row-edit" style="position:static;margin-left:8px;width:24px;height:24px;vertical-align:middle" onclick="openEditor('decision','${d.id}')">✎</button></td></tr>`).join('');
 }
 
 /* ================= FEEDS ================= */
@@ -1261,15 +1366,235 @@ function addMeeting(){
   renderMeetings();closeModal();go('meetings');toast('Schůzka vytvořena — přepis lze přiložit po jejím konání');
 }
 
-/* ================= COUNTS + INIT ================= */
+/* ================= COUNTS ================= */
 function syncCounts(){
   const openQ=questions.filter(q=>q.status!=='done').length;
   $('#nav-open-q').textContent=openQ;$('#nav-iss').textContent=questions.length;$('#nav-dec').textContent=decisions.length;
   $('#kpi-q').textContent=openQ;
 }
-renderTimeline();renderBoard();renderMeetings();renderIssues();renderDecisions();renderFeeds();renderRiskCompact();syncCounts();buildWave();
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeModal()}});
+
+/* ================= PROJEKT META → UI ================= */
+function applyProjectMeta(){
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v};
+  set('land-code',project.code); set('land-name',project.name); set('land-sub',project.subtitle);
+  set('exec-code',project.code); set('exec-name',project.name);
+  set('exec-phase',project.phase); set('exec-owner',people[project.owner]||project.owner);
+  set('exec-sponsor',project.sponsor); set('exec-updated',project.updated);
+  set('exec-health','STAV: '+project.health); set('exec-risk',project.risk);
+  set('kpi-progress',project.progress);
+  const nm=nextMilestone(), d=daysTo(nm.date);
+  set('kpi-next',nm.id+' · '+nm.name);
+  set('kpi-next-sub','Termín '+fdate(nm.date)+(nm.date&&nm.date!=='—'?' '+new Date(nm.date).getFullYear():''));
+  set('kpi-days',d); const ds=document.getElementById('kpi-days'); if(ds)ds.innerHTML=d+'<span class="unit"> dní</span>';
+  set('kpi-days-sub','do brány '+nm.id);
+}
+
+/* ================= HROMADNÝ RENDER ================= */
+function renderAll(){
+  computePositions(); applyProjectMeta(); renderLandStats();
+  renderTimeline(); renderBoard(); renderMeetings(); renderIssues(); renderDecisions();
+  renderFeeds(); renderRiskCompact(); syncCounts(); buildWave();
+  if(document.body.classList.contains('in-app')){const p=$('#tlp');if(p)p.style.width=TODAY_POS+'%';const b=$('#kpi-bar');if(b)b.style.width=project.progress+'%';}
+}
+
+/* ================= EDITAČNÍ REŽIM ================= */
+let editMode=false;
+const edDot=(key,id)=>`<button class="edit-dot" title="Upravit" onclick='event.stopPropagation();openEditor("${key}",${JSON.stringify(String(id))})'>✎</button>`;
+function setEdit(force){
+  editMode = force===undefined? !editMode : !!force;
+  document.body.classList.toggle('editing',editMode);
+  $('#edit-toggle').classList.toggle('on',editMode);
+  $('#edit-toggle').textContent = editMode? '✓ Hotovo' : '✎ Úpravy';
+  if(editMode)toast('Editační režim zapnut — u položek se objeví ✎ a tlačítka ＋');
+}
+
+/* ================= UNIVERZÁLNÍ EDITOR (schema-driven) ================= */
+const monCz=['LED','ÚNO','BŘE','DUB','KVĚ','ČVN','ČVC','SRP','ZÁŘ','ŘÍJ','LIS','PRO'];
+const OWNER_OPTS=()=>Object.keys(people).map(k=>[k,people[k]]);
+const MS_OPTS=()=>milestones.map(m=>[m.id,m.id+' · '+m.name]);
+const Q_OPTS=()=>questions.map(q=>[q.id,q.id+' · '+q.q.slice(0,36)]);
+const ST_OPTS=Object.keys(STATUS).map(k=>[k,STATUS[k][0]]);
+const SEV_OPTS=[['Vysoká','Vysoká'],['Střední','Střední'],['Nízká','Nízká']];
+const PRIO_OPTS=[['p1','Kritická'],['p2','Vysoká'],['p3','Běžná']];
+
+const SCHEMAS={
+ project:{title:'Parametry projektu',arr:null,fields:[
+   {k:'name',l:'Název projektu',t:'text',full:1},
+   {k:'code',l:'Kód / štítek',t:'text',full:1},
+   {k:'subtitle',l:'Podtitul (úvodní stránka)',t:'textarea',full:1},
+   {k:'phase',l:'Aktuální fáze',t:'text'},{k:'owner',l:'Vlastník',t:'select',opts:OWNER_OPTS},
+   {k:'sponsor',l:'Sponzor',t:'text'},{k:'progress',l:'Celkový postup %',t:'number'},
+   {k:'health',l:'Stav (POZOR / OK / KRITICKÝ)',t:'text'},{k:'updated',l:'Poslední aktualizace',t:'text'},
+   {k:'risk',l:'Klíčové riziko',t:'text',full:1},
+   {k:'start',l:'Začátek projektu',t:'date'},{k:'end',l:'Konec projektu',t:'date'}]},
+ milestone:{title:'Milník',entity:'milestone',arr:()=>milestones,idf:'id',prefix:'M',fields:[
+   {k:'id',l:'ID (M1, M2…)',t:'text'},{k:'name',l:'Název',t:'text'},
+   {k:'date',l:'Datum',t:'date'},{k:'status',l:'Stav',t:'select',opts:ST_OPTS},
+   {k:'progress',l:'Dokončení %',t:'number'},{k:'owner',l:'Vlastník',t:'select',opts:OWNER_OPTS},
+   {k:'phase',l:'Fáze',t:'text'},{k:'dep',l:'Závisí na',t:'select',opts:()=>[['','—']].concat(MS_OPTS())},
+   {k:'short',l:'Krátký popis (roadmapa)',t:'text',full:1},
+   {k:'objective',l:'Cíl milníku',t:'textarea',full:1},
+   {k:'blocking',l:'Blokující problémy (jeden na řádek)',t:'lines',full:1},
+   {k:'decisions',l:'Potřebná rozhodnutí (jeden na řádek)',t:'lines',full:1},
+   {k:'evidence',l:'Potřebné důkazy (jeden na řádek)',t:'lines',full:1},
+   {k:'meetings',l:'Související schůzky (jeden na řádek)',t:'lines',full:1},
+   {k:'next',l:'Další nutný krok',t:'textarea',full:1}]},
+ meeting:{title:'Schůzka',entity:'meeting',arr:()=>meetings,idf:'uid',fields:[
+   {k:'t',l:'Název',t:'text',full:1},{k:'date',l:'Datum',t:'date'},
+   {k:'ms',l:'Navázaný milník',t:'select',opts:MS_OPTS},
+   {k:'purpose',l:'Účel',t:'text',full:1},{k:'sum',l:'Souhrn',t:'textarea',full:1},
+   {k:'parts',l:'Účastníci (kódy oddělené čárkou, např. ZH,MK)',t:'csv',full:1},
+   {k:'dec',l:'Počet rozhodnutí',t:'number'},{k:'q',l:'Počet otázek',t:'number'},{k:'tasks',l:'Počet úkolů',t:'number'},
+   {k:'planned',l:'Plánovaná (kosočtverec na roadmapě)',t:'check'},{k:'transcript',l:'Přepis přiložen',t:'check'}]},
+ question:{title:'Otázka',entity:'question',arr:()=>questions,idf:'id',prefix:'Q-',fields:[
+   {k:'id',l:'ID',t:'text'},{k:'q',l:'Otázka',t:'textarea',full:1},
+   {k:'why',l:'Proč na tom záleží',t:'textarea',full:1},
+   {k:'owner',l:'Vlastník',t:'select',opts:OWNER_OPTS},{k:'status',l:'Stav',t:'select',opts:ST_OPTS},
+   {k:'due',l:'Termín',t:'date'},{k:'prio',l:'Priorita',t:'select',opts:PRIO_OPTS},
+   {k:'ms',l:'Blokuje milník',t:'select',opts:MS_OPTS},{k:'conf',l:'Jistota %',t:'number'},
+   {k:'evidence',l:'Potřebné důkazy',t:'text',full:1},{k:'answer',l:'Aktuální odpověď',t:'textarea',full:1}]},
+ decision:{title:'Rozhodnutí',entity:'decision',arr:()=>decisions,idf:'id',prefix:'D-',fields:[
+   {k:'id',l:'ID',t:'text'},{k:'t',l:'Rozhodnutí',t:'textarea',full:1},
+   {k:'date',l:'Datum',t:'date'},{k:'owner',l:'Vlastník',t:'select',opts:OWNER_OPTS},
+   {k:'rat',l:'Zdůvodnění',t:'textarea',full:1},{k:'src',l:'Zdroj (schůzka / dokument)',t:'text',full:1},
+   {k:'ms',l:'Milník',t:'select',opts:MS_OPTS},{k:'rev',l:'Vratné?',t:'select',opts:[['Ano','Ano'],['Ne','Ne']]},
+   {k:'status',l:'Stav',t:'select',opts:[['done','Přijato'],['blocked','Čeká']]}]},
+ task:{title:'Úkol',entity:'task',arr:()=>tasks,idf:'id',prefix:'T-',fields:[
+   {k:'id',l:'ID',t:'text'},{k:'t',l:'Úkol',t:'textarea',full:1},
+   {k:'owner',l:'Vlastník',t:'select',opts:OWNER_OPTS},{k:'due',l:'Termín',t:'date'},
+   {k:'status',l:'Stav',t:'select',opts:ST_OPTS},{k:'over',l:'Po termínu',t:'check'},
+   {k:'dep',l:'Závislost',t:'text'},{k:'impact',l:'Dopad',t:'text',full:1},{k:'upd',l:'Poslední update',t:'text',full:1}]},
+ risk:{title:'Riziko',entity:'risk',arr:()=>risks,idf:'id',prefix:'R-',fields:[
+   {k:'id',l:'ID',t:'text'},{k:'t',l:'Riziko',t:'textarea',full:1},
+   {k:'sev',l:'Závažnost',t:'select',opts:SEV_OPTS},{k:'prob',l:'Pravděpodobnost',t:'select',opts:SEV_OPTS},
+   {k:'owner',l:'Vlastník',t:'select',opts:OWNER_OPTS},{k:'due',l:'Termín',t:'date'},
+   {k:'ms',l:'Milník',t:'select',opts:MS_OPTS},{k:'mit',l:'Mitigace',t:'textarea',full:1}]},
+ evidence:{title:'Důkaz',entity:'evidence',arr:()=>evidence,idf:'uid',fields:[
+   {k:'name',l:'Název',t:'text',full:1},{k:'type',l:'Typ',t:'text'},
+   {k:'status',l:'Stav',t:'select',opts:ST_OPTS},{k:'cred',l:'Věrohodnost (0–3)',t:'number'},
+   {k:'q',l:'Odpovídá na otázku',t:'select',opts:Q_OPTS},{k:'note',l:'Poznámka',t:'text',full:1}]}
+};
+const NEW_DEFAULT={
+ milestone:{status:'idle',progress:0,phase:'',owner:'ZH',blocking:[],decisions:[],evidence:[],meetings:[],short:'',objective:'',next:''},
+ meeting:{planned:true,transcript:false,parts:['ZH'],dec:0,q:0,tasks:0,sum:'Naplánováno. Po schůzce přiložte přepis.',ms:'M4'},
+ question:{status:'risk',prio:'p2',conf:50,owner:'ZH',ms:'M4',evidence:'',answer:''},
+ decision:{status:'done',rev:'Ano',owner:'ZH',ms:'M4',rat:'',src:''},
+ task:{status:'track',owner:'ZH',dep:'—',impact:'',upd:''},
+ risk:{sev:'Střední',prob:'Střední',owner:'ZH',ms:'M4',mit:''},
+ evidence:{status:'track',cred:1,type:'Dokument',q:'Q-01',note:''}
+};
+function nextId(key){
+  const sc=SCHEMAS[key]; if(!sc.prefix)return '';
+  const nums=sc.arr().map(o=>parseInt(String(o.id).replace(/\D/g,''))||0);
+  const n=(nums.length?Math.max(...nums):0)+1;
+  return sc.prefix+(sc.prefix==='M'?n:String(n).padStart(2,'0'));
+}
+let edCtx=null;
+function openEditor(key,id){
+  const sc=SCHEMAS[key]; const isNew=(key!=='project')&&!id;
+  let obj;
+  if(key==='project')obj=Object.assign({},project);
+  else if(isNew)obj=Object.assign({},NEW_DEFAULT[key]||{},{id:nextId(key)});
+  else obj=Object.assign({},sc.arr().find(o=>String(o[sc.idf]||o.id||o.t||o.name)===String(id)));
+  edCtx={key,id,isNew,ref:key==='project'?null:(isNew?null:sc.arr().find(o=>String(o[sc.idf]||o.id||o.t||o.name)===String(id)))};
+  edCtx.obj=obj;
+  $('#ed-title').textContent=(isNew?'Nový: ':'Upravit: ')+sc.title;
+  $('#ed-del').style.display=(!isNew&&key!=='project')?'inline-flex':'none';
+  $('#ed-fields').innerHTML='<div class="grid2">'+sc.fields.map(f=>fieldHTML(f,obj)).join('')+'</div>';
+  $('#editor').classList.add('open');
+}
+function fieldHTML(f,o){
+  let v=o[f.k]; if(v===undefined||v===null)v='';
+  const id='edf-'+f.k, cls=f.full?'full':'';
+  if(f.t==='check')return `<div class="${cls}" style="display:flex;align-items:center;gap:9px;margin-top:8px"><input type="checkbox" id="${id}" ${v?'checked':''} style="width:auto"><label style="margin:0;text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--text2)">${f.l}</label></div>`;
+  let input;
+  if(f.t==='textarea')input=`<textarea id="${id}" style="min-height:70px">${esc(v)}</textarea>`;
+  else if(f.t==='lines')input=`<textarea id="${id}" style="min-height:70px">${esc(Array.isArray(v)?v.join('\n'):v)}</textarea>`;
+  else if(f.t==='csv')input=`<input id="${id}" value="${esc(Array.isArray(v)?v.join(','):v)}">`;
+  else if(f.t==='select'){const opts=typeof f.opts==='function'?f.opts():f.opts;input=`<select id="${id}">${opts.map(([val,lab])=>`<option value="${esc(val)}" ${String(val)===String(v)?'selected':''}>${esc(lab)}</option>`).join('')}</select>`;}
+  else input=`<input id="${id}" type="${f.t==='number'?'number':f.t==='date'?'date':'text'}" value="${esc(v)}">`;
+  return `<div class="${cls}"><label>${f.l}</label>${input}</div>`;
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function saveEditor(){
+  const sc=SCHEMAS[edCtx.key], o=edCtx.obj;
+  sc.fields.forEach(f=>{
+    const el=document.getElementById('edf-'+f.k); if(!el)return;
+    if(f.t==='check')o[f.k]=el.checked;
+    else if(f.t==='number')o[f.k]=+el.value||0;
+    else if(f.t==='lines')o[f.k]=el.value.split('\n').map(s=>s.trim()).filter(Boolean);
+    else if(f.t==='csv')o[f.k]=el.value.split(',').map(s=>s.trim()).filter(Boolean);
+    else o[f.k]=el.value;
+  });
+  if(edCtx.key==='project'){ project=o; persistMeta(); }
+  else{
+    const arr=sc.arr();
+    if(edCtx.key==='meeting'&&o.date){const d=new Date(o.date);o.day=String(d.getDate()).padStart(2,'0');o.mon=monCz[d.getMonth()];}
+    if((edCtx.key==='meeting'||edCtx.key==='evidence')&&!o.uid)o.uid='u'+Date.now();
+    if(edCtx.isNew)arr.push(o);
+    else if(edCtx.ref)Object.assign(edCtx.ref,o);   // zachová referenci a přepíše hodnoty
+    const target=edCtx.isNew?o:edCtx.ref;
+    persist(sc.entity,target,arr.indexOf(target));
+  }
+  renderAll(); closeEditor();
+  toast((edCtx.isNew?'Vytvořeno':'Uloženo')+(ONLINE?' · Supabase':' · DEMO (neuloží se)'));
+}
+function deleteEditor(){
+  const sc=SCHEMAS[edCtx.key], arr=sc.arr(), i=arr.indexOf(edCtx.ref);
+  if(i>-1){arr.splice(i,1); persistDelete(sc.entity,edCtx.ref);}
+  renderAll(); closeEditor(); toast('Smazáno');
+}
+function closeEditor(){$('#editor').classList.remove('open')}
+
+/* ================= SUPABASE DATA LAYER ================= */
+let sb=null, ONLINE=false;
+function normalizeData(){
+  milestones.forEach(m=>{['blocking','decisions','evidence','meetings'].forEach(k=>{if(!Array.isArray(m[k]))m[k]=m[k]?[m[k]]:[]});['short','objective','next','phase'].forEach(k=>{if(m[k]==null)m[k]=''})});
+  meetings.forEach((m,i)=>{if(!m.uid)m.uid='m'+i+'-'+(m.date||'');if(!Array.isArray(m.parts))m.parts=[]});
+  evidence.forEach((e,i)=>{if(!e.uid)e.uid='e'+i});
+}
+function idOf(entity,o){const idf=(SCHEMAS[entity]||{}).idf||'id';return String(o[idf]||o.id||o.t||o.name)}
+async function boot(){
+  normalizeData();
+  if(SUPA.url&&SUPA.anonKey&&window.supabase){
+    try{
+      sb=window.supabase.createClient(SUPA.url,SUPA.anonKey);
+      const {data,error}=await sb.from('pi_entities').select('*').eq('project_id',SUPA.projectId).order('sort');
+      if(error)throw error;
+      if(data&&data.length){ hydrate(data); ONLINE=true; badge('● Supabase','var(--ok)'); }
+      else { ONLINE=true; await persistAll(); badge('● Supabase · nasazeno','var(--ok)'); }
+    }catch(e){ console.warn('Supabase nedostupné → DEMO režim:',e.message||e); badge('DEMO režim (offline)','var(--risk)'); }
+  } else { badge('DEMO režim','var(--text3)'); }
+  normalizeData(); renderAll();
+}
+function badge(txt,color){const b=$('#sync-badge');b.textContent=txt;b.style.color=color;b.style.display='inline-flex'}
+function hydrate(rows){
+  const by={}; rows.forEach(r=>{(by[r.entity]=by[r.entity]||[]).push(r.data)});
+  if(by.project&&by.project[0])project=by.project[0];
+  if(by.people&&by.people[0])people=by.people[0];
+  if(by.milestone)milestones=by.milestone; if(by.meeting)meetings=by.meeting;
+  if(by.question)questions=by.question; if(by.decision)decisions=by.decision;
+  if(by.task)tasks=by.task; if(by.risk)risks=by.risk; if(by.evidence)evidence=by.evidence;
+  if(by.change)changes=by.change;
+}
+function rowFor(entity,o,i){return {project_id:SUPA.projectId,entity,id:idOf(entity,o),sort:i,data:o}}
+async function persistAll(){
+  if(!ONLINE)return;
+  const rows=[rowFor('project',project,0),rowFor('people',people,0)];
+  [['milestone',milestones],['meeting',meetings],['question',questions],['decision',decisions],['task',tasks],['risk',risks],['evidence',evidence]]
+    .forEach(([e,arr])=>arr.forEach((o,i)=>rows.push(rowFor(e,o,i))));
+  // people uložíme jako celý objekt pod jedním id
+  rows[1].id='meta';
+  await sb.from('pi_entities').upsert(rows);
+}
+async function persist(entity,o,i){ if(ONLINE)try{await sb.from('pi_entities').upsert(rowFor(entity,o,i||0))}catch(e){console.warn(e)} }
+async function persistDelete(entity,o){ if(ONLINE)try{await sb.from('pi_entities').delete().match({project_id:SUPA.projectId,entity,id:idOf(entity,o)})}catch(e){console.warn(e)} }
+async function persistMeta(){ if(ONLINE)try{await sb.from('pi_entities').upsert([rowFor('project',project,0),{project_id:SUPA.projectId,entity:'people',id:'meta',sort:0,data:people}])}catch(e){console.warn(e)} }
+
+/* ================= INIT ================= */
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeModal();closeEditor()}});
 const mq=matchMedia('(max-width:1000px)');const fix=()=>{document.querySelectorAll('.two-col').forEach(n=>n.style.gridTemplateColumns=mq.matches?'1fr':'')};mq.addEventListener('change',fix);fix();
+boot();
 </script>
 </body>
 </html>
