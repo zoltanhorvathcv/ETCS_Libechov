@@ -504,7 +504,7 @@ body.editing #exec-name:hover{color:var(--accent)}
 <div class="main">
   <div class="topbar">
     <button class="burger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
-    <div class="crumb">Projekty / <b>C-ITS přejezdy</b> / <span id="crumb-view">Přehled</span></div>
+    <div class="crumb">Projekty / <b id="crumb-project">C-ITS přejezdy</b> / <span id="crumb-view">Přehled</span></div>
     <div class="search"><span>⌕</span> Hledat otázky, rozhodnutí, důkazy…<kbd>⌘K</kbd></div>
     <span id="sync-badge" class="tag" style="display:none">DEMO režim</span>
     <button class="btn ghost sm" id="auth-btn" onclick="openLogin()">Přihlásit</button>
@@ -839,6 +839,7 @@ let TODAY='2026-07-06';
 let project={
   id:'PRJ-2026-014',
   code:'PRJ-2026-014 · ANALYTICKÝ PROJEKT',
+  short:'C-ITS přejezdy',
   name:'Strategická analýza nasazení C-ITS na železničních přejezdech',
   subtitle:'Technická, organizační, právní a provozní proveditelnost C-ITS služeb na železničních přejezdech — řízená přes milníky, otázky, důkazy a rozhodnutí.',
   phase:'Analytická validace',
@@ -1397,6 +1398,7 @@ function syncCounts(){
 /* ================= PROJEKT META → UI ================= */
 function applyProjectMeta(){
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v};
+  set('crumb-project',project.short||project.name);
   set('land-code',project.code); set('land-name',project.name); set('land-sub',project.subtitle);
   set('exec-code',project.code); set('exec-name',project.name);
   set('exec-phase',project.phase); set('exec-owner',people[project.owner]||project.owner);
@@ -1444,6 +1446,7 @@ const SCHEMAS={
  project:{title:'Parametry projektu',arr:null,fields:[
    {k:'name',l:'Název projektu',t:'text',full:1},
    {k:'code',l:'Kód / štítek',t:'text',full:1},
+   {k:'short',l:'Krátký název (drobečková navigace)',t:'text'},
    {k:'subtitle',l:'Podtitul (úvodní stránka)',t:'textarea',full:1},
    {k:'phase',l:'Aktuální fáze',t:'text'},{k:'owner',l:'Vlastník',t:'select',opts:OWNER_OPTS},
    {k:'sponsor',l:'Sponzor',t:'text'},{k:'progress',l:'Celkový postup %',t:'number'},
@@ -1595,7 +1598,7 @@ async function boot(){
 function badge(txt,color){const b=$('#sync-badge');b.textContent=txt;b.style.color=color;b.style.display='inline-flex'}
 function hydrate(rows){
   const by={}; rows.forEach(r=>{(by[r.entity]=by[r.entity]||[]).push(r.data)});
-  if(by.project&&by.project[0])project=by.project[0];
+  if(by.project&&by.project[0])project=Object.assign({},project,by.project[0]);
   if(by.people&&by.people[0])people=by.people[0];
   if(by.milestone)milestones=by.milestone; if(by.meeting)meetings=by.meeting;
   if(by.question)questions=by.question; if(by.decision)decisions=by.decision;
