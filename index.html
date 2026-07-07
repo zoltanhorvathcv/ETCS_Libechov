@@ -417,7 +417,8 @@ body.editing .edit-hint{display:flex}
 td .row-edit{opacity:0}
 body.editing td .row-edit{opacity:1}
 .pi-chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:7px;padding:4px 9px;cursor:pointer}
-body.editing .exec-id:hover{outline:1px dashed rgba(109,141,255,.3);outline-offset:8px;border-radius:8px}
+body.editing #exec-name{cursor:pointer}
+body.editing #exec-name:hover{color:var(--accent)}
 
 /* ---------- Responsive ---------- */
 .burger{display:none}
@@ -515,10 +516,11 @@ body.editing .exec-id:hover{outline:1px dashed rgba(109,141,255,.3);outline-offs
   <!-- ================= PŘEHLED ================= -->
   <section class="view active" id="view-overview">
     <div class="exec">
+      <button class="edit-dot" title="Upravit parametry projektu" style="top:14px;right:14px;width:auto;height:28px;padding:0 12px;gap:6px" onclick="openEditor('project','PRJ')">✎ Upravit projekt</button>
       <div class="exec-top">
         <div class="exec-id">
           <div class="code" id="exec-code">PRJ-2026-014 · ANALYTICKÝ PROJEKT</div>
-          <h1 id="exec-name">Strategická analýza nasazení C-ITS na železničních přejezdech</h1>
+          <h1 id="exec-name" title="Upravit projekt" onclick="if(document.body.classList.contains('editing'))openEditor('project','PRJ')" style="cursor:default">Strategická analýza nasazení C-ITS na železničních přejezdech</h1>
           <div class="exec-meta">
             <span>Fáze <b id="exec-phase">Analytická validace</b></span>
             <span>Vlastník <b id="exec-owner">Z. Horváth</b></span>
