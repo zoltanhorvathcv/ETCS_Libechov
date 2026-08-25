@@ -155,7 +155,7 @@ function renderSidebar() {
 }
 
 function navigate(partial) {
-  Object.assign(store.selection, { elementType: null, elementUid: null }, partial);
+  Object.assign(store.selection, { elementType: null, elementUid: null, editingLinkUid: null }, partial);
   fullRender();
 }
 
@@ -286,6 +286,7 @@ function renderEditorView(root) {
     onSelect: (sel) => {
       store.selection.elementType = sel ? sel.type : null;
       store.selection.elementUid = sel ? sel.uid : null;
+      store.selection.editingLinkUid = null;
       renderEditorSidePanel();
     },
     onChangeGeometry: (kind, uid) => {
@@ -312,6 +313,8 @@ function renderEditorToolbar() {
   const inst = store.data.institutions.find((i) => i.uid === store.selection.institutionUid);
   if (!inst) return;
   bar.innerHTML = `
+    <h2 class="canvas-title">${escapeHtml(inst.name)} <span class="canvas-title-code">(${escapeHtml(inst.code)})</span></h2>
+    <div class="editor-toolbar-row">
     <select id="inst-switcher">${store.data.institutions
       .map((i) => `<option value="${i.uid}" ${i.uid === inst.uid ? 'selected' : ''}>${escapeHtml(i.code)} – ${escapeHtml(i.name)}</option>`)
       .join('')}</select>
@@ -324,6 +327,7 @@ function renderEditorToolbar() {
     <button class="btn" data-action="export-svg">Export SVG</button>
     <button class="btn" data-action="export-png">Export PNG</button>
     <button class="btn" data-action="export-pptx">Export PPTX</button>
+    </div>
   `;
   bar.querySelector('#inst-switcher').addEventListener('change', (e) => {
     navigate({ view: 'editor', institutionUid: e.target.value });
@@ -445,11 +449,19 @@ function renderEditorSidePanel() {
 
 function renderInstitutionPanel(panel, inst) {
   const linkReport = R.reportLinkList(store.data, inst.uid);
+  const editingUid = store.selection.editingLinkUid;
+  const editingLink = editingUid ? store.data.links.find((l) => l.uid === editingUid) : null;
   const allGroupOptions = allGroups(store.data)
     .map(({ institution, group }) => `<option value="${group.uid}">${escapeHtml(groupFullLabel(store.data, group.uid))}</option>`)
     .join('');
   const localGroupOptions = inst.groups
     .map((g) => `<option value="${g.uid}">${escapeHtml(groupDisplayId(inst, g))} – ${escapeHtml(g.name)}</option>`)
+    .join('');
+  // v editačním režimu nabízíme jako "A" všechny skupiny appky (vazba mohla
+  // vzniknout i jako mimo-institucionální a chceme ji jít umožnit přepojit)
+  const aOptionsSource = editingLink ? allGroups(store.data).map(({ group }) => group) : inst.groups;
+  const aOptions = aOptionsSource
+    .map((g) => `<option value="${g.uid}" ${editingLink && editingLink.aUid === g.uid ? 'selected' : ''}>${escapeHtml(groupFullLabel(store.data, g.uid))}</option>`)
     .join('');
   panel.innerHTML = `
     <h3>${escapeHtml(inst.code)} – vazby pavouka</h3>
@@ -458,29 +470,35 @@ function renderInstitutionPanel(panel, inst) {
       <thead><tr><th>ID</th><th>Typ</th><th>A</th><th>B</th><th></th></tr></thead>
       <tbody>${linkReport.rows
         .map(
-          (r) => `<tr><td>${escapeHtml(r.id)}</td><td>${escapeHtml(r.typ)}</td><td>${escapeHtml(r.a)}</td><td>${escapeHtml(r.b)}</td><td><button class="btn-icon" data-del-link="${r.uid}" title="Smazat vazbu">✕</button></td></tr>`
+          (r) => `<tr><td>${escapeHtml(r.id)}</td><td>${escapeHtml(r.typ)}</td><td>${escapeHtml(r.a)}</td><td>${escapeHtml(r.b)}</td><td>
+            <button class="btn-icon" data-edit-link="${r.uid}" title="Upravit / přepojit vazbu">✎</button>
+            <button class="btn-icon" data-del-link="${r.uid}" title="Smazat vazbu">✕</button>
+          </td></tr>`
         )
         .join('')}</tbody>
     </table>` : '<p class="empty-note">Zatím žádné vazby.</p>'}
 
-    <h4>Přidat vazbu</h4>
+    <h4>${editingLink ? 'Upravit / přepojit vazbu' : 'Přidat vazbu'}</h4>
     <form id="add-link-form" class="stacked-form">
       <label>Typ vazby
-        <select name="type">${Object.values(LINK_TYPES).map((t) => `<option value="${t.key}">${t.label}</option>`).join('')}</select>
+        <select name="type">${Object.values(LINK_TYPES).map((t) => `<option value="${t.key}" ${editingLink && editingLink.type === t.key ? 'selected' : ''}>${t.label}</option>`).join('')}</select>
       </label>
-      <label>Skupina A (v tomto pavoukovi)
-        <select name="aUid">${localGroupOptions}</select>
+      <label>Skupina A${editingLink ? '' : ' (v tomto pavoukovi)'}
+        <select name="aUid">${editingLink ? aOptions : localGroupOptions}</select>
       </label>
       <label>Skupina B (kdekoli v appce)
-        <select name="bUid">${allGroupOptions}</select>
+        <select name="bUid">${(editingLink ? allGroups(store.data).map(({ group }) => `<option value="${group.uid}" ${editingLink.bUid === group.uid ? 'selected' : ''}>${escapeHtml(groupFullLabel(store.data, group.uid))}</option>`).join('') : allGroupOptions)}</select>
       </label>
       <label>Šipka
-        <select name="arrow">${Object.entries(ARROW_MODES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+        <select name="arrow">${Object.entries(ARROW_MODES).map(([k, v]) => `<option value="${k}" ${editingLink && editingLink.arrow === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
       </label>
       <label>Poznámka
-        <input name="note" type="text" placeholder="volitelné">
+        <input name="note" type="text" placeholder="volitelné" value="${escapeHtml(editingLink ? editingLink.note : '')}">
       </label>
-      <button class="btn btn-primary" type="submit">Přidat vazbu</button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-primary" type="submit">${editingLink ? 'Uložit změny' : 'Přidat vazbu'}</button>
+        ${editingLink ? '<button class="btn" type="button" id="btn-cancel-edit-link">Zrušit</button>' : ''}
+      </div>
     </form>
   `;
   panel.querySelectorAll('[data-del-link]').forEach((btn) => {
@@ -491,6 +509,19 @@ function renderInstitutionPanel(panel, inst) {
       });
     });
   });
+  panel.querySelectorAll('[data-edit-link]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      store.selection.editingLinkUid = btn.dataset.editLink;
+      renderEditorSidePanel();
+    });
+  });
+  const cancelBtn = panel.querySelector('#btn-cancel-edit-link');
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+      store.selection.editingLinkUid = null;
+      renderEditorSidePanel();
+    });
+  }
   panel.querySelector('#add-link-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
@@ -498,9 +529,22 @@ function renderInstitutionPanel(panel, inst) {
     const aUid = fd.get('aUid');
     const bUid = fd.get('bUid');
     if (!aUid || !bUid || aUid === bUid) return;
-    store.commit(`Přidána vazba ${type} v ${inst.code}`, (data) => {
-      data.links.push(makeLink(type, aUid, bUid, { arrow: fd.get('arrow'), note: fd.get('note') }));
-    });
+    if (editingLink) {
+      store.commit(`Upravena vazba v ${inst.code}`, (data) => {
+        const l = data.links.find((ll) => ll.uid === editingLink.uid);
+        if (!l) return;
+        l.type = type;
+        l.aUid = aUid;
+        l.bUid = bUid;
+        l.arrow = fd.get('arrow');
+        l.note = fd.get('note');
+      });
+      store.selection.editingLinkUid = null;
+    } else {
+      store.commit(`Přidána vazba ${type} v ${inst.code}`, (data) => {
+        data.links.push(makeLink(type, aUid, bUid, { arrow: fd.get('arrow'), note: fd.get('note') }));
+      });
+    }
   });
 }
 

@@ -175,11 +175,13 @@ p { line-height: 1.5; }
 
 /* ---- editor ---- */
 .editor-layout { display: flex; flex-direction: column; height: calc(100vh - 56px - 44px); }
-.editor-toolbar {
+.editor-toolbar { padding: 8px 0 14px; }
+.canvas-title { margin: 0 0 8px; }
+.canvas-title-code { color: var(--gray); font-weight: normal; font-size: 14px; }
+.editor-toolbar-row {
   display: flex;
   gap: 8px;
   align-items: center;
-  padding: 8px 0 14px;
   flex-wrap: wrap;
 }
 .editor-toolbar select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; margin-right: 6px; }
