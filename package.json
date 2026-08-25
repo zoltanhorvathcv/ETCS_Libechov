@@ -1,0 +1,14 @@
+{
+  "name": "sz-organizacni-pavouci",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tvorba a dynamická editace organizačních pavouků mezinárodních institucí a pracovních skupin (Správa železnic)",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "pptxgenjs": "^4.0.1",
+    "xlsx-js-style": "^1.2.0"
+  }
+}

@@ -1,84 +1,85 @@
-# MERIDIAN — Projektová inteligence
+# Organizační pavouci – Správa železnic
 
-Interaktivní dashboard pro analytické a strategické projekty: úvodní roadmapa
-na vlně, milníková nástěnka, log rozhodnutí a otázek, AI extrakce z přepisů
-a **editace všech detailů přímo ve webu** s ukládáním do Supabase.
+Webová appka pro tvorbu a dynamickou editaci organizačních pavouků
+mezinárodních institucí a pracovních skupin (CER, PRIME, SERAF, RFC, EUG,
+EULYNX, UIC, RISC, RNE a další), evidenci zastoupení SŽ a témat, přehledy a
+export výstupů pro prezentace vedení.
 
-Nasazeno na Netlify z tohoto repozitáře — každý `git push` do `main` spustí
-automatický deploy.
+## Jak appku používat
 
----
+**Appka je jeden samostatný soubor `index.html` – bez serveru, bez
+přihlašování, bez připojení k internetu.** Stačí ho otevřít v prohlížeči
+(dvojklikem, nebo z interní SharePoint knihovny). Všechna data appky jsou
+uložená přímo uvnitř tohoto souboru.
 
-## Úpravy projektu přímo ve webu
+- **Editor pavouka** – v levém panelu vyberte instituci. Skupiny (boxy)
+  přidáte tlačítkem „+ Skupina" nebo dvojklikem na volnou plochu plátna,
+  přesouvají se tažením, velikost se mění za pravý dolní roh. Detail skupiny
+  (název, zástupci SŽ, přiřazená témata) i vazby se upravují v pravém
+  postranním panelu.
+- **Vazby** mezi skupinami se přidávají v pravém panelu (po kliknutí na
+  volnou plochu plátna) – typ *běžná / cross-institucionální / mirror*, obě
+  strany vazby, volitelně šipka a poznámka. ID vazeb i skupin se všude v
+  appce přepočítává automaticky.
+- **Registr témat** – samostatná sekce s volitelnou dvouúrovňovou hierarchií.
+- **Přehledy** – dashboard institucí, chybějící zástupci, mirror páry bez
+  protějšku, matice cross-institucionálních vazeb, statistika a hierarchie
+  témat, adresář zástupců, izolované skupiny, skupiny bez tématu, skupiny a
+  zástupci podle tématu, historie verzí. Export do XLSX (v barvách SŽ) nebo
+  do PDF (přes tiskový dialog prohlížeče).
+- **Export pavouka** – PNG, SVG nebo přímo PPTX (tlačítka v editoru), nebo
+  export všech pavouků najednou do jedné prezentace (dashboard).
+- **Uložit / exportovat appku** (tlačítko vpravo nahoře) vygeneruje
+  aktualizovaný soubor appky se všemi daty ke stažení – ten je pak potřeba
+  ručně nahrát zpět do sdílené SharePoint knihovny (appka nemá žádné napojení
+  na server, sdílení je čistě manuální).
+- Appka si mezitím průběžně ukládá pracovní koncept do prohlížeče
+  (localStorage) jako pojistku proti nechtěnému zavření karty – při příštím
+  otevření souboru appka nabídne konceptu obnovit, pokud je novější než
+  naposledy uložený soubor.
+- **Historie verzí** appka uchovává interně (posledních 50 verzí), u každé
+  volitelně jméno editora (pole nahoře). Kdykoli lze verzi obnovit.
 
-1. Otevřete aplikaci (tlačítko **„Otevřít aplikaci"** na úvodní stránce).
-2. V horní liště klikněte na **✎ Úpravy** — zapne se editační režim.
-3. Teď můžete:
-   - **Parametry projektu** (název, kód, vlastník, fáze, postup, rozsah dat) —
-     tlačítko **⚙ Spravovat projekt** na úvodní stránce, nebo ✎ u záhlaví.
-   - **Milníky** — ✎ na kartě/uzlu nebo v detailu milníku; nový přes
-     **＋ Nový milník** na nástěnce. Po změně data se milník sám přemístí na
-     roadmapě i na časové ose.
-   - **Schůzky** — ✎ na kartě schůzky nebo **+ Přidat schůzku**. Zaškrtnutí
-     „Plánovaná" ji zobrazí jako **kosočtverec na roadmapě** na úvodní stránce.
-   - **Otázky, rozhodnutí, úkoly, rizika, důkazy** — ✎ na každé kartě, nebo
-     **＋** v hlavičce sloupce na nástěnce.
-4. Hotovo potvrdíte opětovným kliknutím na **✓ Hotovo**.
+## Vývoj / sestavení appky ze zdrojových souborů
 
-Bez připojené Supabase běží aplikace v **DEMO režimu** — vše funguje, ale změny
-se po znovunačtení stránky ztratí (v horní liště svítí „DEMO režim").
+Appka se generuje jako jeden HTML soubor ze zdrojových modulů v `src/`,
+včetně knihoven pro export (`xlsx-js-style`, `pptxgenjs`), aby výsledný
+soubor fungoval zcela offline.
 
----
-
-## Připojení Supabase (trvalé ukládání, sdílení v týmu)
-
-### 1. Vytvořte tabulku
-V Supabase → **SQL Editor** → **New query** vložte a spusťte celý obsah
-souboru [`supabase-schema.sql`](supabase-schema.sql). Vytvoří jednu tabulku
-`pi_entities` a přístupová pravidla.
-
-### 2. Zkopírujte klíče
-Supabase → **Project Settings → API**:
-- **Project URL** (např. `https://xxxx.supabase.co`)
-- **anon public** klíč
-
-### 3. Vložte je do aplikace
-V [`index.html`](index.html) najděte blok na začátku `<script>`:
-
-```js
-const SUPA = {
-  url: '',        // sem Project URL
-  anonKey: '',    // sem anon public klíč
-  projectId: 'PRJ-2026-014'
-};
+```bash
+npm install
+npm run build     # vygeneruje/aktualizuje index.html v kořeni repozitáře
 ```
 
-Vyplňte `url` a `anonKey`, uložte, `git push`. Po nasazení se aplikace při
-prvním načtení sama naplní výchozím obsahem a od té chvíle ukládá každou úpravu
-do Supabase — sdílenou napříč zařízeními i členy týmu.
+`index.html` je commitovaný přímo v repozitáři – to je finální dodávaný
+soubor appky, není potřeba žádný build krok pro koncového uživatele.
 
-### Bezpečnost a přihlášení (aktivní)
-Nasazená je **Varianta B**: kdokoli s odkazem vidí celou aplikaci **jen ke
-čtení**, upravovat data může pouze **přihlášený správce**.
+### Struktura zdrojových souborů
 
-- V horní liště je tlačítko **Přihlásit** → e-mail + heslo (Supabase Auth).
-- Po přihlášení se objeví **✎ Úpravy**; odhlášením se vrátíte do režimu čtení.
-- Veřejná registrace je **vypnutá** — nový účet nelze založit z aplikace.
-- Nový správcovský účet přidáte v Supabase → **Authentication → Users → Add
-  user**. Heslo si lze kdykoli změnit tamtéž.
+- `src/model.js` – datový model (instituce, skupiny, vazby, témata),
+  odvozování ID.
+- `src/store.js` – načtení/uložení dat (vestavěná v HTML + localStorage
+  koncept), historie verzí a rollback, generování exportního HTML.
+- `src/canvas.js` – SVG editor plátna (pan/zoom, drag&drop, rámečky oblastí,
+  vazby).
+- `src/reports.js` – výpočet všech přehledů a fulltextového vyhledávání.
+- `src/exports.js` – export do SVG/PNG/PPTX/XLSX a tisk do PDF.
+- `src/ui.js` – aplikační shell, navigace, formuláře.
+- `src/seed.js` – počáteční sada institucí (názvy dle zadání).
+- `build.js` – sestavení výsledného `index.html`.
 
-Zápis je vynucen na úrovni databáze (RLS): anonymní klíč smí `select`, ale
-`insert/update/delete` jen role `authenticated`.
+## Rozhodnutí k otevřeným bodům ze zadání
 
----
-
-## Datový model
-
-Vše je jeden objekt na řádek v tabulce `pi_entities` (sloupec `data` typu
-JSONB), rozlišený polem `entity`: `project`, `people`, `milestone`, `meeting`,
-`question`, `decision`, `task`, `risk`, `evidence`. Struktura přesně odpovídá
-datovým objektům v `index.html`, takže je pružná vůči přidávání polí.
-
----
-
-*Prototyp v0.9 · fiktivní demonstrační data (projekt C-ITS na železničních přejezdech).*
+- **Export do PPTX**: appka podporuje jak export jednotlivého pavouka do
+  vlastní PPTX, tak export všech (neprázdných) pavouků do jedné souhrnné
+  prezentace (jeden slide na instituci).
+- **Knihovna předdefinovaných rozložení**: není v této verzi implementována
+  (ponecháno jako bod pro další fázi, jak zadání předpokládá).
+- **Formátovaný XLSX pro vedení**: hlavičky a pruhované řádky v barvách
+  grafického manuálu SŽ, samostatný list pro každý přehled; matice
+  cross-institucionálních vazeb má navíc vlastní maticový list.
+- **Počet uchovávaných verzí historie**: 50 (konstanta `MAX_HISTORY` v
+  `src/model.js`, lze upravit).
+- **„Mirror páry bez protějšku"**: appka doplňuje k modelu skupiny
+  volitelný příznak „Očekává se mirror vazba" – přehled pak zobrazuje
+  skupiny s tímto příznakem, které zatím nemají žádnou vazbu typu mirror.
