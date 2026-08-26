@@ -221,9 +221,16 @@ p { line-height: 1.5; }
 .topic-checklist label { display: block; font-size: 12px; padding: 3px 0; }
 
 /* SVG label typography */
-.frame-label, .group-id-label, .group-name-label, .group-info-label, .link-stub-label, .export-title {
+.frame-label, .group-id-label, .group-name-label, .group-info-label, .link-stub-label, .link-id-label, .export-title {
   font-family: Verdana, Geneva, sans-serif;
 }
+.frame-label { fill: var(--blue); font-weight: bold; font-size: 12px; }
+.group-id-label { fill: var(--white); font-weight: bold; font-size: 10px; }
+.group-name-label { fill: var(--blue); font-weight: bold; font-size: 13px; }
+.group-info-label { fill: var(--gray); font-size: 10px; }
+.link-stub-label { fill: var(--blue); font-size: 10px; }
+.link-id-label { font-weight: bold; font-size: 10px; }
+.export-title { fill: var(--blue); font-weight: bold; font-size: 20px; }
 .resize-handle { fill: var(--orange); cursor: nwse-resize; }
 .link-stub { cursor: pointer; }
 

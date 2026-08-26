@@ -1,4 +1,4 @@
-import { BRAND, LINK_TYPES, groupDisplayId, groupFullLabel, findGroup } from './model.js';
+import { BRAND, LINK_TYPES, groupDisplayId, groupFullLabel, linkDisplayId, findGroup } from './model.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -164,18 +164,19 @@ export class SpiderCanvas {
     );
     // spodní rohy horního pruhu nesmí být kulaté – překrytí
     g.appendChild(el('rect', { x: group.x, y: group.y + 12, width: group.w, height: 10, fill: BRAND.blue }));
-    const idText = el('text', { x: group.x + 8, y: group.y + 16, class: 'group-id-label' });
+    const centerX = group.x + group.w / 2;
+    const idText = el('text', { x: centerX, y: group.y + 16, class: 'group-id-label', 'text-anchor': 'middle' });
     idText.textContent = groupDisplayId(inst, group);
     g.appendChild(idText);
 
-    const nameText = el('text', { x: group.x + 8, y: group.y + 40, class: 'group-name-label' });
+    const nameText = el('text', { x: centerX, y: group.y + 40, class: 'group-name-label', 'text-anchor': 'middle' });
     wrapText(nameText, group.name, group.w - 16, 15);
     g.appendChild(nameText);
 
     const info = [];
     info.push(group.reps.length ? `${group.reps.length} zástupce` : 'bez zástupce');
     if (group.topicUids.length) info.push(`${group.topicUids.length} téma(t)`);
-    const infoText = el('text', { x: group.x + 8, y: group.y + group.h - 10, class: 'group-info-label' });
+    const infoText = el('text', { x: centerX, y: group.y + group.h - 10, class: 'group-info-label', 'text-anchor': 'middle' });
     infoText.textContent = info.join(' · ');
     g.appendChild(infoText);
 
@@ -204,30 +205,36 @@ export class SpiderCanvas {
       'stroke-dasharray': def.dash || undefined,
       fill: 'none',
     };
-    if (link.arrow === 'forward') commonAttrs['marker-end'] = `url(#arrow-${link.type})`;
-    if (link.arrow === 'both') {
-      commonAttrs['marker-end'] = `url(#arrow-${link.type})`;
-      commonAttrs['marker-start'] = `url(#arrow-${link.type})`;
-    }
 
     if (aIn && bIn) {
       const a = inst.groups.find((g) => g.uid === link.aUid);
       const b = inst.groups.find((g) => g.uid === link.bUid);
-      const p1 = centerOf(a);
-      const p2 = centerOf(b);
-      return el('path', { d: `M${p1.x},${p1.y} L${p2.x},${p2.y}`, ...commonAttrs, class: 'link-line' });
+      // čára jde od okraje boxu k okraji boxu (ne od středu), jinak by šipka
+      // skončila schovaná pod neprůhledným boxem
+      const p1 = rectBorderPoint(a, centerOf(b));
+      const p2 = rectBorderPoint(b, centerOf(a));
+      const idLabel = linkDisplayId(this.data, link);
+      const g = el('g', { class: 'link-line' });
+      appendBrokenLine(g, p1, p2, idLabel, commonAttrs, link.type, link.arrow, def.color);
+      return g;
     }
     // cross-instituce/mirror mimo tento pavouk → symbolický "pahýl" k okraji
     const localUid = aIn ? link.aUid : link.bUid;
     const otherUid = aIn ? link.bUid : link.aUid;
     const localGroup = inst.groups.find((g) => g.uid === localUid);
     if (!localGroup) return null;
-    const start = centerOf(localGroup);
-    const end = { x: start.x + 90, y: start.y - 46 };
+    const idLabel = linkDisplayId(this.data, link);
+    const start = rectBorderPoint(localGroup, { x: localGroup.x + localGroup.w / 2 + 90, y: localGroup.y - 46 });
+    const chipAnchor = { x: start.x + 90, y: start.y - 46 };
+    // čára končí kousek před chipem, aby tam byla vidět šipka
+    const end = pullBack(start, chipAnchor, 10);
     const wrap = el('g', { class: 'link-stub', 'data-jump': otherUid });
-    wrap.appendChild(el('path', { d: `M${start.x},${start.y} L${end.x},${end.y}`, ...commonAttrs }));
-    const label = groupFullLabel(this.data, otherUid);
-    const chip = el('g', { transform: `translate(${end.x},${end.y})` });
+    const lineAttrs = { ...commonAttrs };
+    if (link.arrow === 'forward' || link.arrow === 'both') lineAttrs['marker-end'] = `url(#arrow-${link.type})`;
+    if (link.arrow === 'both') lineAttrs['marker-start'] = `url(#arrow-${link.type})`;
+    wrap.appendChild(el('path', { d: `M${start.x},${start.y} L${end.x},${end.y}`, ...lineAttrs }));
+    const label = `${idLabel} → ${groupFullLabel(this.data, otherUid)}`;
+    const chip = el('g', { transform: `translate(${chipAnchor.x},${chipAnchor.y})` });
     const textEl = el('text', { x: 6, y: 4, class: 'link-stub-label' });
     textEl.textContent = label;
     chip.appendChild(el('rect', { x: 0, y: -12, width: label.length * 6.4 + 12, height: 20, rx: 4, fill: def.color, 'fill-opacity': 0.15, stroke: def.color }));
@@ -367,6 +374,66 @@ function centerOf(shape) {
   return { x: shape.x + shape.w / 2, y: shape.y + shape.h / 2 };
 }
 
+// Bod, kde paprsek ze středu obdélníku směrem k `towardPoint` protíná jeho okraj.
+// Díky tomu čáry vazeb končí na hraně boxu (a šipka je vidět), ne pod ním.
+function rectBorderPoint(rect, towardPoint) {
+  const c = centerOf(rect);
+  const dx = towardPoint.x - c.x;
+  const dy = towardPoint.y - c.y;
+  if (dx === 0 && dy === 0) return c;
+  const halfW = rect.w / 2;
+  const halfH = rect.h / 2;
+  const scaleX = dx !== 0 ? halfW / Math.abs(dx) : Infinity;
+  const scaleY = dy !== 0 ? halfH / Math.abs(dy) : Infinity;
+  const scale = Math.min(scaleX, scaleY);
+  return { x: c.x + dx * scale, y: c.y + dy * scale };
+}
+
+function pullBack(from, to, distance) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const t = Math.max(0, (len - distance) / len);
+  return { x: from.x + dx * t, y: from.y + dy * t };
+}
+
+// Vykreslí čáru vazby přerušenou v polovině, s popiskem ID vazby ve výřezu,
+// a šipkami (dle arrow) na koncích, které jsou díky rectBorderPoint viditelné.
+function appendBrokenLine(parent, p1, p2, idLabel, commonAttrs, linkType, arrow, color) {
+  const mid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+  const gapHalf = idLabel.length * 3 + 8;
+  const segEndA = { x: mid.x - ux * gapHalf, y: mid.y - uy * gapHalf };
+  const segStartB = { x: mid.x + ux * gapHalf, y: mid.y + uy * gapHalf };
+
+  const attrsA = { ...commonAttrs };
+  const attrsB = { ...commonAttrs };
+  if (arrow === 'both') attrsA['marker-start'] = `url(#arrow-${linkType})`;
+  if (arrow === 'forward' || arrow === 'both') attrsB['marker-end'] = `url(#arrow-${linkType})`;
+
+  // segmenty se kreslí, jen když je na ně místo (krátké vazby by se jinak zalomily)
+  if (len > gapHalf * 2 + 10) {
+    parent.appendChild(el('path', { d: `M${p1.x},${p1.y} L${segEndA.x},${segEndA.y}`, ...attrsA }));
+    parent.appendChild(el('path', { d: `M${segStartB.x},${segStartB.y} L${p2.x},${p2.y}`, ...attrsB }));
+  } else {
+    parent.appendChild(el('path', { d: `M${p1.x},${p1.y} L${p2.x},${p2.y}`, ...commonAttrs, ...attrsB, ...(arrow === 'both' ? attrsA : {}) }));
+  }
+
+  const labelEl = el('text', {
+    x: mid.x,
+    y: mid.y + 3,
+    class: 'link-id-label',
+    'text-anchor': 'middle',
+    fill: color,
+  });
+  labelEl.textContent = idLabel;
+  parent.appendChild(labelEl);
+}
+
 function wrapText(textEl, text, maxWidth, lineHeight) {
   const words = text.split(/\s+/);
   const charsPerLine = Math.max(6, Math.floor(maxWidth / 7));
@@ -422,6 +489,11 @@ function applyInlineStyles(svgClone) {
     n.setAttribute('fill', BRAND.blue);
     n.setAttribute('font-family', 'Verdana, Geneva, sans-serif');
     n.setAttribute('font-size', '10');
+  });
+  svgClone.querySelectorAll('.link-id-label').forEach((n) => {
+    n.setAttribute('font-family', 'Verdana, Geneva, sans-serif');
+    n.setAttribute('font-size', '10');
+    n.setAttribute('font-weight', 'bold');
   });
   svgClone.querySelectorAll('.export-title').forEach((n) => {
     n.setAttribute('fill', BRAND.blue);
