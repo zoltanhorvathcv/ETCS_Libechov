@@ -150,6 +150,11 @@ export function makeLink(type, aUid, bUid, extra = {}) {
     // 'straight' = přímá čára z okraje na okraj; 'elbow' = lomená (pravoúhlá)
     // čára, pro vzory jako hierarchický strom nebo seznam napojený na uzel
     lineStyle: extra.lineStyle === 'elbow' ? 'elbow' : 'straight',
+    // Ruční posun (v px podél hrany cílového boxu B) místa, kam vazba na boxu
+    // B dopadá – 0 = automatická poloha. Zdrojový konec (A) i trasa zůstávají
+    // vždy automatické, aby šlo ručně upravit jen "kam větev dopadá", ne
+    // rozbít společnou páteř u vzoru s více vazbami z jedné skupiny.
+    bEndOffset: extra.bEndOffset || 0,
   };
 }
 

@@ -14,7 +14,7 @@ function el(tag, attrs = {}, children = []) {
 export class SpiderCanvas {
   constructor(container, callbacks) {
     this.container = container;
-    this.cb = callbacks; // { onSelect, onChangeGeometry, onJumpToGroup, onAddGroupAt, onDeleteSelected }
+    this.cb = callbacks; // { onSelect, onChangeGeometry, onChangeLinkOffset, onJumpToGroup, onJumpToInstitution, onAddGroupAt, onDeleteSelected }
     this.data = null;
     this.institutionUid = null;
     this.selection = null; // {type:'group'|'frame', uid}
@@ -33,9 +33,14 @@ export class SpiderCanvas {
     this.framesLayer = el('g', { class: 'layer-frames' });
     this.linksLayer = el('g', { class: 'layer-links' });
     this.groupsLayer = el('g', { class: 'layer-groups' });
+    // Úchyty pro tažení konce vazby musí být VŽDY nad boxy skupin, protože
+    // sedí přesně na hraně boxu B – jinak by je box (kreslený až po vazbách)
+    // v hit-testingu myši zakrýval a šlo by za ně chytit jen náhodně.
+    this.handlesLayer = el('g', { class: 'layer-handles' });
     this.viewport.appendChild(this.framesLayer);
     this.viewport.appendChild(this.linksLayer);
     this.viewport.appendChild(this.groupsLayer);
+    this.viewport.appendChild(this.handlesLayer);
     this.svg.appendChild(this.defs);
     this.svg.appendChild(this.viewport);
     this.container.innerHTML = '';
@@ -113,6 +118,7 @@ export class SpiderCanvas {
     this.framesLayer.innerHTML = '';
     this.linksLayer.innerHTML = '';
     this.groupsLayer.innerHTML = '';
+    this.handlesLayer.innerHTML = '';
     const inst = this.institution;
     if (!inst) return;
     this._applyTransform();
@@ -123,12 +129,16 @@ export class SpiderCanvas {
     const groupUids = new Set(inst.groups.map((g) => g.uid));
     const relatedLinks = this.data.links.filter((l) => groupUids.has(l.aUid) || groupUids.has(l.bUid));
     const stubIndexByGroup = new Map();
+    const endHandles = [];
     for (const link of relatedLinks) {
-      const node = this._renderLink(link, inst, groupUids, stubIndexByGroup);
+      const node = this._renderLink(link, inst, groupUids, stubIndexByGroup, endHandles);
       if (node) this.linksLayer.appendChild(node);
     }
     for (const group of inst.groups) {
       this.groupsLayer.appendChild(this._renderGroup(group, inst));
+    }
+    for (const handle of endHandles) {
+      this.handlesLayer.appendChild(handle);
     }
   }
 
@@ -210,6 +220,19 @@ export class SpiderCanvas {
     return g;
   }
 
+  // Úchyt pro ruční tažení konce vazby (skupina B) podél hrany boxu, na které
+  // právě leží – `point.axis` říká, zda se táhne svisle ('y') nebo vodorovně ('x').
+  _linkEndHandle(linkUid, point) {
+    return el('circle', {
+      cx: point.x,
+      cy: point.y,
+      r: 4.5,
+      class: 'link-end-handle',
+      'data-link-end': linkUid,
+      'data-axis': point.axis,
+    });
+  }
+
   _resizeHandle(shape, kind) {
     return el('rect', {
       x: shape.x + shape.w - 10,
@@ -221,7 +244,7 @@ export class SpiderCanvas {
     });
   }
 
-  _renderLink(link, inst, groupUids, stubIndexByGroup) {
+  _renderLink(link, inst, groupUids, stubIndexByGroup, endHandles) {
     const def = LINK_TYPES[link.type];
     const aIn = groupUids.has(link.aUid);
     const bIn = groupUids.has(link.bUid);
@@ -237,20 +260,26 @@ export class SpiderCanvas {
       const b = inst.groups.find((g) => g.uid === link.bUid);
       const idLabel = linkDisplayId(this.data, link);
       const g = el('g', { class: 'link-line' });
+      // Konec vazby na skupině B lze ručně posunout (link.bEndOffset) – konec
+      // na skupině A i trasa mezi nimi zůstávají vždy automatické, aby ruční
+      // posun nešlo "utrhnout" od společné páteře u vzoru s více vazbami
+      // z jedné skupiny (viz appendElbowLine).
       if (link.lineStyle === 'elbow') {
         // lomená čára vždy vychází/vstupuje uprostřed levé nebo pravé hrany
         // (podle toho, na které straně cíl leží) – jinak by "trunk" u boxů
         // s cíli hodně nad/pod sebou procházel horní/dolní hranou a mohl
         // křížit sousední boxy ve stejném sloupci
         const p1 = elbowEdgePoint(a, centerOf(b));
-        const p2 = elbowEdgePoint(b, centerOf(a));
+        const p2 = applyEndOffset(b, elbowEdgePoint(b, centerOf(a)), link.bEndOffset);
         appendElbowLine(g, p1, p2, idLabel, commonAttrs, link.type, link.arrow, def.color);
+        if (endHandles) endHandles.push(this._linkEndHandle(link.uid, p2));
       } else {
         // čára jde od okraje boxu k okraji boxu (ne od středu), jinak by šipka
         // skončila schovaná pod neprůhledným boxem
         const p1 = rectBorderPoint(a, centerOf(b));
-        const p2 = rectBorderPoint(b, centerOf(a));
+        const p2 = applyEndOffset(b, rectBorderPoint(b, centerOf(a)), link.bEndOffset);
         appendBrokenLine(g, p1, p2, idLabel, commonAttrs, link.type, link.arrow, def.color);
+        if (endHandles) endHandles.push(this._linkEndHandle(link.uid, p2));
       }
       return g;
     }
@@ -304,10 +333,18 @@ export class SpiderCanvas {
 
     this.svg.addEventListener('mousedown', (e) => {
       didDrag = false;
+      const linkEndHandle = e.target.closest('[data-link-end]');
       const handle = e.target.closest('[data-handle]');
       const nodeEl = e.target.closest('[data-kind]');
       const world = this.screenToWorld(e.clientX, e.clientY);
-      if (handle) {
+      if (linkEndHandle) {
+        const linkUid = linkEndHandle.getAttribute('data-link-end');
+        const axis = linkEndHandle.getAttribute('data-axis');
+        const link = this.data.links.find((l) => l.uid === linkUid);
+        if (link) {
+          dragMode = { kind: 'linkend', linkUid, axis, startX: world.x, startY: world.y, origOffset: link.bEndOffset || 0 };
+        }
+      } else if (handle) {
         const kind = handle.getAttribute('data-handle');
         const parent = handle.closest('[data-uid]');
         const uid = parent.getAttribute('data-uid');
@@ -335,6 +372,14 @@ export class SpiderCanvas {
         return;
       }
       const world = this.screenToWorld(e.clientX, e.clientY);
+      if (dragMode.kind === 'linkend') {
+        const link = this.data.links.find((l) => l.uid === dragMode.linkUid);
+        if (!link) return;
+        const delta = dragMode.axis === 'y' ? world.y - dragMode.startY : world.x - dragMode.startX;
+        link.bEndOffset = Math.round(dragMode.origOffset + delta);
+        this.render();
+        return;
+      }
       const dx = world.x - dragMode.startX;
       const dy = world.y - dragMode.startY;
       const shape = this._findShape(dragMode.shapeKind, dragMode.uid);
@@ -350,7 +395,9 @@ export class SpiderCanvas {
     });
 
     window.addEventListener('mouseup', () => {
-      if (dragMode && dragMode.kind !== 'pan' && didDrag) {
+      if (dragMode && dragMode.kind === 'linkend' && didDrag) {
+        this.cb.onChangeLinkOffset(dragMode.linkUid);
+      } else if (dragMode && dragMode.kind !== 'pan' && dragMode.kind !== 'linkend' && didDrag) {
         this.cb.onChangeGeometry(dragMode.shapeKind, dragMode.uid);
       }
       dragMode = null;
@@ -448,6 +495,25 @@ function elbowEdgePoint(rect, towardCenter) {
     return { x: rect.x + rect.w, y: c.y, dir: 1 };
   }
   return { x: rect.x, y: c.y, dir: -1 };
+}
+
+function clamp(v, min, max) {
+  return Math.min(max, Math.max(min, v));
+}
+
+// Posune bod ležící na hraně boxu `rect` o `offsetPx` podél té hrany, na
+// které aktuálně leží (svislá hrana → posun v Y, vodorovná hrana → posun
+// v X), a ořízne výsledek tak, aby zůstal na dané hraně boxu. Vrácené
+// `axis` říká úchytu, kterým směrem se má dát táhnout myší.
+function applyEndOffset(rect, point, offsetPx) {
+  const onVerticalEdge = Math.abs(point.x - rect.x) < 0.6 || Math.abs(point.x - (rect.x + rect.w)) < 0.6;
+  const axis = onVerticalEdge ? 'y' : 'x';
+  if (!offsetPx) return { x: point.x, y: point.y, axis };
+  const margin = 10;
+  if (axis === 'y') {
+    return { x: point.x, y: clamp(point.y + offsetPx, rect.y + margin, rect.y + rect.h - margin), axis };
+  }
+  return { x: clamp(point.x + offsetPx, rect.x + margin, rect.x + rect.w - margin), y: point.y, axis };
 }
 
 function pullBack(from, to, distance) {
@@ -592,4 +658,5 @@ function applyInlineStyles(svgClone) {
     n.setAttribute('font-weight', 'bold');
   });
   svgClone.querySelectorAll('.resize-handle').forEach((n) => n.remove());
+  svgClone.querySelectorAll('.link-end-handle').forEach((n) => n.remove());
 }

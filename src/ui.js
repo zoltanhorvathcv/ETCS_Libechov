@@ -295,6 +295,10 @@ function renderEditorView(root) {
       const label = kind === 'group' ? 'skupiny' : 'rámečku';
       store.commit(`Upravena pozice/velikost ${label} (${uid})`, () => {});
     },
+    onChangeLinkOffset: (linkUid) => {
+      store.commit(`Upravena trasa vazby (${linkUid})`, () => {});
+      renderEditorSidePanel();
+    },
     onJumpToGroup: (groupUid) => {
       const found = allGroups(store.data).find((x) => x.group.uid === groupUid);
       if (found) navigate({ view: 'editor', institutionUid: found.institution.uid, elementType: 'group', elementUid: groupUid });
@@ -506,6 +510,7 @@ function renderInstitutionPanel(panel, inst) {
       <label>Poznámka
         <input name="note" type="text" placeholder="volitelné" value="${escapeHtml(editingLink ? editingLink.note : '')}">
       </label>
+      ${editingLink && editingLink.bEndOffset ? `<p class="hint">Konec vazby na skupině B je ručně posunutý. <button class="btn" type="button" id="btn-reset-link-offset">Vrátit na automatickou trasu</button></p>` : ''}
       <div style="display:flex; gap:8px;">
         <button class="btn btn-primary" type="submit">${editingLink ? 'Uložit změny' : 'Přidat vazbu'}</button>
         ${editingLink ? '<button class="btn" type="button" id="btn-cancel-edit-link">Zrušit</button>' : ''}
@@ -531,6 +536,15 @@ function renderInstitutionPanel(panel, inst) {
     cancelBtn.addEventListener('click', () => {
       store.selection.editingLinkUid = null;
       renderEditorSidePanel();
+    });
+  }
+  const resetOffsetBtn = panel.querySelector('#btn-reset-link-offset');
+  if (resetOffsetBtn) {
+    resetOffsetBtn.addEventListener('click', () => {
+      store.commit('Vrácena automatická trasa vazby', (data) => {
+        const l = data.links.find((ll) => ll.uid === editingLink.uid);
+        if (l) l.bEndOffset = 0;
+      });
     });
   }
   panel.querySelector('#add-link-form').addEventListener('submit', (e) => {
