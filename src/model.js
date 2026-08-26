@@ -147,6 +147,9 @@ export function makeLink(type, aUid, bUid, extra = {}) {
     bUid,
     arrow: extra.arrow || 'none',
     note: extra.note || '',
+    // 'straight' = přímá čára z okraje na okraj; 'elbow' = lomená (pravoúhlá)
+    // čára, pro vzory jako hierarchický strom nebo seznam napojený na uzel
+    lineStyle: extra.lineStyle === 'elbow' ? 'elbow' : 'straight',
   };
 }
 

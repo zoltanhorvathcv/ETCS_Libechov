@@ -76,6 +76,24 @@ export class SpiderCanvas {
     this._applyTransform();
   }
 
+  // Vycentruje plátno na danou skupinu/rámeček (beze změny přiblížení) –
+  // použito při "prokliku" na navazující skupinu z postranního panelu.
+  focusOnShape(shape) {
+    if (!shape) return;
+    const rect = this.container.getBoundingClientRect();
+    const center = centerOf(shape);
+    this.tx = rect.width / 2 - center.x * this.scale;
+    this.ty = rect.height / 2 - center.y * this.scale;
+    this._applyTransform();
+  }
+
+  focusOnGroupUid(groupUid) {
+    const inst = this.institution;
+    if (!inst) return;
+    const shape = inst.groups.find((g) => g.uid === groupUid);
+    this.focusOnShape(shape);
+  }
+
   _applyTransform() {
     this.viewport.setAttribute('transform', `translate(${this.tx},${this.ty}) scale(${this.scale})`);
   }
@@ -223,7 +241,11 @@ export class SpiderCanvas {
       const p2 = rectBorderPoint(b, centerOf(a));
       const idLabel = linkDisplayId(this.data, link);
       const g = el('g', { class: 'link-line' });
-      appendBrokenLine(g, p1, p2, idLabel, commonAttrs, link.type, link.arrow, def.color);
+      if (link.lineStyle === 'elbow') {
+        appendElbowLine(g, p1, p2, idLabel, commonAttrs, link.type, link.arrow, def.color);
+      } else {
+        appendBrokenLine(g, p1, p2, idLabel, commonAttrs, link.type, link.arrow, def.color);
+      }
       return g;
     }
     // cross-instituce/mirror mimo tento pavouk → symbolický "pahýl" k okraji
@@ -453,6 +475,27 @@ function appendBrokenLine(parent, p1, p2, idLabel, commonAttrs, linkType, arrow,
   });
   labelEl.textContent = idLabel;
   parent.appendChild(labelEl);
+}
+
+// Lomená (pravoúhlá) čára s jedním zlomem – pro vzory "hierarchický strom"
+// a "seznam napojený na jeden uzel". ID vazby se zobrazuje jako štítek
+// s podkladem u zlomu (čára se zde nepřerušuje, na rozdíl od appendBrokenLine).
+function appendElbowLine(parent, p1, p2, idLabel, commonAttrs, linkType, arrow, color) {
+  const bend = { x: p1.x, y: p2.y };
+  const attrs = { ...commonAttrs };
+  if (arrow === 'both') attrs['marker-start'] = `url(#arrow-${linkType})`;
+  if (arrow === 'forward' || arrow === 'both') attrs['marker-end'] = `url(#arrow-${linkType})`;
+  parent.appendChild(el('path', { d: `M${p1.x},${p1.y} L${bend.x},${bend.y} L${p2.x},${p2.y}`, ...attrs }));
+
+  const labelWidth = idLabel.length * 6 + 10;
+  const chip = el('g', { transform: `translate(${bend.x},${bend.y})` });
+  chip.appendChild(
+    el('rect', { x: 4, y: -10, width: labelWidth, height: 18, rx: 3, fill: '#ffffff', stroke: color, 'fill-opacity': 0.92 })
+  );
+  const labelEl = el('text', { x: 8, y: 3, class: 'link-id-label', fill: color });
+  labelEl.textContent = idLabel;
+  chip.appendChild(labelEl);
+  parent.appendChild(chip);
 }
 
 function wrapText(textEl, text, maxWidth, lineHeight) {

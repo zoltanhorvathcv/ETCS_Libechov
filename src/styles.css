@@ -220,6 +220,20 @@ p { line-height: 1.5; }
 .topic-checklist { max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: 4px; padding: 8px; }
 .topic-checklist label { display: block; font-size: 12px; padding: 3px 0; }
 
+.link-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-bottom: 5px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.link-nav-row:hover { background: var(--blue-light); border-color: var(--blue); }
+.link-nav-row .tag { display: inline-block; min-width: 60px; color: var(--orange); font-weight: bold; font-size: 11px; }
+
 /* SVG label typography */
 .frame-label, .group-id-label, .group-name-label, .group-info-label, .link-stub-label, .link-id-label, .export-title {
   font-family: Verdana, Geneva, sans-serif;

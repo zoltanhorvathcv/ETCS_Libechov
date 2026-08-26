@@ -10,6 +10,8 @@ import {
   MAX_HISTORY,
   groupDisplayId,
   groupFullLabel,
+  linkDisplayId,
+  findGroup,
   allGroups,
   topicPath,
   topicChildren,
@@ -495,6 +497,12 @@ function renderInstitutionPanel(panel, inst) {
       <label>Šipka
         <select name="arrow">${Object.entries(ARROW_MODES).map(([k, v]) => `<option value="${k}" ${editingLink && editingLink.arrow === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
       </label>
+      <label>Styl čáry
+        <select name="lineStyle">
+          <option value="straight" ${!editingLink || editingLink.lineStyle !== 'elbow' ? 'selected' : ''}>Rovná</option>
+          <option value="elbow" ${editingLink && editingLink.lineStyle === 'elbow' ? 'selected' : ''}>Lomená (pravoúhlá)</option>
+        </select>
+      </label>
       <label>Poznámka
         <input name="note" type="text" placeholder="volitelné" value="${escapeHtml(editingLink ? editingLink.note : '')}">
       </label>
@@ -540,12 +548,13 @@ function renderInstitutionPanel(panel, inst) {
         l.aUid = aUid;
         l.bUid = bUid;
         l.arrow = fd.get('arrow');
+        l.lineStyle = fd.get('lineStyle') === 'elbow' ? 'elbow' : 'straight';
         l.note = fd.get('note');
       });
       store.selection.editingLinkUid = null;
     } else {
       store.commit(`Přidána vazba ${type} v ${inst.code}`, (data) => {
-        data.links.push(makeLink(type, aUid, bUid, { arrow: fd.get('arrow'), note: fd.get('note') }));
+        data.links.push(makeLink(type, aUid, bUid, { arrow: fd.get('arrow'), lineStyle: fd.get('lineStyle'), note: fd.get('note') }));
       });
     }
   });
@@ -637,6 +646,19 @@ function renderGroupPanel(panel, inst, group) {
     )
     .join('');
 
+  const touchingLinks = store.data.links.filter((l) => l.aUid === group.uid || l.bUid === group.uid);
+  const linksRows = touchingLinks
+    .map((l) => {
+      const otherUid = l.aUid === group.uid ? l.bUid : l.aUid;
+      const otherFound = findGroup(store.data, otherUid);
+      const sameInst = otherFound && otherFound.institution.uid === inst.uid;
+      return `<div class="link-nav-row" data-link-jump="${otherUid}" data-same-inst="${sameInst ? '1' : ''}">
+        <span class="tag">${escapeHtml(LINK_TYPES[l.type].label)}</span>
+        <span>${escapeHtml(linkDisplayId(store.data, l))} → ${escapeHtml(groupFullLabel(store.data, otherUid))}</span>
+      </div>`;
+    })
+    .join('');
+
   panel.innerHTML = `
     <h3>${escapeHtml(displayId)}</h3>
     <form id="group-form" class="stacked-form">
@@ -649,6 +671,9 @@ function renderGroupPanel(panel, inst, group) {
       <label class="checkbox-row"><input type="checkbox" name="expectsMirror" ${group.expectsMirror ? 'checked' : ''}> Očekává se mirror vazba (pro kontrolu úplnosti)</label>
     </form>
 
+    <h4>Vazby</h4>
+    <div id="group-links-list">${linksRows || '<p class="empty-note">Skupina zatím nemá žádnou vazbu.</p>'}</div>
+
     <h4>Zástupci SŽ</h4>
     <div id="reps-list">${repsRows || '<p class="empty-note">Zatím žádní zástupci.</p>'}</div>
     <button class="btn" id="btn-add-rep">+ Přidat zástupce</button>
@@ -659,6 +684,26 @@ function renderGroupPanel(panel, inst, group) {
     <hr>
     <button class="btn btn-danger" id="btn-del-group">Smazat skupinu</button>
   `;
+
+  panel.querySelectorAll('[data-link-jump]').forEach((row) => {
+    row.addEventListener('click', () => {
+      const otherUid = row.dataset.linkJump;
+      const sameInst = row.dataset.sameInst === '1';
+      if (sameInst) {
+        store.selection.elementType = 'group';
+        store.selection.elementUid = otherUid;
+        store.selection.editingLinkUid = null;
+        if (spiderCanvas) {
+          spiderCanvas.setData(store.data, inst.uid, canvasSelection());
+          spiderCanvas.focusOnGroupUid(otherUid);
+        }
+        renderEditorSidePanel();
+      } else {
+        const found = allGroups(store.data).find((x) => x.group.uid === otherUid);
+        if (found) navigate({ view: 'editor', institutionUid: found.institution.uid, elementType: 'group', elementUid: otherUid });
+      }
+    });
+  });
 
   const form = panel.querySelector('#group-form');
   form.querySelectorAll('input, select').forEach((field) => {
