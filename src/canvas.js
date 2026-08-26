@@ -440,12 +440,14 @@ function rectBorderPoint(rect, towardPoint) {
 
 // Bod uprostřed levé/pravé hrany (podle směru k druhému konci) – pro lomené
 // čáry, aby "trunk" vždy vycházel ze strany boxu, ne z horní/dolní hrany.
+// `dir` (+1/-1) říká, na kterou stranu od boxu čára vychází – používá se pak
+// pro krátký "výstupek" mezi hranou boxu a svislou páteří (viz appendElbowLine).
 function elbowEdgePoint(rect, towardCenter) {
   const c = centerOf(rect);
   if (towardCenter.x >= c.x) {
-    return { x: rect.x + rect.w, y: c.y };
+    return { x: rect.x + rect.w, y: c.y, dir: 1 };
   }
-  return { x: rect.x, y: c.y };
+  return { x: rect.x, y: c.y, dir: -1 };
 }
 
 function pullBack(from, to, distance) {
@@ -496,12 +498,20 @@ function appendBrokenLine(parent, p1, p2, idLabel, commonAttrs, linkType, arrow,
 // Lomená (pravoúhlá) čára s jedním zlomem – pro vzory "hierarchický strom"
 // a "seznam napojený na jeden uzel". ID vazby se zobrazuje jako štítek
 // s podkladem u zlomu (čára se zde nepřerušuje, na rozdíl od appendBrokenLine).
+// Mezi hranu boxu a svislou páteř se vloží krátký vodorovný "výstupek" (nub) –
+// jinak by páteř splývala s hranou sousedních boxů ve stejném sloupci a nebylo
+// by poznat, ze kterého boxu vazby ve skutečnosti vychází.
+const ELBOW_STUB_GAP = 22;
 function appendElbowLine(parent, p1, p2, idLabel, commonAttrs, linkType, arrow, color) {
-  const bend = { x: p1.x, y: p2.y };
+  const dir = p1.dir || 1;
+  const nub = { x: p1.x + dir * ELBOW_STUB_GAP, y: p1.y };
+  const bend = { x: nub.x, y: p2.y };
   const attrs = { ...commonAttrs };
   if (arrow === 'both') attrs['marker-start'] = `url(#arrow-${linkType})`;
   if (arrow === 'forward' || arrow === 'both') attrs['marker-end'] = `url(#arrow-${linkType})`;
-  parent.appendChild(el('path', { d: `M${p1.x},${p1.y} L${bend.x},${bend.y} L${p2.x},${p2.y}`, ...attrs }));
+  parent.appendChild(
+    el('path', { d: `M${p1.x},${p1.y} L${nub.x},${nub.y} L${bend.x},${bend.y} L${p2.x},${p2.y}`, ...attrs })
+  );
 
   const labelWidth = idLabel.length * 6 + 10;
   const chip = el('g', { transform: `translate(${bend.x},${bend.y})` });
