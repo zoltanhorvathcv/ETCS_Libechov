@@ -14,7 +14,7 @@ function el(tag, attrs = {}, children = []) {
 export class SpiderCanvas {
   constructor(container, callbacks) {
     this.container = container;
-    this.cb = callbacks; // { onSelect, onChangeGeometry, onChangeLinkOffset, onJumpToGroup, onJumpToInstitution, onAddGroupAt, onDeleteSelected }
+    this.cb = callbacks; // { onSelect, onChangeGeometry, onChangeLinkOffset, onChangeStubOffset, onJumpToGroup, onJumpToInstitution, onAddGroupAt, onDeleteSelected }
     this.data = null;
     this.institutionUid = null;
     this.selection = null; // {type:'group'|'frame', uid}
@@ -297,7 +297,13 @@ export class SpiderCanvas {
     const angleRad = (angleDeg * Math.PI) / 180;
     const dist = 120 + Math.floor(stubIndex / 6) * 70;
     const localCenter = centerOf(localGroup);
-    const chipAnchor = { x: localCenter.x + Math.cos(angleRad) * dist, y: localCenter.y + Math.sin(angleRad) * dist };
+    const autoAnchor = { x: localCenter.x + Math.cos(angleRad) * dist, y: localCenter.y + Math.sin(angleRad) * dist };
+    // Ruční posun pahýlu je uložen zvlášť pro pohled od A a zvlášť od B (viz
+    // makeLink) – tady se použije ta strana, ze které se na tento pavouk
+    // díváme právě teď.
+    const isASide = link.aUid === localUid;
+    const stubOffset = isASide ? link.stubOffsetA : link.stubOffsetB;
+    const chipAnchor = stubOffset ? { x: autoAnchor.x + stubOffset.dx, y: autoAnchor.y + stubOffset.dy } : autoAnchor;
     const start = rectBorderPoint(localGroup, chipAnchor);
     // čára končí kousek před chipem, aby tam byla vidět šipka
     const end = pullBack(start, chipAnchor, 10);
@@ -307,7 +313,12 @@ export class SpiderCanvas {
     if (link.arrow === 'both') lineAttrs['marker-start'] = `url(#arrow-${link.type})`;
     wrap.appendChild(el('path', { d: `M${start.x},${start.y} L${end.x},${end.y}`, ...lineAttrs }));
     const label = `${idLabel} → ${groupFullLabel(this.data, otherUid)}`;
-    const chip = el('g', { transform: `translate(${chipAnchor.x},${chipAnchor.y})` });
+    const chip = el('g', {
+      class: 'link-stub-chip',
+      transform: `translate(${chipAnchor.x},${chipAnchor.y})`,
+      'data-stub-drag': link.uid,
+      'data-stub-side': isASide ? 'A' : 'B',
+    });
     const textEl = el('text', { x: 6, y: 4, class: 'link-stub-label' });
     textEl.textContent = label;
     chip.appendChild(el('rect', { x: 0, y: -12, width: label.length * 6.4 + 12, height: 20, rx: 4, fill: def.color, 'fill-opacity': 0.15, stroke: def.color }));
@@ -334,6 +345,7 @@ export class SpiderCanvas {
     this.svg.addEventListener('mousedown', (e) => {
       didDrag = false;
       const linkEndHandle = e.target.closest('[data-link-end]');
+      const stubHandle = e.target.closest('[data-stub-drag]');
       const handle = e.target.closest('[data-handle]');
       const nodeEl = e.target.closest('[data-kind]');
       const world = this.screenToWorld(e.clientX, e.clientY);
@@ -343,6 +355,15 @@ export class SpiderCanvas {
         const link = this.data.links.find((l) => l.uid === linkUid);
         if (link) {
           dragMode = { kind: 'linkend', linkUid, axis, startX: world.x, startY: world.y, origOffset: link.bEndOffset || 0 };
+        }
+      } else if (stubHandle) {
+        const linkUid = stubHandle.getAttribute('data-stub-drag');
+        const side = stubHandle.getAttribute('data-stub-side');
+        const link = this.data.links.find((l) => l.uid === linkUid);
+        if (link) {
+          const field = side === 'A' ? 'stubOffsetA' : 'stubOffsetB';
+          const orig = link[field] || { dx: 0, dy: 0 };
+          dragMode = { kind: 'stuboffset', linkUid, field, startX: world.x, startY: world.y, origDx: orig.dx, origDy: orig.dy };
         }
       } else if (handle) {
         const kind = handle.getAttribute('data-handle');
@@ -380,6 +401,16 @@ export class SpiderCanvas {
         this.render();
         return;
       }
+      if (dragMode.kind === 'stuboffset') {
+        const link = this.data.links.find((l) => l.uid === dragMode.linkUid);
+        if (!link) return;
+        link[dragMode.field] = {
+          dx: Math.round(dragMode.origDx + (world.x - dragMode.startX)),
+          dy: Math.round(dragMode.origDy + (world.y - dragMode.startY)),
+        };
+        this.render();
+        return;
+      }
       const dx = world.x - dragMode.startX;
       const dy = world.y - dragMode.startY;
       const shape = this._findShape(dragMode.shapeKind, dragMode.uid);
@@ -397,7 +428,9 @@ export class SpiderCanvas {
     window.addEventListener('mouseup', () => {
       if (dragMode && dragMode.kind === 'linkend' && didDrag) {
         this.cb.onChangeLinkOffset(dragMode.linkUid);
-      } else if (dragMode && dragMode.kind !== 'pan' && dragMode.kind !== 'linkend' && didDrag) {
+      } else if (dragMode && dragMode.kind === 'stuboffset' && didDrag) {
+        this.cb.onChangeStubOffset(dragMode.linkUid);
+      } else if (dragMode && dragMode.kind !== 'pan' && dragMode.kind !== 'linkend' && dragMode.kind !== 'stuboffset' && didDrag) {
         this.cb.onChangeGeometry(dragMode.shapeKind, dragMode.uid);
       }
       dragMode = null;

@@ -155,6 +155,12 @@ export function makeLink(type, aUid, bUid, extra = {}) {
     // vždy automatické, aby šlo ručně upravit jen "kam větev dopadá", ne
     // rozbít společnou páteř u vzoru s více vazbami z jedné skupiny.
     bEndOffset: extra.bEndOffset || 0,
+    // Ruční posun (dx/dy v px) ukotvení "pahýlu" cross-institucionální/mirror
+    // vazby – řeší se zvlášť pro pohled od skupiny A a zvlášť od skupiny B,
+    // protože rozložení boxů (a tedy i kolize pahýlu) je v každé instituci
+    // jiné. null = automatická poloha (vějíř podle pořadí vazeb u skupiny).
+    stubOffsetA: extra.stubOffsetA || null,
+    stubOffsetB: extra.stubOffsetB || null,
   };
 }
 

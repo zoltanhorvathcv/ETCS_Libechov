@@ -12,6 +12,7 @@ import {
   groupFullLabel,
   linkDisplayId,
   findGroup,
+  findInstitutionOfGroup,
   allGroups,
   topicPath,
   topicChildren,
@@ -299,6 +300,10 @@ function renderEditorView(root) {
       store.commit(`Upravena trasa vazby (${linkUid})`, () => {});
       renderEditorSidePanel();
     },
+    onChangeStubOffset: (linkUid) => {
+      store.commit(`Upravena poloha štítku cross-institucionální vazby (${linkUid})`, () => {});
+      renderEditorSidePanel();
+    },
     onJumpToGroup: (groupUid) => {
       const found = allGroups(store.data).find((x) => x.group.uid === groupUid);
       if (found) navigate({ view: 'editor', institutionUid: found.institution.uid, elementType: 'group', elementUid: groupUid });
@@ -472,6 +477,17 @@ function renderInstitutionPanel(panel, inst) {
   const aOptions = aOptionsSource
     .map((g) => `<option value="${g.uid}" ${editingLink && editingLink.aUid === g.uid ? 'selected' : ''}>${escapeHtml(groupFullLabel(store.data, g.uid))}</option>`)
     .join('');
+  // u cross-institucionální vazby může mít ručně posunutý štítek zvlášť pohled
+  // od A a zvlášť od B – tady zjistíme, která strana patří do tohoto pavouka
+  const stubSide = editingLink
+    ? (findInstitutionOfGroup(store.data, editingLink.aUid)?.uid === inst.uid
+        ? 'A'
+        : findInstitutionOfGroup(store.data, editingLink.bUid)?.uid === inst.uid
+        ? 'B'
+        : null)
+    : null;
+  const stubOffsetField = stubSide === 'A' ? 'stubOffsetA' : stubSide === 'B' ? 'stubOffsetB' : null;
+  const hasStubOffset = editingLink && stubOffsetField && editingLink[stubOffsetField];
   panel.innerHTML = `
     <h3>${escapeHtml(inst.code)} – vazby pavouka</h3>
     <p class="hint">Klikněte na skupinu na plátně pro úpravu detailu, nebo dvojklikem na volnou plochu přidejte novou skupinu.</p>
@@ -511,6 +527,7 @@ function renderInstitutionPanel(panel, inst) {
         <input name="note" type="text" placeholder="volitelné" value="${escapeHtml(editingLink ? editingLink.note : '')}">
       </label>
       ${editingLink && editingLink.bEndOffset ? `<p class="hint">Konec vazby na skupině B je ručně posunutý. <button class="btn" type="button" id="btn-reset-link-offset">Vrátit na automatickou trasu</button></p>` : ''}
+      ${hasStubOffset ? `<p class="hint">Štítek cross-institucionální vazby (pohled z ${escapeHtml(inst.code)}) je ručně posunutý. <button class="btn" type="button" id="btn-reset-stub-offset">Vrátit na automatickou polohu</button></p>` : ''}
       <div style="display:flex; gap:8px;">
         <button class="btn btn-primary" type="submit">${editingLink ? 'Uložit změny' : 'Přidat vazbu'}</button>
         ${editingLink ? '<button class="btn" type="button" id="btn-cancel-edit-link">Zrušit</button>' : ''}
@@ -544,6 +561,15 @@ function renderInstitutionPanel(panel, inst) {
       store.commit('Vrácena automatická trasa vazby', (data) => {
         const l = data.links.find((ll) => ll.uid === editingLink.uid);
         if (l) l.bEndOffset = 0;
+      });
+    });
+  }
+  const resetStubBtn = panel.querySelector('#btn-reset-stub-offset');
+  if (resetStubBtn) {
+    resetStubBtn.addEventListener('click', () => {
+      store.commit('Vrácena automatická poloha štítku vazby', (data) => {
+        const l = data.links.find((ll) => ll.uid === editingLink.uid);
+        if (l && stubOffsetField) l[stubOffsetField] = null;
       });
     });
   }
