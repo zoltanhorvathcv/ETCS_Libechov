@@ -297,6 +297,9 @@ function renderEditorView(root) {
       const found = allGroups(store.data).find((x) => x.group.uid === groupUid);
       if (found) navigate({ view: 'editor', institutionUid: found.institution.uid, elementType: 'group', elementUid: groupUid });
     },
+    onJumpToInstitution: (institutionUid) => {
+      navigate({ view: 'editor', institutionUid });
+    },
     onAddGroupAt: (x, y) => {
       addGroup(inst, x, y);
     },
@@ -549,20 +552,54 @@ function renderInstitutionPanel(panel, inst) {
 }
 
 function renderFramePanel(panel, inst, frame) {
+  const isRef = !!frame.institutionRefUid;
+  const otherInstitutions = store.data.institutions.filter((i) => i.uid !== inst.uid);
   panel.innerHTML = `
     <h3>Rámeček oblasti</h3>
     <form id="frame-form" class="stacked-form">
-      <label>Název oblasti
-        <input name="name" type="text" value="${escapeHtml(frame.name)}">
-      </label>
+      <label class="checkbox-row"><input type="checkbox" name="isRef" ${isRef ? 'checked' : ''}> Odkaz na jinou instituci appky (místo obyčejného rámečku)</label>
+      <div id="frame-name-field" style="${isRef ? 'display:none' : ''}">
+        <label>Název oblasti
+          <input name="name" type="text" value="${escapeHtml(frame.name)}">
+        </label>
+      </div>
+      <div id="frame-ref-field" style="${isRef ? '' : 'display:none'}">
+        <label>Instituce
+          <select name="institutionRefUid">
+            ${otherInstitutions.length ? otherInstitutions.map((i) => `<option value="${i.uid}" ${frame.institutionRefUid === i.uid ? 'selected' : ''}>${escapeHtml(i.code)} – ${escapeHtml(i.name)}</option>`).join('') : '<option value="">— žádná další instituce v appce —</option>'}
+          </select>
+        </label>
+        <p class="hint">Rámeček je čistě navigační – kliknutím na plátně přeskočíte na pavouka vybrané instituce. Nejde o vazbu.</p>
+      </div>
     </form>
     <button class="btn btn-danger" id="btn-del-frame">Smazat rámeček</button>
   `;
-  panel.querySelector('#frame-form input[name="name"]').addEventListener('change', (e) => {
+  const form = panel.querySelector('#frame-form');
+  const isRefCheckbox = form.querySelector('[name="isRef"]');
+  form.querySelector('input[name="name"]').addEventListener('change', (e) => {
     store.commit(`Přejmenován rámeček v ${inst.code}`, (data) => {
       const i = data.institutions.find((ii) => ii.uid === inst.uid);
       const f = i.frames.find((ff) => ff.uid === frame.uid);
       if (f) f.name = e.target.value;
+    });
+  });
+  form.querySelector('select[name="institutionRefUid"]').addEventListener('change', (e) => {
+    store.commit(`Nastaven odkaz rámečku na instituci v ${inst.code}`, (data) => {
+      const i = data.institutions.find((ii) => ii.uid === inst.uid);
+      const f = i.frames.find((ff) => ff.uid === frame.uid);
+      if (f) f.institutionRefUid = e.target.value || null;
+    });
+  });
+  isRefCheckbox.addEventListener('change', () => {
+    store.commit(`Upraven typ rámečku v ${inst.code}`, (data) => {
+      const i = data.institutions.find((ii) => ii.uid === inst.uid);
+      const f = i.frames.find((ff) => ff.uid === frame.uid);
+      if (!f) return;
+      if (isRefCheckbox.checked) {
+        f.institutionRefUid = otherInstitutions[0] ? otherInstitutions[0].uid : null;
+      } else {
+        f.institutionRefUid = null;
+      }
     });
   });
   panel.querySelector('#btn-del-frame').addEventListener('click', () => {

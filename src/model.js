@@ -55,6 +55,10 @@ export function groupDisplayId(institution, group) {
   return `${institution.code}-${pad2(group.seq)}`;
 }
 
+export function findInstitution(data, institutionUid) {
+  return data.institutions.find((i) => i.uid === institutionUid) || null;
+}
+
 export function findInstitutionOfGroup(data, groupUid) {
   return data.institutions.find((inst) => inst.groups.some((g) => g.uid === groupUid));
 }
@@ -124,6 +128,10 @@ export function makeFrame(overrides = {}) {
     y: overrides.y ?? 20,
     w: overrides.w ?? 420,
     h: overrides.h ?? 260,
+    // Volitelný odkaz na jinou instituci appky – rámeček se pak chová jako
+    // čistě vizuální/navigační ukazatel na její pavouk (klik = přepnutí na
+    // její pavouk), místo běžného kontejneru oblasti.
+    institutionRefUid: overrides.institutionRefUid || null,
   };
 }
 
@@ -207,6 +215,12 @@ export function removeInstitutionCascade(data, institutionUid) {
   const groupUids = new Set(inst.groups.map((g) => g.uid));
   data.links = data.links.filter((l) => !groupUids.has(l.aUid) && !groupUids.has(l.bUid));
   data.institutions = data.institutions.filter((i) => i.uid !== institutionUid);
+  // rámečky odkazující na smazanou instituci se vrátí na běžný (prázdný) rámeček
+  for (const other of data.institutions) {
+    for (const f of other.frames) {
+      if (f.institutionRefUid === institutionUid) f.institutionRefUid = null;
+    }
+  }
 }
 
 export function removeTopicCascade(data, topicUid) {

@@ -233,6 +233,7 @@ p { line-height: 1.5; }
 .export-title { fill: var(--blue); font-weight: bold; font-size: 20px; }
 .resize-handle { fill: var(--orange); cursor: nwse-resize; }
 .link-stub { cursor: pointer; }
+.frame-node-ref { cursor: pointer; }
 
 /* ---- print ---- */
 #print-area { display: none; }

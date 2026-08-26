@@ -12,6 +12,9 @@ const STARTER_INSTITUTIONS = [
   ['UIC', 'International Union of Railways'],
   ['RISC', 'Rail Interoperability and Safety Committee'],
   ['RNE', 'RailNetEurope'],
+  ['ERA', 'European Union Agency for Railways'],
+  ['GRB', 'Group of Representative Bodies'],
+  ['EC', 'European Commission'],
 ];
 
 export function makeSeedData() {

@@ -1,4 +1,4 @@
-import { BRAND, LINK_TYPES, groupDisplayId, groupFullLabel, linkDisplayId, findGroup } from './model.js';
+import { BRAND, LINK_TYPES, groupDisplayId, groupFullLabel, linkDisplayId, findGroup, findInstitution } from './model.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -115,7 +115,13 @@ export class SpiderCanvas {
 
   _renderFrame(frame) {
     const selected = this.selection && this.selection.type === 'frame' && this.selection.uid === frame.uid;
-    const g = el('g', { class: 'frame-node', 'data-uid': frame.uid, 'data-kind': 'frame' });
+    const refInst = frame.institutionRefUid ? findInstitution(this.data, frame.institutionRefUid) : null;
+    const g = el('g', {
+      class: refInst ? 'frame-node frame-node-ref' : 'frame-node',
+      'data-uid': frame.uid,
+      'data-kind': 'frame',
+      'data-jump-institution': refInst ? refInst.uid : undefined,
+    });
     g.appendChild(
       el('rect', {
         x: frame.x,
@@ -123,15 +129,16 @@ export class SpiderCanvas {
         width: frame.w,
         height: frame.h,
         rx: 10,
-        fill: BRAND.blueLight,
-        'fill-opacity': 0.5,
-        stroke: selected ? BRAND.orange : BRAND.blue,
+        fill: refInst ? BRAND.grayLight : BRAND.blueLight,
+        'fill-opacity': refInst ? 0.7 : 0.5,
+        stroke: selected ? BRAND.orange : refInst ? BRAND.cyan : BRAND.blue,
         'stroke-width': selected ? 2.5 : 1.5,
-        'stroke-dasharray': '6,4',
+        'stroke-dasharray': refInst ? undefined : '6,4',
       })
     );
     const label = el('text', { x: frame.x + 10, y: frame.y + 20, class: 'frame-label' });
-    label.textContent = frame.name;
+    label.textContent = refInst ? `↗ ${refInst.code} – ${refInst.name}` : frame.name;
+    if (refInst) label.setAttribute('fill', BRAND.cyan);
     g.appendChild(label);
     g.appendChild(this._resizeHandle(frame, 'frame'));
     return g;
@@ -316,6 +323,11 @@ export class SpiderCanvas {
       const jump = e.target.closest('[data-jump]');
       if (jump && !didDrag) {
         this.cb.onJumpToGroup(jump.getAttribute('data-jump'));
+        return;
+      }
+      const jumpInst = e.target.closest('[data-jump-institution]');
+      if (jumpInst && !didDrag) {
+        this.cb.onJumpToInstitution(jumpInst.getAttribute('data-jump-institution'));
       }
     });
 
