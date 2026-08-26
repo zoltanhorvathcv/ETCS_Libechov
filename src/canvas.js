@@ -14,7 +14,7 @@ function el(tag, attrs = {}, children = []) {
 export class SpiderCanvas {
   constructor(container, callbacks) {
     this.container = container;
-    this.cb = callbacks; // { onSelect, onChangeGeometry, onChangeLinkOffset, onChangeStubOffset, onJumpToGroup, onJumpToInstitution, onAddGroupAt, onDeleteSelected }
+    this.cb = callbacks; // { onSelect, onChangeGeometry, onChangeLinkOffset, onChangeStubOffset, onChangeLabelOffset, onJumpToGroup, onJumpToInstitution, onAddGroupAt, onDeleteSelected }
     this.data = null;
     this.institutionUid = null;
     this.selection = null; // {type:'group'|'frame', uid}
@@ -263,23 +263,25 @@ export class SpiderCanvas {
       // Konec vazby na skupině B lze ručně posunout (link.bEndOffset) – konec
       // na skupině A i trasa mezi nimi zůstávají vždy automatické, aby ruční
       // posun nešlo "utrhnout" od společné páteře u vzoru s více vazbami
-      // z jedné skupiny (viz appendElbowLine).
+      // z jedné skupiny (viz appendElbowLine). ID štítek lze navíc nezávisle
+      // posunout kamkoli podél čáry (link.labelOffset).
+      const points = linkGeometry(link, a, b);
+      const t = typeof link.labelOffset === 'number' ? link.labelOffset : defaultLabelT(link, points);
+      const labelPoint = pointAtT(points, t);
       if (link.lineStyle === 'elbow') {
         // lomená čára vždy vychází/vstupuje uprostřed levé nebo pravé hrany
         // (podle toho, na které straně cíl leží) – jinak by "trunk" u boxů
         // s cíli hodně nad/pod sebou procházel horní/dolní hranou a mohl
         // křížit sousední boxy ve stejném sloupci
-        const p1 = elbowEdgePoint(a, centerOf(b));
-        const p2 = applyEndOffset(b, elbowEdgePoint(b, centerOf(a)), link.bEndOffset);
-        appendElbowLine(g, p1, p2, idLabel, commonAttrs, link.type, link.arrow, def.color);
-        if (endHandles) endHandles.push(this._linkEndHandle(link.uid, p2));
+        appendElbowLine(g, points, commonAttrs, link.type, link.arrow);
       } else {
         // čára jde od okraje boxu k okraji boxu (ne od středu), jinak by šipka
         // skončila schovaná pod neprůhledným boxem
-        const p1 = rectBorderPoint(a, centerOf(b));
-        const p2 = applyEndOffset(b, rectBorderPoint(b, centerOf(a)), link.bEndOffset);
-        appendBrokenLine(g, p1, p2, idLabel, commonAttrs, link.type, link.arrow, def.color);
-        if (endHandles) endHandles.push(this._linkEndHandle(link.uid, p2));
+        appendBrokenLine(g, points, idLabel, commonAttrs, link.type, link.arrow, labelPoint);
+      }
+      if (endHandles) {
+        endHandles.push(this._linkEndHandle(link.uid, points[points.length - 1]));
+        endHandles.push(buildLinkLabelChip(link.uid, labelPoint, idLabel, def.color));
       }
       return g;
     }
@@ -345,6 +347,7 @@ export class SpiderCanvas {
     this.svg.addEventListener('mousedown', (e) => {
       didDrag = false;
       const linkEndHandle = e.target.closest('[data-link-end]');
+      const labelHandle = e.target.closest('[data-label-drag]');
       const stubHandle = e.target.closest('[data-stub-drag]');
       const handle = e.target.closest('[data-handle]');
       const nodeEl = e.target.closest('[data-kind]');
@@ -355,6 +358,15 @@ export class SpiderCanvas {
         const link = this.data.links.find((l) => l.uid === linkUid);
         if (link) {
           dragMode = { kind: 'linkend', linkUid, axis, startX: world.x, startY: world.y, origOffset: link.bEndOffset || 0 };
+        }
+      } else if (labelHandle) {
+        const linkUid = labelHandle.getAttribute('data-label-drag');
+        const link = this.data.links.find((l) => l.uid === linkUid);
+        const inst = this.institution;
+        const a = inst && link ? inst.groups.find((g) => g.uid === link.aUid) : null;
+        const b = inst && link ? inst.groups.find((g) => g.uid === link.bUid) : null;
+        if (link && a && b) {
+          dragMode = { kind: 'labeloffset', linkUid, points: linkGeometry(link, a, b) };
         }
       } else if (stubHandle) {
         const linkUid = stubHandle.getAttribute('data-stub-drag');
@@ -411,6 +423,13 @@ export class SpiderCanvas {
         this.render();
         return;
       }
+      if (dragMode.kind === 'labeloffset') {
+        const link = this.data.links.find((l) => l.uid === dragMode.linkUid);
+        if (!link) return;
+        link.labelOffset = closestTOnPolyline(dragMode.points, world);
+        this.render();
+        return;
+      }
       const dx = world.x - dragMode.startX;
       const dy = world.y - dragMode.startY;
       const shape = this._findShape(dragMode.shapeKind, dragMode.uid);
@@ -425,12 +444,15 @@ export class SpiderCanvas {
       this.render();
     });
 
+    const ownDragKinds = ['pan', 'linkend', 'stuboffset', 'labeloffset'];
     window.addEventListener('mouseup', () => {
       if (dragMode && dragMode.kind === 'linkend' && didDrag) {
         this.cb.onChangeLinkOffset(dragMode.linkUid);
       } else if (dragMode && dragMode.kind === 'stuboffset' && didDrag) {
         this.cb.onChangeStubOffset(dragMode.linkUid);
-      } else if (dragMode && dragMode.kind !== 'pan' && dragMode.kind !== 'linkend' && dragMode.kind !== 'stuboffset' && didDrag) {
+      } else if (dragMode && dragMode.kind === 'labeloffset' && didDrag) {
+        this.cb.onChangeLabelOffset(dragMode.linkUid);
+      } else if (dragMode && !ownDragKinds.includes(dragMode.kind) && didDrag) {
         this.cb.onChangeGeometry(dragMode.shapeKind, dragMode.uid);
       }
       dragMode = null;
@@ -557,18 +579,96 @@ function pullBack(from, to, distance) {
   return { x: from.x + dx * t, y: from.y + dy * t };
 }
 
-// Vykreslí čáru vazby přerušenou v polovině, s popiskem ID vazby ve výřezu,
-// a šipkami (dle arrow) na koncích, které jsou díky rectBorderPoint viditelné.
-function appendBrokenLine(parent, p1, p2, idLabel, commonAttrs, linkType, arrow, color) {
-  const mid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+// Geometrie vazby v tomto pavouku jako lomená čára (pole bodů zlomů) – pro
+// rovnou vazbu jde jen o [p1, p2], pro lomenou o [p1, výstupek, zlom, p2].
+// Sdílí se mezi vykreslením a přetahováním ID štítku podél čáry.
+const ELBOW_STUB_GAP = 22;
+function linkGeometry(link, a, b) {
+  if (link.lineStyle === 'elbow') {
+    const p1 = elbowEdgePoint(a, centerOf(b));
+    const p2 = applyEndOffset(b, elbowEdgePoint(b, centerOf(a)), link.bEndOffset);
+    const dir = p1.dir || 1;
+    const nub = { x: p1.x + dir * ELBOW_STUB_GAP, y: p1.y };
+    const bend = { x: nub.x, y: p2.y };
+    return [p1, nub, bend, p2];
+  }
+  const p1 = rectBorderPoint(a, centerOf(b));
+  const p2 = applyEndOffset(b, rectBorderPoint(b, centerOf(a)), link.bEndOffset);
+  return [p1, p2];
+}
+
+function polylineLength(points) {
+  let len = 0;
+  for (let i = 1; i < points.length; i += 1) len += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+  return len;
+}
+
+// Bod na lomené čáře `points` v relativní vzdálenosti `t` (0 = začátek u A,
+// 1 = konec u B) od celkové délky čáry.
+function pointAtT(points, t) {
+  const total = polylineLength(points);
+  if (total === 0) return points[0];
+  let target = clamp(t, 0, 1) * total;
+  for (let i = 1; i < points.length; i += 1) {
+    const segLen = Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+    if (target <= segLen || i === points.length - 1) {
+      const frac = segLen === 0 ? 0 : target / segLen;
+      return { x: points[i - 1].x + (points[i].x - points[i - 1].x) * frac, y: points[i - 1].y + (points[i].y - points[i - 1].y) * frac };
+    }
+    target -= segLen;
+  }
+  return points[points.length - 1];
+}
+
+// Opak pointAtT – najde `t` odpovídající bodu na čáře nejbližšímu `world`
+// (myš při tažení štítku se nikdy nedrží přesně na čáře).
+function closestTOnPolyline(points, world) {
+  const total = polylineLength(points);
+  if (total === 0) return 0;
+  let best = { t: 0, distSq: Infinity };
+  let cum = 0;
+  for (let i = 1; i < points.length; i += 1) {
+    const a = points[i - 1];
+    const b = points[i];
+    const segLen = Math.hypot(b.x - a.x, b.y - a.y);
+    if (segLen > 0) {
+      let u = ((world.x - a.x) * (b.x - a.x) + (world.y - a.y) * (b.y - a.y)) / (segLen * segLen);
+      u = clamp(u, 0, 1);
+      const px = a.x + (b.x - a.x) * u;
+      const py = a.y + (b.y - a.y) * u;
+      const distSq = (world.x - px) ** 2 + (world.y - py) ** 2;
+      if (distSq < best.distSq) best = { t: (cum + u * segLen) / total, distSq };
+    }
+    cum += segLen;
+  }
+  return best.t;
+}
+
+// Výchozí poloha ID štítku, když ji uživatel ještě ručně nepřetáhl (link.labelOffset
+// je null): u rovné vazby střed čáry, u lomené přesně u zlomu (stejné místo,
+// kde štítek býval, než šlo jeho polohu měnit).
+function defaultLabelT(link, points) {
+  if (link.lineStyle !== 'elbow') return 0.5;
+  const total = polylineLength(points);
+  if (total === 0) return 0.5;
+  let cum = 0;
+  for (let i = 1; i <= 2; i += 1) cum += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+  return cum / total;
+}
+
+// Vykreslí čáru vazby přerušenou v místě štítku (idLabel se kreslí zvlášť,
+// viz buildLinkLabelChip), a šipkami (dle arrow) na koncích, které jsou díky
+// rectBorderPoint viditelné.
+function appendBrokenLine(parent, points, idLabel, commonAttrs, linkType, arrow, labelPoint) {
+  const [p1, p2] = points;
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
   const len = Math.hypot(dx, dy) || 1;
   const ux = dx / len;
   const uy = dy / len;
   const gapHalf = idLabel.length * 3 + 8;
-  const segEndA = { x: mid.x - ux * gapHalf, y: mid.y - uy * gapHalf };
-  const segStartB = { x: mid.x + ux * gapHalf, y: mid.y + uy * gapHalf };
+  const segEndA = { x: labelPoint.x - ux * gapHalf, y: labelPoint.y - uy * gapHalf };
+  const segStartB = { x: labelPoint.x + ux * gapHalf, y: labelPoint.y + uy * gapHalf };
 
   const attrsA = { ...commonAttrs };
   const attrsB = { ...commonAttrs };
@@ -582,45 +682,37 @@ function appendBrokenLine(parent, p1, p2, idLabel, commonAttrs, linkType, arrow,
   } else {
     parent.appendChild(el('path', { d: `M${p1.x},${p1.y} L${p2.x},${p2.y}`, ...commonAttrs, ...attrsB, ...(arrow === 'both' ? attrsA : {}) }));
   }
-
-  const labelEl = el('text', {
-    x: mid.x,
-    y: mid.y + 3,
-    class: 'link-id-label',
-    'text-anchor': 'middle',
-    fill: color,
-  });
-  labelEl.textContent = idLabel;
-  parent.appendChild(labelEl);
 }
 
 // Lomená (pravoúhlá) čára s jedním zlomem – pro vzory "hierarchický strom"
-// a "seznam napojený na jeden uzel". ID vazby se zobrazuje jako štítek
-// s podkladem u zlomu (čára se zde nepřerušuje, na rozdíl od appendBrokenLine).
-// Mezi hranu boxu a svislou páteř se vloží krátký vodorovný "výstupek" (nub) –
-// jinak by páteř splývala s hranou sousedních boxů ve stejném sloupci a nebylo
-// by poznat, ze kterého boxu vazby ve skutečnosti vychází.
-const ELBOW_STUB_GAP = 22;
-function appendElbowLine(parent, p1, p2, idLabel, commonAttrs, linkType, arrow, color) {
-  const dir = p1.dir || 1;
-  const nub = { x: p1.x + dir * ELBOW_STUB_GAP, y: p1.y };
-  const bend = { x: nub.x, y: p2.y };
+// a "seznam napojený na jeden uzel". Mezi hranu boxu a svislou páteř se
+// vloží krátký vodorovný "výstupek" (nub) – jinak by páteř splývala s hranou
+// sousedních boxů ve stejném sloupci a nebylo by poznat, ze kterého boxu
+// vazby ve skutečnosti vychází.
+function appendElbowLine(parent, points, commonAttrs, linkType, arrow) {
   const attrs = { ...commonAttrs };
   if (arrow === 'both') attrs['marker-start'] = `url(#arrow-${linkType})`;
   if (arrow === 'forward' || arrow === 'both') attrs['marker-end'] = `url(#arrow-${linkType})`;
-  parent.appendChild(
-    el('path', { d: `M${p1.x},${p1.y} L${nub.x},${nub.y} L${bend.x},${bend.y} L${p2.x},${p2.y}`, ...attrs })
-  );
+  const d = points.map((pt, i) => `${i === 0 ? 'M' : 'L'}${pt.x},${pt.y}`).join(' ');
+  parent.appendChild(el('path', { d, ...attrs }));
+}
 
-  const labelWidth = idLabel.length * 6 + 10;
-  const chip = el('g', { transform: `translate(${bend.x},${bend.y})` });
+// ID štítek vazby jako samostatný, tažením posunutelný "chip" (bílý podklad
+// nad čárou) – používá se pro rovné i lomené vazby v rámci jednoho pavouka.
+function buildLinkLabelChip(linkUid, point, idLabel, color) {
+  const labelWidth = idLabel.length * 6 + 12;
+  const chip = el('g', {
+    class: 'link-id-chip',
+    transform: `translate(${point.x},${point.y})`,
+    'data-label-drag': linkUid,
+  });
   chip.appendChild(
-    el('rect', { x: 4, y: -10, width: labelWidth, height: 18, rx: 3, fill: '#ffffff', stroke: color, 'fill-opacity': 0.92 })
+    el('rect', { x: -labelWidth / 2, y: -10, width: labelWidth, height: 18, rx: 3, fill: '#ffffff', stroke: color, 'fill-opacity': 0.92 })
   );
-  const labelEl = el('text', { x: 8, y: 3, class: 'link-id-label', fill: color });
+  const labelEl = el('text', { x: 0, y: 3, class: 'link-id-label', 'text-anchor': 'middle', fill: color });
   labelEl.textContent = idLabel;
   chip.appendChild(labelEl);
-  parent.appendChild(chip);
+  return chip;
 }
 
 function wrapText(textEl, text, maxWidth, lineHeight) {

@@ -248,6 +248,7 @@ p { line-height: 1.5; }
 .resize-handle { fill: var(--orange); cursor: nwse-resize; }
 .link-stub { cursor: pointer; }
 .link-stub-chip { cursor: move; }
+.link-id-chip { cursor: move; }
 .frame-node-ref { cursor: pointer; }
 .link-end-handle { fill: var(--orange); stroke: #ffffff; stroke-width: 1.2; opacity: 0.5; transition: opacity 0.12s; }
 .link-end-handle:hover { opacity: 1; }

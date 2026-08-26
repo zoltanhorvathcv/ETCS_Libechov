@@ -161,6 +161,9 @@ export function makeLink(type, aUid, bUid, extra = {}) {
     // jiné. null = automatická poloha (vějíř podle pořadí vazeb u skupiny).
     stubOffsetA: extra.stubOffsetA || null,
     stubOffsetB: extra.stubOffsetB || null,
+    // Ruční poloha ID štítku podél čáry vazby (0 = u skupiny A, 1 = u skupiny
+    // B) – null = automatická (střed čáry / zlom u lomené vazby).
+    labelOffset: typeof extra.labelOffset === 'number' ? extra.labelOffset : null,
   };
 }
 
