@@ -235,15 +235,21 @@ export class SpiderCanvas {
     if (aIn && bIn) {
       const a = inst.groups.find((g) => g.uid === link.aUid);
       const b = inst.groups.find((g) => g.uid === link.bUid);
-      // čára jde od okraje boxu k okraji boxu (ne od středu), jinak by šipka
-      // skončila schovaná pod neprůhledným boxem
-      const p1 = rectBorderPoint(a, centerOf(b));
-      const p2 = rectBorderPoint(b, centerOf(a));
       const idLabel = linkDisplayId(this.data, link);
       const g = el('g', { class: 'link-line' });
       if (link.lineStyle === 'elbow') {
+        // lomená čára vždy vychází/vstupuje uprostřed levé nebo pravé hrany
+        // (podle toho, na které straně cíl leží) – jinak by "trunk" u boxů
+        // s cíli hodně nad/pod sebou procházel horní/dolní hranou a mohl
+        // křížit sousední boxy ve stejném sloupci
+        const p1 = elbowEdgePoint(a, centerOf(b));
+        const p2 = elbowEdgePoint(b, centerOf(a));
         appendElbowLine(g, p1, p2, idLabel, commonAttrs, link.type, link.arrow, def.color);
       } else {
+        // čára jde od okraje boxu k okraji boxu (ne od středu), jinak by šipka
+        // skončila schovaná pod neprůhledným boxem
+        const p1 = rectBorderPoint(a, centerOf(b));
+        const p2 = rectBorderPoint(b, centerOf(a));
         appendBrokenLine(g, p1, p2, idLabel, commonAttrs, link.type, link.arrow, def.color);
       }
       return g;
@@ -430,6 +436,16 @@ function rectBorderPoint(rect, towardPoint) {
   const scaleY = dy !== 0 ? halfH / Math.abs(dy) : Infinity;
   const scale = Math.min(scaleX, scaleY);
   return { x: c.x + dx * scale, y: c.y + dy * scale };
+}
+
+// Bod uprostřed levé/pravé hrany (podle směru k druhému konci) – pro lomené
+// čáry, aby "trunk" vždy vycházel ze strany boxu, ne z horní/dolní hrany.
+function elbowEdgePoint(rect, towardCenter) {
+  const c = centerOf(rect);
+  if (towardCenter.x >= c.x) {
+    return { x: rect.x + rect.w, y: c.y };
+  }
+  return { x: rect.x, y: c.y };
 }
 
 function pullBack(from, to, distance) {
