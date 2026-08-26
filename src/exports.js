@@ -163,7 +163,7 @@ function addReportSheet(XLSX, wb, report) {
   const aoa = [headerRow, ...dataRows];
   const ws = XLSX.utils.aoa_to_sheet(aoa.length ? aoa : [headerRow.length ? headerRow : ['(bez dat)']]);
   styleSheet(ws, report.columns.length || 1, dataRows.length);
-  const name = safeSheetName(report.title);
+  const name = safeSheetName(report.title, wb);
   XLSX.utils.book_append_sheet(wb, ws, name);
 }
 
@@ -172,7 +172,7 @@ function addMatrixSheet(XLSX, wb, matrix, title) {
   const rows = matrix.institutions.map((code, i) => [code, ...matrix.counts[i]]);
   const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
   styleSheet(ws, header.length, rows.length);
-  XLSX.utils.book_append_sheet(wb, ws, safeSheetName(title));
+  XLSX.utils.book_append_sheet(wb, ws, safeSheetName(title, wb));
 }
 
 function styleSheet(ws, colCount, rowCount) {
@@ -203,8 +203,23 @@ function cellAddress(r, c) {
   return window.XLSX.utils.encode_cell({ r, c });
 }
 
-function safeSheetName(name) {
-  return (name || 'List').replace(/[\\/?*[\]:]/g, ' ').slice(0, 31) || 'List';
+// Excel omezuje název listu na 31 znaků a nedovolí duplicitu v rámci
+// sešitu – u dlouhých názvů (např. report + jeho "– matice" příloha) se tak
+// mohly po oříznutí srazit na stejný název. `wb` (pokud je předán) se použije
+// k tomu, aby se kolize vyřešila číselnou příponou místo pádu exportu.
+function safeSheetName(name, wb) {
+  const base = (name || 'List').replace(/[\\/?*[\]:]/g, ' ').trim().slice(0, 31) || 'List';
+  if (!wb) return base;
+  const used = new Set(wb.SheetNames);
+  if (!used.has(base)) return base;
+  let candidate = base;
+  let i = 2;
+  while (used.has(candidate)) {
+    const suffix = ` (${i})`;
+    candidate = base.slice(0, 31 - suffix.length) + suffix;
+    i += 1;
+  }
+  return candidate;
 }
 
 // ---- PDF export přehledů (přes tiskový dialog prohlížeče) ---------------

@@ -966,14 +966,20 @@ function renderReportsView(root) {
 }
 
 function renderMatrix(matrix) {
-  if (!matrix.institutions.length) return '<p class="empty-note">Žádné instituce.</p>';
+  if (!matrix.institutions.length) return '<p class="empty-note">Žádná cross-institucionální vazba mezi zavedenými institucemi appky.</p>';
+  const cell = (i, j) => {
+    if (i === j) return '<td class="diag">—</td>';
+    const byType = matrix.typeCounts[i][j];
+    if (!byType || !Object.keys(byType).length) return '<td></td>';
+    const parts = Object.entries(byType)
+      .map(([typ, n]) => `<span style="color:${LINK_TYPES[typ].color}" title="${escapeHtml(LINK_TYPES[typ].label)}">${n}× ${escapeHtml(typ)}</span>`)
+      .join(' ');
+    return `<td class="has-val">${parts}</td>`;
+  };
   return `<div class="table-wrap"><table class="data-table matrix-table"><thead><tr><th></th>${matrix.institutions
     .map((c) => `<th>${escapeHtml(c)}</th>`)
     .join('')}</tr></thead><tbody>${matrix.institutions
-    .map(
-      (rowCode, i) =>
-        `<tr><th>${escapeHtml(rowCode)}</th>${matrix.counts[i].map((v, j) => `<td class="${i === j ? 'diag' : v ? 'has-val' : ''}">${i === j ? '—' : v}</td>`).join('')}</tr>`
-    )
+    .map((rowCode, i) => `<tr><th>${escapeHtml(rowCode)}</th>${matrix.institutions.map((_, j) => cell(i, j)).join('')}</tr>`)
     .join('')}</tbody></table></div>`;
 }
 

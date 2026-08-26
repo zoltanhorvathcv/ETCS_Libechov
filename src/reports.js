@@ -69,36 +69,61 @@ export function reportMirrorGaps(data) {
 
 export function reportCrossMatrix(data) {
   const institutions = data.institutions;
-  const counts = institutions.map(() => institutions.map(() => 0));
+  const n = institutions.length;
   const indexByUid = new Map(institutions.map((i, idx) => [i.uid, idx]));
+  // counts = celkový počet cross-institucionálních vazeb (všechny typy
+  // dohromady) mezi dvěma institucemi; typeCounts = rozpad podle typu vazby
+  // (N/X/M) – vazba nemusí být jen typu X, i "běžná" nebo "mirror" vazba
+  // může reálně vést mimo institucionální hranici.
+  const counts = Array.from({ length: n }, () => Array(n).fill(0));
+  const typeCounts = Array.from({ length: n }, () => Array.from({ length: n }, () => ({})));
+  const pairTypeTotals = new Map();
+
   for (const l of data.links) {
-    if (l.type !== 'X') continue;
+    if (!isCrossInstitution(data, l)) continue;
     const a = findInstitutionOfGroup(data, l.aUid);
     const b = findInstitutionOfGroup(data, l.bUid);
-    if (!a || !b || a.uid === b.uid) continue;
+    if (!a || !b) continue;
     const ia = indexByUid.get(a.uid);
     const ib = indexByUid.get(b.uid);
     counts[ia][ib] += 1;
     counts[ib][ia] += 1;
+    typeCounts[ia][ib][l.type] = (typeCounts[ia][ib][l.type] || 0) + 1;
+    typeCounts[ib][ia][l.type] = (typeCounts[ib][ia][l.type] || 0) + 1;
+    const [codeA, codeB] = [a.code, b.code].sort();
+    const key = `${codeA}__${codeB}__${l.type}`;
+    pairTypeTotals.set(key, (pairTypeTotals.get(key) || 0) + 1);
   }
-  const rows = [];
-  for (let i = 0; i < institutions.length; i += 1) {
-    for (let j = i + 1; j < institutions.length; j += 1) {
-      if (counts[i][j] > 0) {
-        rows.push({ a: institutions[i].code, b: institutions[j].code, pocet: counts[i][j] });
-      }
-    }
+
+  const rows = [...pairTypeTotals.entries()]
+    .map(([key, pocet]) => {
+      const [a, b, typ] = key.split('__');
+      return { a, b, typ: LINK_TYPES[typ].label, pocet };
+    })
+    .sort((r1, r2) => r1.a.localeCompare(r2.a) || r1.b.localeCompare(r2.b) || r1.typ.localeCompare(r2.typ));
+
+  // do matice se dávají jen instituce, které mají alespoň jednu
+  // cross-institucionální vazbu – jinak by matice byla plná zbytečných nul
+  const activeIdx = [];
+  for (let i = 0; i < n; i += 1) {
+    if (counts[i].some((v) => v > 0)) activeIdx.push(i);
   }
+
   return {
     id: 'crossMatrix',
     title: 'Matice cross-institucionálních vazeb',
     columns: [
       { key: 'a', label: 'Instituce A' },
       { key: 'b', label: 'Instituce B' },
+      { key: 'typ', label: 'Typ vazby' },
       { key: 'pocet', label: 'Počet vazeb' },
     ],
     rows,
-    matrix: { institutions: institutions.map((i) => i.code), counts },
+    matrix: {
+      institutions: activeIdx.map((i) => institutions[i].code),
+      counts: activeIdx.map((i) => activeIdx.map((j) => counts[i][j])),
+      typeCounts: activeIdx.map((i) => activeIdx.map((j) => typeCounts[i][j])),
+    },
   };
 }
 
