@@ -104,8 +104,9 @@ export class SpiderCanvas {
     }
     const groupUids = new Set(inst.groups.map((g) => g.uid));
     const relatedLinks = this.data.links.filter((l) => groupUids.has(l.aUid) || groupUids.has(l.bUid));
+    const stubIndexByGroup = new Map();
     for (const link of relatedLinks) {
-      const node = this._renderLink(link, inst, groupUids);
+      const node = this._renderLink(link, inst, groupUids, stubIndexByGroup);
       if (node) this.linksLayer.appendChild(node);
     }
     for (const group of inst.groups) {
@@ -202,7 +203,7 @@ export class SpiderCanvas {
     });
   }
 
-  _renderLink(link, inst, groupUids) {
+  _renderLink(link, inst, groupUids, stubIndexByGroup) {
     const def = LINK_TYPES[link.type];
     const aIn = groupUids.has(link.aUid);
     const bIn = groupUids.has(link.bUid);
@@ -231,8 +232,16 @@ export class SpiderCanvas {
     const localGroup = inst.groups.find((g) => g.uid === localUid);
     if (!localGroup) return null;
     const idLabel = linkDisplayId(this.data, link);
-    const start = rectBorderPoint(localGroup, { x: localGroup.x + localGroup.w / 2 + 90, y: localGroup.y - 46 });
-    const chipAnchor = { x: start.x + 90, y: start.y - 46 };
+    // více vazeb ze stejné skupiny na externí cíle se rozprostře do vějíře,
+    // aby se jejich chipy nepřekrývaly na jednom místě
+    const stubIndex = stubIndexByGroup ? stubIndexByGroup.get(localUid) || 0 : 0;
+    if (stubIndexByGroup) stubIndexByGroup.set(localUid, stubIndex + 1);
+    const angleDeg = -20 - stubIndex * 50;
+    const angleRad = (angleDeg * Math.PI) / 180;
+    const dist = 120 + Math.floor(stubIndex / 6) * 70;
+    const localCenter = centerOf(localGroup);
+    const chipAnchor = { x: localCenter.x + Math.cos(angleRad) * dist, y: localCenter.y + Math.sin(angleRad) * dist };
+    const start = rectBorderPoint(localGroup, chipAnchor);
     // čára končí kousek před chipem, aby tam byla vidět šipka
     const end = pullBack(start, chipAnchor, 10);
     const wrap = el('g', { class: 'link-stub', 'data-jump': otherUid });
