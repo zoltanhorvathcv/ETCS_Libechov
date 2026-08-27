@@ -14,7 +14,7 @@ function el(tag, attrs = {}, children = []) {
 export class SpiderCanvas {
   constructor(container, callbacks) {
     this.container = container;
-    this.cb = callbacks; // { onSelect, onChangeGeometry, onChangeLinkOffset, onChangeStubOffset, onChangeLabelOffset, onJumpToGroup, onJumpToInstitution, onAddGroupAt, onDeleteSelected }
+    this.cb = callbacks; // { onSelect, onChangeGeometry, onChangeLinkOffset, onChangeStubOffset, onChangeLabelOffset, onJumpToGroup, onJumpToInstitution, onAddGroupAt, onZoomChange, onDeleteSelected }
     this.data = null;
     this.institutionUid = null;
     this.selection = null; // {type:'group'|'frame', uid}
@@ -101,6 +101,49 @@ export class SpiderCanvas {
 
   _applyTransform() {
     this.viewport.setAttribute('transform', `translate(${this.tx},${this.ty}) scale(${this.scale})`);
+    if (this.cb.onZoomChange) this.cb.onZoomChange(this.scale);
+  }
+
+  getScale() {
+    return this.scale;
+  }
+
+  // Přiblížení/oddálení tlačítkem – na rozdíl od kolečka myši se přibližuje
+  // ke středu plátna, ne k pozici kurzoru.
+  zoomBy(factor) {
+    const rect = this.container.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const beforeX = (cx - this.tx) / this.scale;
+    const beforeY = (cy - this.ty) / this.scale;
+    this.scale = Math.min(3, Math.max(0.2, this.scale * factor));
+    this.tx = cx - beforeX * this.scale;
+    this.ty = cy - beforeY * this.scale;
+    this._applyTransform();
+  }
+
+  // Přizpůsobí přiblížení tak, aby se celý pavouk vešel do viditelné plochy.
+  // `insets` (číslo nebo {top,right,bottom,left}) vymezuje okraje zakryté
+  // plovoucími lištami – na celé obrazovce plátno sahá i pod ně, takže bez
+  // nich by pavouk skončil schovaný pod lištou nebo postranním panelem.
+  fitToView(insets = 40) {
+    const inst = this.institution;
+    if (!inst) return;
+    const rect = this.container.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const pad =
+      typeof insets === 'number'
+        ? { top: insets, right: insets, bottom: insets, left: insets }
+        : { top: 40, right: 40, bottom: 40, left: 40, ...insets };
+    const availW = Math.max(80, rect.width - pad.left - pad.right);
+    const availH = Math.max(80, rect.height - pad.top - pad.bottom);
+    const bbox = this._computeBBox(inst);
+    const sx = availW / Math.max(1, bbox.w);
+    const sy = availH / Math.max(1, bbox.h);
+    this.scale = Math.min(3, Math.max(0.2, Math.min(sx, sy)));
+    this.tx = pad.left + availW / 2 - (bbox.minX + bbox.w / 2) * this.scale;
+    this.ty = pad.top + availH / 2 - (bbox.minY + bbox.h / 2) * this.scale;
+    this._applyTransform();
   }
 
   screenToWorld(clientX, clientY) {

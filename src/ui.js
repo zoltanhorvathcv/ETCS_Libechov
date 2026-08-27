@@ -180,6 +180,8 @@ function fullRender() {
   const sel = store.selection;
   renderSidebar();
   const root = document.getElementById('view-root');
+  // odchod z editoru jinam ukončí i záložní (CSS) režim celé obrazovky
+  if (sel.view !== 'editor') document.body.classList.remove('fullscreen-active');
   lastView = sel.view;
   lastInstitutionUid = sel.institutionUid;
   if (sel.view === 'editor') {
@@ -276,11 +278,24 @@ function renderEditorView(root) {
     renderDashboardView(root);
     return;
   }
+  // Přepnutí instituce nevyžaduje přestavbu plátna – stačí do něj načíst data
+  // jiné instituce. Kdybychom DOM přestavěli, prohlížeč by shodil režim celé
+  // obrazovky (jeho fullscreen je vázaný na konkrétní element).
+  const existingShell = document.getElementById('editor-shell');
+  if (existingShell && root.contains(existingShell) && spiderCanvas) {
+    spiderCanvas.setData(store.data, inst.uid, canvasSelection());
+    spiderCanvas.centerViewport();
+    renderEditorToolbar();
+    renderEditorSidePanel();
+    applyViewPrefs();
+    return;
+  }
   root.innerHTML = `
-    <div class="editor-layout">
+    <div class="editor-layout" id="editor-shell">
       <div class="editor-toolbar" id="editor-toolbar"></div>
       <div class="editor-main">
         <div class="canvas-host" id="canvas-host"></div>
+        <button class="panel-toggle" id="panel-toggle" type="button"></button>
         <aside class="side-panel" id="side-panel"></aside>
       </div>
     </div>
@@ -318,11 +333,188 @@ function renderEditorView(root) {
     onAddGroupAt: (x, y) => {
       addGroup(inst, x, y);
     },
+    onZoomChange: (scale) => {
+      const label = document.getElementById('zoom-level');
+      if (label) label.textContent = `${Math.round(scale * 100)} %`;
+    },
   });
   spiderCanvas.centerViewport();
   spiderCanvas.setData(store.data, inst.uid, canvasSelection());
+  renderCanvasOverlay();
   renderEditorToolbar();
   renderEditorSidePanel();
+  applyViewPrefs();
+}
+
+// ---- režim celé obrazovky a sbalitelné lišty ---------------------------
+// Sbalení lišt i režim celé obrazovky jsou nastavení pohledu, ne obsahu –
+// ukládají se do localStorage prohlížeče, ne do dat pavouka.
+
+const VIEW_PREF_KEY = 'pavouci_view_prefs';
+
+function readViewPrefs() {
+  try {
+    return JSON.parse(window.localStorage.getItem(VIEW_PREF_KEY)) || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function writeViewPrefs(prefs) {
+  try {
+    window.localStorage.setItem(VIEW_PREF_KEY, JSON.stringify(prefs));
+  } catch (e) {
+    /* soukromý režim / plné úložiště – appka funguje dál bez zapamatování */
+  }
+}
+
+function setViewPref(key, value) {
+  const prefs = readViewPrefs();
+  prefs[key] = value;
+  writeViewPrefs(prefs);
+}
+
+function applyViewPrefs() {
+  const shell = document.getElementById('editor-shell');
+  if (!shell) return;
+  const prefs = readViewPrefs();
+  shell.classList.toggle('panel-collapsed', !!prefs.panelCollapsed);
+  shell.classList.toggle('toolbar-collapsed', !!prefs.toolbarCollapsed);
+  updatePanelToggleLabel();
+}
+
+function updatePanelToggleLabel() {
+  const shell = document.getElementById('editor-shell');
+  const btn = document.getElementById('panel-toggle');
+  if (!shell || !btn) return;
+  const collapsed = shell.classList.contains('panel-collapsed');
+  btn.textContent = collapsed ? '‹' : '›';
+  btn.title = collapsed ? 'Zobrazit postranní panel' : 'Skrýt postranní panel';
+  btn.setAttribute('aria-label', btn.title);
+}
+
+function isFullscreen() {
+  const shell = document.getElementById('editor-shell');
+  return !!shell && shell.classList.contains('is-fullscreen');
+}
+
+function setFullscreenClasses(on, fallback) {
+  const shell = document.getElementById('editor-shell');
+  if (!shell) return;
+  shell.classList.toggle('is-fullscreen', on);
+  shell.classList.toggle('is-fullscreen-fallback', on && fallback);
+  document.body.classList.toggle('fullscreen-active', on && fallback);
+  const btn = document.getElementById('btn-fullscreen');
+  if (btn) {
+    btn.innerHTML = on ? FULLSCREEN_EXIT_ICON : FULLSCREEN_ICON;
+    btn.title = on ? 'Ukončit režim celé obrazovky (Esc)' : 'Editovat na celé obrazovce';
+    btn.setAttribute('aria-label', btn.title);
+  }
+}
+
+async function toggleFullscreen() {
+  const shell = document.getElementById('editor-shell');
+  if (!shell) return;
+  if (isFullscreen()) {
+    if (document.fullscreenElement) {
+      try {
+        await document.exitFullscreen();
+        return; // zbytek dořeší fullscreenchange
+      } catch (e) {
+        /* propadneme na ruční vypnutí níže */
+      }
+    }
+    setFullscreenClasses(false, false);
+    return;
+  }
+  // Fullscreen API prohlížeče skryje i jeho vlastní lišty. Když není
+  // k dispozici nebo ho prostředí zakáže (např. vnořený iframe), použije se
+  // záložní varianta přes CSS – plátno vyplní alespoň celé okno appky.
+  if (shell.requestFullscreen) {
+    try {
+      await shell.requestFullscreen();
+      return; // zbytek dořeší fullscreenchange
+    } catch (e) {
+      /* propadneme na záložní variantu níže */
+    }
+  }
+  setFullscreenClasses(true, true);
+}
+
+document.addEventListener('fullscreenchange', () => {
+  const shell = document.getElementById('editor-shell');
+  if (!shell) {
+    document.body.classList.remove('fullscreen-active');
+    return;
+  }
+  // Esc i tlačítko prohlížeče projdou přes tuto událost, takže stav appky
+  // zůstane v souladu s tím, co prohlížeč skutečně dělá.
+  setFullscreenClasses(document.fullscreenElement === shell, false);
+});
+
+const FULLSCREEN_ICON =
+  '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const FULLSCREEN_EXIT_ICON =
+  '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2v4H2M10 2v4h4M6 14v-4H2M10 14v-4h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+// Okraje plátna zakryté plovoucími lištami – v běžném režimu lišty plátno
+// nepřekrývají, na celé obrazovce ano, takže "Přizpůsobit oknu" s nimi musí
+// počítat, jinak by pavouk skončil schovaný pod nimi.
+function canvasInsets() {
+  const shell = document.getElementById('editor-shell');
+  if (!shell || !shell.classList.contains('is-fullscreen')) return 40;
+  const toolbar = document.getElementById('editor-toolbar');
+  const toolbarH = toolbar ? toolbar.getBoundingClientRect().height : 0;
+  const panelOpen = !shell.classList.contains('panel-collapsed');
+  return {
+    top: toolbarH + 30,
+    right: panelOpen ? 372 : 52,
+    bottom: 56,
+    left: 24,
+  };
+}
+
+// Plovoucí ovládání nad plátnem (celá obrazovka + přiblížení). Vkládá se až
+// po vytvoření SpiderCanvas, který si při startu vyčistí obsah kontejneru.
+function renderCanvasOverlay() {
+  const host = document.getElementById('canvas-host');
+  if (!host) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'canvas-overlay';
+  overlay.innerHTML = `
+    <div class="canvas-overlay-tr">
+      <button class="canvas-btn" id="btn-fullscreen" type="button" title="Editovat na celé obrazovce" aria-label="Editovat na celé obrazovce">${FULLSCREEN_ICON}</button>
+    </div>
+    <div class="canvas-overlay-bl">
+      <button class="canvas-btn" data-zoom="out" type="button" title="Oddálit" aria-label="Oddálit">−</button>
+      <span class="zoom-level" id="zoom-level">100 %</span>
+      <button class="canvas-btn" data-zoom="in" type="button" title="Přiblížit" aria-label="Přiblížit">+</button>
+      <button class="canvas-btn canvas-btn-wide" data-zoom="fit" type="button" title="Přizpůsobit oknu" aria-label="Přizpůsobit oknu">Přizpůsobit</button>
+    </div>
+  `;
+  host.appendChild(overlay);
+  overlay.querySelector('#btn-fullscreen').addEventListener('click', toggleFullscreen);
+  overlay.querySelectorAll('[data-zoom]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.zoom;
+      if (!spiderCanvas) return;
+      if (mode === 'in') spiderCanvas.zoomBy(1.2);
+      else if (mode === 'out') spiderCanvas.zoomBy(1 / 1.2);
+      else spiderCanvas.fitToView(canvasInsets());
+    });
+  });
+  const panelToggle = document.getElementById('panel-toggle');
+  if (panelToggle) {
+    panelToggle.addEventListener('click', () => {
+      const shell = document.getElementById('editor-shell');
+      if (!shell) return;
+      const collapsed = shell.classList.toggle('panel-collapsed');
+      setViewPref('panelCollapsed', collapsed);
+      updatePanelToggleLabel();
+    });
+  }
+  const label = document.getElementById('zoom-level');
+  if (label && spiderCanvas) label.textContent = `${Math.round(spiderCanvas.getScale() * 100)} %`;
 }
 
 function renderEditorToolbar() {
@@ -333,6 +525,7 @@ function renderEditorToolbar() {
   bar.innerHTML = `
     <h2 class="canvas-title">${escapeHtml(inst.name)} <span class="canvas-title-code">(${escapeHtml(inst.code)})</span></h2>
     <div class="editor-toolbar-row">
+    <button class="btn toolbar-collapse" id="toolbar-collapse" type="button" title="Sbalit / rozbalit lištu nástrojů" aria-label="Sbalit / rozbalit lištu nástrojů">☰</button>
     <select id="inst-switcher">${store.data.institutions
       .map((i) => `<option value="${i.uid}" ${i.uid === inst.uid ? 'selected' : ''}>${escapeHtml(i.code)} – ${escapeHtml(i.name)}</option>`)
       .join('')}</select>
@@ -347,6 +540,12 @@ function renderEditorToolbar() {
     <button class="btn" data-action="export-pptx">Export PPTX</button>
     </div>
   `;
+  bar.querySelector('#toolbar-collapse').addEventListener('click', () => {
+    const shell = document.getElementById('editor-shell');
+    if (!shell) return;
+    const collapsed = shell.classList.toggle('toolbar-collapsed');
+    setViewPref('toolbarCollapsed', collapsed);
+  });
   bar.querySelector('#inst-switcher').addEventListener('change', (e) => {
     navigate({ view: 'editor', institutionUid: e.target.value });
   });

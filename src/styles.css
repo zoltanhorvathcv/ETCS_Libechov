@@ -186,7 +186,7 @@ p { line-height: 1.5; }
 }
 .editor-toolbar select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; margin-right: 6px; }
 .spacer { flex: 1; }
-.editor-main { flex: 1; display: flex; gap: 14px; min-height: 0; }
+.editor-main { flex: 1; display: flex; gap: 14px; min-height: 0; position: relative; }
 .canvas-host {
   flex: 1;
   background: var(--white);
@@ -207,6 +207,120 @@ p { line-height: 1.5; }
   padding: 16px;
   overflow-y: auto;
 }
+
+/* ---- plovoucí ovládání nad plátnem ---- */
+/* Kontejner nesmí zachytávat myš, jinak by nešlo plátno posouvat tažením –
+   klikací jsou jen samotná tlačítka. */
+.canvas-overlay { position: absolute; inset: 0; pointer-events: none; }
+.canvas-overlay-tr { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; }
+.canvas-overlay-bl { position: absolute; left: 10px; bottom: 10px; display: flex; gap: 4px; align-items: center; }
+.canvas-overlay-tr > *, .canvas-overlay-bl > * { pointer-events: auto; }
+.canvas-btn {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--white);
+  color: var(--blue);
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+.canvas-btn:hover { background: var(--blue-light); border-color: var(--blue); }
+.canvas-btn-wide { font-size: 11.5px; padding: 0 9px; }
+.zoom-level {
+  min-width: 52px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--gray);
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  height: 28px;
+  line-height: 26px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+
+/* ---- sbalitelný postranní panel ---- */
+.panel-toggle {
+  position: absolute;
+  right: 354px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 25;
+  width: 20px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 5px 0 0 5px;
+  background: var(--white);
+  color: var(--blue);
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: -1px 1px 5px rgba(0,0,0,0.12);
+}
+.panel-toggle:hover { background: var(--blue-light); border-color: var(--blue); }
+.panel-collapsed .side-panel { display: none; }
+.panel-collapsed .panel-toggle { right: 0; }
+.toolbar-collapsed .editor-toolbar-row > *:not(.toolbar-collapse) { display: none; }
+.toolbar-collapse { padding: 7px 10px; }
+
+/* ---- režim celé obrazovky ---- */
+/* Lišty se nad plátnem vykreslí jako překryvné panely, aby plátno mohlo
+   vyplnit celou plochu a přitom zůstalo plně editovatelné. */
+.editor-layout.is-fullscreen {
+  height: 100%;
+  width: 100%;
+  background: var(--gray-light);
+}
+.editor-layout.is-fullscreen-fallback {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  height: 100vh;
+}
+body.fullscreen-active { overflow: hidden; }
+.editor-layout.is-fullscreen .editor-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 30;
+  /* musí zůstat místo na ovládání vpravo nahoře a na postranní panel –
+     lišta se místo přetečení zalomí do více řádků (flex-wrap) */
+  max-width: calc(100% - 420px);
+  padding: 8px 10px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+.editor-layout.is-fullscreen .canvas-title { display: none; }
+.editor-layout.is-fullscreen .editor-main { position: absolute; inset: 0; gap: 0; }
+.editor-layout.is-fullscreen .canvas-host { border: none; border-radius: 0; }
+.editor-layout.is-fullscreen .side-panel {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 20;
+  border-radius: 0;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  box-shadow: -4px 0 16px rgba(0,0,0,0.14);
+}
+.editor-layout.is-fullscreen .panel-toggle { right: 340px; }
+.editor-layout.is-fullscreen.panel-collapsed .panel-toggle { right: 0; }
+/* Na celé obrazovce sahá plátno i pod postranní panel, takže ovládání
+   v pravém horním rohu je nutné odsadit, aby ho panel nezakryl. */
+.editor-layout.is-fullscreen .canvas-overlay-tr { right: 356px; }
+.editor-layout.is-fullscreen.panel-collapsed .canvas-overlay-tr { right: 32px; }
+.editor-layout.is-fullscreen.panel-collapsed .editor-toolbar { max-width: calc(100% - 96px); }
 
 .stacked-form { display: flex; flex-direction: column; gap: 10px; }
 .stacked-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--gray); font-weight: bold; }
