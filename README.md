@@ -19,8 +19,18 @@ uložená přímo uvnitř tohoto souboru.
   postranním panelu.
 - **Vazby** mezi skupinami se přidávají v pravém panelu (po kliknutí na
   volnou plochu plátna) – typ *běžná / cross-institucionální / mirror*, obě
-  strany vazby, volitelně šipka a poznámka. ID vazeb i skupin se všude v
-  appce přepočítává automaticky.
+  strany vazby, volitelně šipka, poznámka a styl čáry (rovná / lomená
+  pravoúhlá). ID vazeb i skupin se všude v appce přepočítává automaticky.
+- **Doladění vzhledu vazeb** – tažením lze posunout konec vazby po hraně
+  cílového boxu, ID štítek podél čáry a u cross-institucionálních vazeb
+  i celý štítek s odkazem. Každý posun jde vrátit na automatickou polohu
+  tlačítkem ve formuláři vazby.
+- **Rámeček oblasti** může být i odkazem na jinou instituci appky – klik
+  na něj přepne na její pavouk.
+- **Režim celé obrazovky** – ikonka v pravém horním rohu plátna. Lišta
+  nástrojů a postranní panel se v něm zobrazí jako plovoucí panely nad
+  plátnem, obojí jde sbalit (šipka u panelu, ☰ u lišty) i v běžném
+  režimu. Vlevo dole je ovládání přiblížení a „Přizpůsobit oknu“.
 - **Registr témat** – samostatná sekce s volitelnou dvouúrovňovou hierarchií.
 - **Přehledy** – dashboard institucí, chybějící zástupci, mirror páry bez
   protějšku, matice cross-institucionálních vazeb, statistika a hierarchie
@@ -39,6 +49,14 @@ uložená přímo uvnitř tohoto souboru.
   naposledy uložený soubor.
 - **Historie verzí** appka uchovává interně (posledních 50 verzí), u každé
   volitelně jméno editora (pole nahoře). Kdykoli lze verzi obnovit.
+
+## Dokumentace pro vývoj
+
+- [`DOKUMENTACE.md`](DOKUMENTACE.md) – kompletní popis aplikace:
+  architektura, datový model, jednotlivé moduly, geometrie vazeb,
+  exporty, testování, známá omezení a náměty na další vývoj.
+- [`AGENTS.md`](AGENTS.md) – pracovní instrukce pro AI agenta
+  (build, ověřování změn, pravidla, častá úskalí).
 
 ## Vývoj / sestavení appky ze zdrojových souborů
 
