@@ -360,31 +360,35 @@ komunikace.
 
 ## 10. Testování
 
-V repozitáři **není** testovací framework. Ověřuje se ručně skriptem
-v Playwrightu nad sestaveným `index.html` (headless Chromium):
-
-```js
-const { chromium } = require('playwright');
-const browser = await chromium.launch({ args: ['--no-sandbox'] });
-const page = await browser.newPage();
-const errors = [];
-page.on('pageerror', (e) => errors.push(e.message));
-await page.goto('file:///cesta/k/index.html');
+```bash
+npx playwright install chromium   # jednorázově
+npm run check                     # build + kouřový test
 ```
 
-Minimální sada, kterou je rozumné projít po každé změně:
+`test/smoke.mjs` projede sestavený `index.html` v headless prohlížeči a
+ověří 16 kontrol:
 
-1. načtení bez chyb v konzoli,
-2. přidání instituce / skupiny / vazby,
-3. přesun a změna velikosti boxu,
-4. tažení úchytů vazby a reset na automatiku,
-5. exporty SVG / PNG / PPTX,
-6. „Uložit / exportovat appku“ a znovuotevření staženého souboru
-   (roundtrip dat),
-7. přehledy včetně XLSX exportu.
+1. načtení appky bez chyb v konzoli,
+2. založení instituce a dvou skupin,
+3. přesun boxu tažením,
+4. přidání lomené vazby včetně úchytu a ID štítku,
+5. ruční posun konce vazby a jeho uložení do dat,
+6. exporty SVG / PNG / PPTX,
+7. vykreslení přehledů a export všech přehledů do XLSX,
+8. „Uložit / exportovat appku“ + znovuotevření staženého souboru
+   (roundtrip dat) bez chyb.
 
-> Zavedení opravdového test runneru (např. Playwright Test) je jedním
-> z prvních kandidátů na zlepšení, viz níže.
+Test končí nenulovým exit kódem, takže se dá zapojit do CI. Při přidání
+funkce, kterou nepokrývá, ho rozšiřte – jinak se na ni při dalších
+změnách zapomene.
+
+**Co test nezachytí:** jestli schéma *vypadá* dobře. Geometrie vazeb má
+tichá selhání (čára vedená pod boxem, splývající štítky, páteř lepící se
+na okraj sloupce), která projdou testem i konzolí. U změn na plátně je
+proto vždy nutná vizuální kontrola screenshotem.
+
+`PW_EXECUTABLE=/cesta/k/chrome` přepíše cestu k prohlížeči pro prostředí,
+kde je Chromium předinstalovaný jinde, než kam ho Playwright ukládá.
 
 ---
 
@@ -398,7 +402,6 @@ Minimální sada, kterou je rozumné projít po každé změně:
 
 **Kandidáti na další práci:**
 
-- Automatizované testy (Playwright Test) místo ad-hoc skriptů.
 - Knihovna předdefinovaných rozložení pavouka (ze zadání, zatím
   neimplementováno).
 - Přímé uložení do stejného souboru přes File System Access API –

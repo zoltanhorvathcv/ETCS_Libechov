@@ -55,8 +55,14 @@ uložená přímo uvnitř tohoto souboru.
 - [`DOKUMENTACE.md`](DOKUMENTACE.md) – kompletní popis aplikace:
   architektura, datový model, jednotlivé moduly, geometrie vazeb,
   exporty, testování, známá omezení a náměty na další vývoj.
+- [`CODEX.md`](CODEX.md) – co nastavit v Codexu, než se pustíte do úprav.
 - [`AGENTS.md`](AGENTS.md) – pracovní instrukce pro AI agenta
   (build, ověřování změn, pravidla, častá úskalí).
+
+```bash
+npm install && npx playwright install chromium
+npm run check      # build + kouřový test (16 kontrol)
+```
 
 ## Vývoj / sestavení appky ze zdrojových souborů
 

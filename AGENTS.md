@@ -6,36 +6,33 @@ schémat mezinárodních institucí jako jeden samostatný HTML soubor.
 Kompletní popis architektury je v [`DOKUMENTACE.md`](DOKUMENTACE.md).
 Přečti si ji, než začneš měnit `src/canvas.js` nebo datový model –
 obsahuje odůvodnění netriviálních rozhodnutí a seznam zrádných míst.
+Nastavení prostředí popisuje [`CODEX.md`](CODEX.md).
 
 ---
 
-## Build
+## Build a ověření
 
 ```bash
-npm install
-npm run build     # node build.js → přepíše index.html v kořeni
+npm install                        # jednorázově
+npx playwright install chromium    # jednorázově, kvůli testu
+npm run check                      # build + kouřový test – SPOUŠTĚJ PO KAŽDÉ ZMĚNĚ
 ```
+
+`npm run check` = `npm run build` (sestaví `index.html`) +
+`npm run smoke` (`test/smoke.mjs` projede appku v headless prohlížeči).
+Musí projít **16/16 kontrol**.
 
 **`index.html` je commitovaný artefakt, ne generovaný odpad.** Je to
 soubor, který se kopíruje uživatelům do SharePointu. Po jakékoli změně
-v `src/` spusť `npm run build` a commitni `index.html` spolu se zdroji.
-Bez toho se změna k uživateli nedostane.
+v `src/` spusť build a commitni `index.html` spolu se zdroji. Bez toho se
+změna k uživateli nedostane.
 
-## Ověření změn
+Když přidáváš funkci, na kterou test nesahá, **rozšiř `test/smoke.mjs`**
+o odpovídající kontrolu.
 
-V repozitáři není test runner. Ověřuj přes Playwright nad sestaveným
-`index.html` (headless Chromium, `--no-sandbox`, `file://` URL) a vždy
-sleduj `pageerror` + `console.error` – většina regresí se projeví jako
-výjimka v konzoli, ne jako viditelná chyba.
-
-Po netriviální změně projdi: načtení bez chyb → přidání instituce /
-skupiny / vazby → tažení boxu a úchytů vazby → exporty SVG/PNG/PPTX →
-„Uložit / exportovat appku“ a znovuotevření staženého souboru →
-přehledy včetně XLSX.
-
-U vizuálních změn plátna udělej screenshot a **podívej se na něj** –
-geometrie vazeb má víc tichých selhání (čára pod boxem, splývající
-štítky), než kolik jich odhalí kontrola konzole.
+U vizuálních změn plátna navíc udělej screenshot a **podívej se na něj** –
+geometrie vazeb má tichá selhání (čára pod boxem, splývající štítky,
+páteř lepící se na okraj sloupce), která testem ani konzolí neprojdou.
 
 ## Jazyk
 
@@ -78,6 +75,12 @@ geometrie vazeb má víc tichých selhání (čára pod boxem, splývající
 - **Popisky zmizely v exportovaném SVG** → chybí pravidlo
   v `applyInlineStyles()`; SVG export nemá `<style>` a styly musí být
   vepsané v elementech.
+- **`index.html` se tváří jako změněný, i když jsem nic neupravil** →
+  to je normální. `uid()` odvozuje ID z času a náhody, takže výchozí
+  instituce dostanou při každém buildu jiná `uid` a build není
+  reprodukovatelný. Podle diffu `index.html` se tedy **nedá** poznat, jestli
+  změna měla efekt – posuzuj podle diffu v `src/` a podle výsledku
+  `npm run check`.
 
 ## Git
 
