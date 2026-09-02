@@ -199,6 +199,8 @@ export function reportRepDirectory(data) {
         jmeno: rep.name,
         utvar: rep.unit,
         role: rep.role,
+        email: rep.email || '',
+        telefon: rep.phone || '',
         skupina: groupDisplayId(institution, group),
         nazev: group.name,
         instituce: institution.code,
@@ -213,9 +215,54 @@ export function reportRepDirectory(data) {
       { key: 'jmeno', label: 'Jméno' },
       { key: 'utvar', label: 'Útvar / organizační jednotka' },
       { key: 'role', label: 'Role' },
+      { key: 'email', label: 'E-mail' },
+      { key: 'telefon', label: 'Telefon' },
       { key: 'skupina', label: 'Skupina' },
       { key: 'nazev', label: 'Název skupiny' },
       { key: 'instituce', label: 'Instituce' },
+    ],
+    rows,
+  };
+}
+
+// Kontaktní list pro rozesílku – jedna osoba jednou, se seznamem skupin.
+// Nahrazuje sloupce "ADD TO THE MAILING LIST" z původního excelu.
+export function reportMailingList(data) {
+  const byPerson = new Map();
+  for (const { institution, group } of allGroups(data)) {
+    for (const rep of group.reps) {
+      if (!rep.name) continue;
+      const key = rep.name.trim().toLowerCase();
+      if (!byPerson.has(key)) {
+        byPerson.set(key, {
+          jmeno: rep.name,
+          email: rep.email || '',
+          telefon: rep.phone || '',
+          utvar: rep.unit || '',
+          skupiny: [],
+        });
+      }
+      const p = byPerson.get(key);
+      // kontakt může být vyplněný jen u některého výskytu osoby
+      if (!p.email && rep.email) p.email = rep.email;
+      if (!p.telefon && rep.phone) p.telefon = rep.phone;
+      if (!p.utvar && rep.unit) p.utvar = rep.unit;
+      p.skupiny.push(groupDisplayId(institution, group));
+    }
+  }
+  const rows = [...byPerson.values()]
+    .map((p) => ({ ...p, pocet: p.skupiny.length, skupiny: p.skupiny.join(', ') }))
+    .sort((a, b) => a.jmeno.localeCompare(b.jmeno, 'cs'));
+  return {
+    id: 'mailingList',
+    title: 'Kontaktní list pro rozesílku',
+    columns: [
+      { key: 'jmeno', label: 'Jméno' },
+      { key: 'email', label: 'E-mail' },
+      { key: 'telefon', label: 'Telefon' },
+      { key: 'utvar', label: 'Útvar / organizační jednotka' },
+      { key: 'pocet', label: 'Počet skupin' },
+      { key: 'skupiny', label: 'Skupiny' },
     ],
     rows,
   };
@@ -401,6 +448,7 @@ export function ALL_REPORTS(data) {
     reportIsolatedGroups(data),
     reportGroupsWithoutTopic(data),
     reportRepDirectory(data),
+    reportMailingList(data),
     reportByRole(data),
     reportHistory(data),
   ];
@@ -420,7 +468,9 @@ export function searchAll(data, queryRaw) {
     for (const rep of group.reps) {
       if (
         rep.name.toLowerCase().includes(query) ||
-        (rep.unit || '').toLowerCase().includes(query)
+        (rep.unit || '').toLowerCase().includes(query) ||
+        (rep.email || '').toLowerCase().includes(query) ||
+        (rep.phone || '').toLowerCase().includes(query)
       ) {
         results.push({
           kind: 'Zástupce',

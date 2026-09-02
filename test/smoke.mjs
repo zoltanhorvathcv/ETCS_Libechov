@@ -109,6 +109,30 @@ try {
   const draft = await page.evaluate(() => JSON.parse(localStorage.getItem('pavouci_draft_v1')));
   check('ruční posun konce vazby se uloží', draft?.data?.links?.[0]?.bEndOffset !== 0);
 
+  // --- zástupce včetně kontaktů -------------------------------------------
+  await (await page.$$('.group-node'))[0].click();
+  await page.waitForSelector('#btn-add-rep', { timeout: 5000 });
+  await page.click('#btn-add-rep');
+  await page.waitForSelector('.rep-row', { timeout: 5000 });
+  for (const [field, value] of [
+    ['name', 'Ing. Testovací Zástupce'],
+    ['unit', 'O14'],
+    ['email', 'test@spravazeleznic.cz'],
+    ['phone', '+420 700 000 000'],
+  ]) {
+    await page.fill(`.rep-row input[data-field="${field}"]`, value);
+    await page.dispatchEvent(`.rep-row input[data-field="${field}"]`, 'change');
+  }
+  await page.waitForTimeout(300);
+  const savedRep = await page.evaluate(
+    () => JSON.parse(localStorage.getItem('pavouci_draft_v1')).data.institutions.at(-1).groups[0].reps[0]
+  );
+  check(
+    'zástupce se uloží včetně e-mailu a telefonu',
+    savedRep?.email === 'test@spravazeleznic.cz' && savedRep?.phone === '+420 700 000 000',
+    JSON.stringify(savedRep)
+  );
+
   // --- exporty ------------------------------------------------------------
   for (const [action, label] of [
     ['export-svg', 'SVG'],

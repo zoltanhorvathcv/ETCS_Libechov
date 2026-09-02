@@ -328,7 +328,18 @@ body.fullscreen-active { overflow: hidden; }
 .checkbox-row { flex-direction: row !important; align-items: center; gap: 6px !important; }
 .checkbox-row input { width: auto; }
 
-.rep-row { display: grid; grid-template-columns: 1fr 1fr 90px 24px; gap: 6px; margin-bottom: 6px; align-items: center; }
+/* dva řádky na zástupce: jméno/útvar/role/smazat, pod tím kontakty */
+.rep-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 90px 24px;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border);
+  align-items: center;
+}
+.rep-row input[data-field="email"] { grid-column: 1 / 3; }
+.rep-row input[data-field="phone"] { grid-column: 3 / 5; }
 .rep-row input, .rep-row select { padding: 5px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; }
 
 .topic-checklist { max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: 4px; padding: 8px; }

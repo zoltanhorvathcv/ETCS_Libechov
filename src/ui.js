@@ -66,7 +66,7 @@ function buildShell() {
       <header class="topbar">
         <div class="brand">Organizační pavouci<span class="brand-sub">Správa železnic</span></div>
         <div class="topbar-search">
-          <input id="global-search" type="search" autocomplete="off" placeholder="Hledat skupinu, osobu, útvar, téma, ID vazby…">
+          <input id="global-search" type="search" autocomplete="off" placeholder="Hledat skupinu, osobu, útvar, e-mail, téma, ID vazby…">
           <div id="search-results" class="search-results hidden"></div>
         </div>
         <div class="topbar-actions">
@@ -895,6 +895,8 @@ function renderGroupPanel(panel, inst, group) {
         <input type="text" data-field="unit" value="${escapeHtml(rep.unit)}" placeholder="Útvar / OJ">
         <select data-field="role">${ROLES.map((r) => `<option value="${r}" ${rep.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
         <button class="btn-icon" data-del-rep title="Smazat zástupce">✕</button>
+        <input type="email" data-field="email" value="${escapeHtml(rep.email || '')}" placeholder="E-mail">
+        <input type="text" data-field="phone" value="${escapeHtml(rep.phone || '')}" placeholder="Telefon">
       </div>`
     )
     .join('');
@@ -975,7 +977,7 @@ function renderGroupPanel(panel, inst, group) {
   panel.querySelector('#btn-add-rep').addEventListener('click', () => {
     store.commit(`Přidán zástupce do ${displayId}`, (data) => {
       const g = findGroupMut(data, group.uid);
-      if (g) g.reps.push({ name: '', unit: '', role: ROLES[1] });
+      if (g) g.reps.push({ name: '', unit: '', role: ROLES[1], email: '', phone: '' });
     });
   });
   panel.querySelectorAll('.rep-row').forEach((row) => {
