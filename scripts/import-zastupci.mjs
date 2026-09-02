@@ -25,6 +25,7 @@ if (!XLSX_PATH) {
 let n = 0;
 const uid = (p) => `${p}_imp${(n += 1).toString(36)}`;
 const opravy = [];
+const vyrazeni = []; // osoby uvedené v excelu k vyřazení z mailing listu
 const sheet = (wb, name) =>
   XLSX.utils
     .sheet_to_json(wb.Sheets[name], { header: 1, defval: '', blankrows: false })
@@ -151,12 +152,20 @@ for (const r of sheet(wb, TECH).slice(1)) {
     continue;
   }
   if (c0) {
-    g = { clenove: [] };
+    g = { clenove: [], nazev: c0.replace(/\s+/g, ' ').trim() };
     pridej(/ERJU/i.test(c0) ? 'ERJU' : 'CER', c0, g.clenove, sekce);
   }
   if (g) {
-    const m = r[2] || r[1];
+    // col1 = THE CURRENT SITUATION, col2 = REQUESTED SITUATION, col3 = REMOVE
+    // FROM THE MAILING LIST. Platí požadovaný stav; když je prázdný, drží se
+    // stav současný – ale JEN pokud táž osoba není zároveň uvedená k vyřazení.
+    // Bez té podmínky by se do appky dostali lidé, kteří ze skupiny odcházejí.
+    const req = r[2] || '';
+    const cur = r[1] || '';
+    const rem = r[3] || '';
+    const m = req || (cur && klic(cur) !== klic(rem) ? cur : '');
     if (m) g.clenove.push(m);
+    else if (cur && rem) vyrazeni.push(`${g.nazev}: ${cur}`);
   }
 }
 
@@ -340,3 +349,8 @@ for (const i of app.institutions.filter((x) => x.groups.length)) console.log(`  
 const unik = [...new Set(opravy)];
 console.log(`\nProvedené opravy dat (${unik.length}):`);
 unik.forEach((o) => console.log(`  • ${o}`));
+
+if (vyrazeni.length) {
+  console.log(`\nNenaimportováni – excel je uvádí k vyřazení z mailing listu (${vyrazeni.length}):`);
+  [...new Set(vyrazeni)].forEach((v) => console.log(`  • ${v}`));
+}
