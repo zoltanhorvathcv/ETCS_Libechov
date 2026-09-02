@@ -62,6 +62,10 @@ src/
   exports.js          export SVG/PNG/PPTX/XLSX a tisk do PDF
   seed.js             výchozí sada institucí
   styles.css          veškeré styly (i pro SVG popisky)
+scripts/
+  codex-setup.sh      příprava prostředí (závislosti + prohlížeč pro testy)
+  import-zastupci.mjs převod podkladu se zástupci SŽ do datového souboru appky
+test/smoke.mjs        kouřový test sestavené appky (npm run smoke)
 DOKUMENTACE.md        tento dokument
 AGENTS.md             instrukce pro AI agenta (Codex)
 README.md             uživatelský rychlý start
@@ -109,7 +113,7 @@ Group = {
   uid, seq,               // seq = pořadové číslo pro odvození ID
   name, x, y, w, h,
   frameUid,               // volitelné zařazení do rámečku
-  reps: [{ jmeno, utvar, role }],   // role: vedoucí | člen | náhradník
+  reps: [{ name, unit, role, email, phone }],  // role: vedoucí | člen | náhradník
   topicUids: [uid],
   expectsMirror: bool,    // podklad pro přehled „mirror páry bez protějšku“
 }
@@ -309,9 +313,15 @@ exportovat:
 
 Dostupné: chybějící zástupci, mirror páry bez protějšku, matice
 cross-institucionálních vazeb, statistika a hierarchie témat, přehled
-podle institucí, adresář zástupců, podle rolí, izolované skupiny, skupiny
-bez tématu, skupiny podle tématu, seznam vazeb, historie verzí. Plus
-`searchAll` pro fulltext v horní liště.
+podle institucí, adresář zástupců, kontaktní list pro rozesílku, podle
+rolí, izolované skupiny, skupiny bez tématu, skupiny podle tématu, seznam
+vazeb, historie verzí. Plus `searchAll` pro fulltext v horní liště (hledá
+i podle e-mailu a telefonu).
+
+**Kontaktní list pro rozesílku** (`reportMailingList`) uvádí každou osobu
+jednou, s kontaktem a výčtem skupin, ve kterých je – nahrazuje ruční
+mailing listy vedené dřív v excelu. Kontakt se doplní z libovolného
+výskytu osoby, protože v podkladech bývá vyplněný jen u některého.
 
 **Matice cross-institucionálních vazeb** počítá všechny vazby, které
 reálně překračují hranici institucí (`isCrossInstitution`), ne jen typ
