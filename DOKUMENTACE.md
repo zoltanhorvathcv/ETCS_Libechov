@@ -65,6 +65,14 @@ src/
 scripts/
   codex-setup.sh      příprava prostředí (závislosti + prohlížeč pro testy)
   import-zastupci.mjs převod podkladu se zástupci SŽ do datového souboru appky
+  merge-eu-rail.mjs   vloží referenční strukturu EU-Rail (data/eu-rail-structure.mjs)
+                      do AppData sestaveného importem zástupců – volá ho
+                      import-zastupci.mjs automaticky
+data/
+  eu-rail-structure.mjs  referenční organizační data EU-Rail/ERJU, RNE, PRIME,
+                          RISC, SERAF, ENIM, EULYNX, EUG, ERA, DG MOVE (ne
+                          osobní údaje – jen názvy skupin a vazby, se zdrojem
+                          v poznámce u každé vazby)
 test/smoke.mjs        kouřový test sestavené appky (npm run smoke)
 DOKUMENTACE.md        tento dokument
 AGENTS.md             instrukce pro AI agenta (Codex)

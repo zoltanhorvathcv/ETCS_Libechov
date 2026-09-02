@@ -10,7 +10,7 @@ const STARTER_INSTITUTIONS = [
   ['EUG', 'European Users Group'],
   ['EULYNX', 'EULYNX'],
   ['UIC', 'International Union of Railways'],
-  ['RISC', 'Rail Interoperability and Safety Committee'],
+  ['RISC', 'Railway Interoperability and Safety Committee'],
   ['RNE', 'RailNetEurope'],
   ['ERA', 'European Union Agency for Railways'],
   ['GRB', 'Group of Representative Bodies'],

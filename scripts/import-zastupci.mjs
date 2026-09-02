@@ -12,6 +12,7 @@ import XLSX from 'xlsx-js-style';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { mergeEuRailStructure } from './merge-eu-rail.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const XLSX_PATH = process.argv[2];
@@ -202,7 +203,7 @@ const NAZVY = {
   EUG: 'European Users Group',
   EULYNX: 'EULYNX',
   UIC: 'International Union of Railways',
-  RISC: 'Rail Interoperability and Safety Committee',
+  RISC: 'Railway Interoperability and Safety Committee',
   RNE: 'RailNetEurope',
   ERA: 'European Union Agency for Railways',
   GRB: 'Group of Representative Bodies',
@@ -286,11 +287,17 @@ if (su) {
   }
 }
 
+// Referenční organizační struktura EU-Rail/ERJU a navazujících institucí
+// (RNE, PRIME, RISC, SERAF, ENIM, EULYNX, EUG, ERA, DG MOVE) – viz
+// data/eu-rail-structure.mjs. Přidává se ke zástupcům ze excelu, nenahrazuje
+// je (existující skupiny se nemažou ani nepřejmenovávají).
+const erjuSummary = mergeEuRailStructure(app);
+
 app.history.push({
   uid: uid('ver'),
   ts: new Date().toISOString(),
   editor: null,
-  summary: `Import z podkladu ${XLSX_PATH.split('/').pop()}`,
+  summary: `Import z podkladu ${XLSX_PATH.split('/').pop()} + referenční struktura EU-Rail`,
   snapshot: JSON.parse(JSON.stringify({ ...app, history: undefined })),
 });
 
@@ -337,6 +344,9 @@ for (const i of app.institutions)
       osoby.add(klic(r.name));
       if (r.email) sMailem.add(klic(r.name));
     }
+
+console.log(`\nReferenční struktura EU-Rail:`);
+erjuSummary.forEach((s) => console.log(`  • ${s}`));
 
 console.log(`\nVytvořeno: ${OUT}`);
 console.log(`  institucí:   ${app.institutions.length} (${app.institutions.filter((i) => i.groups.length).length} s obsahem)`);
