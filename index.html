@@ -445,6 +445,8 @@ body.editing #exec-name:hover{color:var(--accent)}
   .ms:hover{transform:none}
 }
 /* ================= PROCESNÍ MAPA A KONCEPT ================= */
+.link-sm{color:var(--accent2);font-size:12px;text-decoration:none}
+.link-sm:hover{text-decoration:underline}
 .ed-only{display:none!important}
 body.editing .ed-only{display:inline-flex!important}
 .pm-hide,body.editing .pm-hide{display:none!important}
@@ -470,6 +472,11 @@ body.editing .ed-only{display:inline-flex!important}
 .pmb{cursor:default}
 body.editing .pmb{cursor:grab}
 body.editing .pmb.dragging{cursor:grabbing}
+#pm-splitbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pm-canvas.pm-splitting{cursor:crosshair}
+.pm-canvas.pm-splitting .pmb{cursor:crosshair}
+.pm-splitguide{position:absolute;width:2px;background:var(--accent);pointer-events:none;z-index:5;box-shadow:0 0 7px rgba(255,82,0,.65);display:none}
+.pm-splitguide::before{content:'✂';position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:11px}
 .pm-wiz .modal{width:min(940px,94vw)}
 .pm-steps{display:flex;gap:6px;margin:0 0 18px;flex-wrap:wrap}
 .pm-steps div{flex:1;min-width:110px;padding:8px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.03em}
@@ -853,6 +860,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       <button class="btn ghost sm ed-only" id="pm-newvar" onclick="pmNewConcept()">＋ Varianta</button>
       <button class="btn ghost sm ed-only" id="pm-editvar" onclick="pmEditConcept()">✎ Varianta</button>
       <button class="btn ghost sm ed-only" onclick="pmNewProcess()">＋ Proces</button>
+      <button class="btn ghost sm ed-only" id="pm-splitbtn" onclick="pmToggleSplit()" title="Zapněte a klikejte na procesy v místě, kde je chcete rozdělit">✂ Rozdělit</button>
       <button class="btn ghost sm ed-only" id="pm-recalc" onclick="pmRecalc()">↻ Přepočítat návaznosti</button>
       <button class="btn primary sm ed-only" id="pm-promote" onclick="pmOpenWizard()">Zpevnit do mapy</button>
     </div>
@@ -927,10 +935,26 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
     <div style="font-size:12px;color:var(--text3);margin-bottom:6px">Úpravy projektu může provádět jen přihlášený správce. Návštěvníci vidí vše jen ke čtení.</div>
     <label>E-mail</label><input id="lg-email" type="email" autocomplete="username" placeholder="vas@email.cz">
     <label>Heslo</label><input id="lg-pass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <div style="text-align:right;margin-top:6px"><a href="#" class="link-sm" onclick="event.preventDefault();doForgotPassword()">Zapomenuté heslo?</a></div>
     <div id="lg-err" style="color:var(--blocked);font-size:12px;margin-top:10px;display:none"></div>
     <div class="m-actions">
       <button class="btn ghost" onclick="closeLogin()">Zrušit</button>
       <button class="btn primary" onclick="doLogin()">Přihlásit se</button>
+    </div>
+  </div>
+</div>
+
+<!-- Nastavení nového hesla (po kliknutí na odkaz z e-mailu) -->
+<div class="modal-veil" id="newpass">
+  <div class="modal" style="width:390px">
+    <h3>Nastavit nové heslo</h3>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:6px">Odkaz z e-mailu vás přihlásil dočasně jen za účelem změny hesla. Zvolte nové heslo pro <b id="np-email">svůj účet</b>.</div>
+    <label>Nové heslo</label><input id="np-pass" type="password" autocomplete="new-password" placeholder="alespoň 8 znaků">
+    <label>Nové heslo znovu</label><input id="np-pass2" type="password" autocomplete="new-password" onkeydown="if(event.key==='Enter')doSetNewPassword()">
+    <div id="np-err" style="color:var(--blocked);font-size:12px;margin-top:10px;display:none"></div>
+    <div class="m-actions">
+      <button class="btn ghost" onclick="closeNewPassword()">Zrušit</button>
+      <button class="btn primary" onclick="doSetNewPassword()">Uložit heslo</button>
     </div>
   </div>
 </div>
@@ -1648,14 +1672,14 @@ function openEditor(key,id){
   $('#ed-title').textContent=(isNew?'Nový: ':'Upravit: ')+sc.title;
   $('#ed-del').style.display=(!isNew&&key!=='project')?'inline-flex':'none';
   $('#ed-fields').innerHTML='<div class="grid2">'+sc.fields.map(f=>fieldHTML(f,obj)).join('')+'</div>';
-  sc.fields.forEach(f=>{if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs')pmSubRender(f.k)});
+  sc.fields.forEach(f=>{if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs'||f.t==='peoplerefs')pmSubRender(f.k)});
   $('#editor').classList.add('open');
 }
 function fieldHTML(f,o){
   let v=o[f.k]; if(v===undefined||v===null)v='';
   const id='edf-'+f.k, cls=f.full?'full':'';
   if(f.t==='check')return `<div class="${cls}" style="display:flex;align-items:center;gap:9px;margin-top:8px"><input type="checkbox" id="${id}" ${v?'checked':''} style="width:auto"><label style="margin:0;text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--text2)">${f.l}</label></div>`;
-  if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs')return `<div class="${cls}"><label>${f.l}</label><div class="pm-sub" id="${id}"></div></div>`;
+  if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs'||f.t==='peoplerefs')return `<div class="${cls}"><label>${f.l}</label><div class="pm-sub" id="${id}"></div></div>`;
   let input;
   if(f.t==='textarea')input=`<textarea id="${id}" style="min-height:70px">${esc(v)}</textarea>`;
   else if(f.t==='lines')input=`<textarea id="${id}" style="min-height:70px">${esc(Array.isArray(v)?v.join('\n'):v)}</textarea>`;
@@ -1668,7 +1692,7 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function saveEditor(){
   const sc=SCHEMAS[edCtx.key], o=edCtx.obj;
   sc.fields.forEach(f=>{
-    if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs')return;   // zapsáno průběžně dílčím editorem
+    if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs'||f.t==='peoplerefs')return;   // zapsáno průběžně dílčím editorem
     const el=document.getElementById('edf-'+f.k); if(!el)return;
     if(f.t==='check')o[f.k]=el.checked;
     else if(f.t==='number')o[f.k]=+el.value||0;
@@ -1724,7 +1748,10 @@ async function boot(){
       if(error)throw error;
       if(data&&data.length){ hydrate(data); ONLINE=true; badge('● Supabase','var(--ok)'); }
       else { ONLINE=true; await persistAll(); badge('● Supabase · nasazeno','var(--ok)'); }
-      sb.auth.onAuthStateChange(()=>refreshAuth());
+      sb.auth.onAuthStateChange((event,session)=>{
+        if(event==='PASSWORD_RECOVERY')openNewPassword(session&&session.user&&session.user.email);
+        refreshAuth();
+      });
       await refreshAuth();
     }catch(e){ console.warn('Supabase nedostupné → DEMO režim:',e.message||e); badge('DEMO režim (offline)','var(--risk)'); }
   } else { badge('DEMO režim','var(--text3)'); }
@@ -1776,6 +1803,42 @@ async function doLogin(){
   await refreshAuth(); closeLogin(); $('#lg-pass').value=''; toast('Přihlášeno — úpravy povoleny');
 }
 async function doLogout(){ if(sb)await sb.auth.signOut(); await refreshAuth(); toast('Odhlášeno — režim jen pro čtení'); }
+
+/* ---- Zapomenuté heslo: pošle e-mail s odkazem, po kliknutí Supabase vyvolá PASSWORD_RECOVERY ---- */
+async function doForgotPassword(){
+  if(!sb){toast('Supabase není nakonfigurováno');return}
+  const email=$('#lg-email').value.trim();
+  if(!email){$('#lg-err').textContent='Nejprve vyplňte e-mail, na který se má poslat odkaz pro obnovení hesla.';$('#lg-err').style.display='block';$('#lg-email').focus();return}
+  $('#lg-err').style.display='none';
+  try{
+    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.href.split('#')[0]});
+    if(error)throw error;
+    toast('Pokud pod tímto e-mailem účet existuje, byl na něj odeslán odkaz pro obnovení hesla.');
+  }catch(e){
+    $('#lg-err').textContent='Odeslání se nepodařilo: '+(e.message||e);$('#lg-err').style.display='block';
+  }
+}
+function openNewPassword(email){
+  closeLogin();
+  $('#np-email').textContent=email||'svůj účet';
+  $('#np-err').style.display='none'; $('#np-pass').value=''; $('#np-pass2').value='';
+  $('#newpass').classList.add('open');
+  setTimeout(()=>$('#np-pass').focus(),60);
+}
+function closeNewPassword(){$('#newpass').classList.remove('open')}
+async function doSetNewPassword(){
+  const p1=$('#np-pass').value, p2=$('#np-pass2').value;
+  if(!p1||p1.length<8){$('#np-err').textContent='Heslo musí mít alespoň 8 znaků.';$('#np-err').style.display='block';return}
+  if(p1!==p2){$('#np-err').textContent='Hesla se neshodují.';$('#np-err').style.display='block';return}
+  try{
+    const {error}=await sb.auth.updateUser({password:p1});
+    if(error)throw error;
+    closeNewPassword(); await refreshAuth();
+    toast('Heslo bylo nastaveno — jste přihlášeni.');
+  }catch(e){
+    $('#np-err').textContent='Uložení se nepodařilo: '+(e.message||e);$('#np-err').style.display='block';
+  }
+}
 function manageProject(){ enterApp('overview'); setTimeout(()=>{ if(AUTH){setEdit(true);openEditor('project','PRJ')} else openLogin(); },400); }
 
 /* =========================================================
@@ -1830,7 +1893,7 @@ let processes=[
   start:'2026-09-01',end:'2027-02-26',lane:0,links:[{from:'P-11',type:'',lag:0}],msStart:[],msEnd:['M5'],collapsed:false}
 ];
 
-const PM={mode:'concept',conceptId:'K-01',unit:'month',sel:null};
+const PM={mode:'concept',conceptId:'K-01',unit:'month',sel:null,splitMode:false};
 const PM_STATE={koncept:'koncept',odvozeny:'odvozený',potvrzeny:'potvrzený'};
 const PM_LANE=62, PM_PAD=26;
 const PMDAY=86400000;
@@ -2004,7 +2067,8 @@ function renderPMap(){
     const g=pmGeom(p,b), col=PM_STATUSCOL[p.status]||'var(--idle)';
     const over=pmMsOverrun(p);
     const stroke=over?'#ff5c6a':col;
-    let fill='none', dash='';
+    /* transparent, ne none — "none" nepřijímá kliknutí, celá plocha musí zůstat úchopná */
+    let fill='transparent', dash='';
     if(p.state==='odvozeny')fill='url(#pmHatch)';
     else if(p.state==='potvrzeny')fill='rgba(61,130,196,.15)';
     else dash='stroke-dasharray="5 3"';
@@ -2126,8 +2190,10 @@ function pmSyncControls(){
   v.innerHTML=concepts.map(c=>`<option value="${c.id}" ${c.id===PM.conceptId?'selected':''}>${escXml(c.name)}${c.src?' · zdroj mapy':''}</option>`).join('');
   ax.style.display=isMap?'none':'';
   ax.value=pmAxisMode();
-  ['pm-promote','pm-newvar','pm-editvar'].forEach(id=>$('#'+id).classList.toggle('pm-hide',isMap));
+  ['pm-promote','pm-newvar','pm-editvar','pm-splitbtn'].forEach(id=>$('#'+id).classList.toggle('pm-hide',isMap));
   $('#pm-recalc').classList.toggle('pm-hide',!isMap);
+  $('#pm-splitbtn').classList.toggle('on',PM.splitMode);
+  $('#pm-canvas').classList.toggle('pm-splitting',PM.splitMode&&!isMap);
   const c=pmConcept();
   $('#pm-title').textContent=isMap?'Procesní mapa':'Koncept';
   $('#pm-sub').textContent=isMap
@@ -2135,7 +2201,7 @@ function pmSyncControls(){
     : (c&&c.src?'zdrojová varianta — jen tuto lze zpevnit do mapy':'varianta k porovnání — zpevnit lze pouze zdrojový koncept');
   const nb=$('#nav-pm'); if(nb)nb.textContent=processes.filter(p=>p.scope==='map').length||pmAll().length;
 }
-function pmSetMode(m){PM.mode=m;PM.sel=null;renderPMap()}
+function pmSetMode(m){PM.mode=m;PM.sel=null;if(m==='map')pmSetSplit(false);renderPMap()}
 function pmPickConcept(id){PM.conceptId=id;PM.sel=null;renderPMap()}
 function pmSetUnit(u){PM.unit=u;renderPMap()}
 function pmSetAxis(a){
@@ -2149,6 +2215,7 @@ function pmRenderInspector(){
   const p=PM.sel?pmById(PM.sel):null;
   if(!p){host.innerHTML='';return}
   const co=(p.cogestors||[]).map(r=>`${people[r.who]||r.who}${r.resp?' — '+escXml(r.resp):''}`).join('<br>')||'—';
+  const aff=(p.affected||[]).map(a=>people[a]||a).join(', ')||'—';
   const ms=[...(p.msStart||[]).map(i=>i+' (začátek)'),...(p.msEnd||[]).map(i=>i+' (konec)')].join(', ')||'—';
   const lk=(p.links||[]).map(l=>`${l.from} ${l.type||'neutrální'}${+l.lag?(l.lag>0?' +':' ')+l.lag+' d':''}${pmViolated(l,p)?' <span style="color:var(--blocked)">· porušená</span>':''}`).join('<br>')||'—';
   host.innerHTML=`<div class="pm-insp">
@@ -2162,6 +2229,7 @@ function pmRenderInspector(){
       <div><div class="l">Termín</div>${p.start} → ${p.end} <span style="color:var(--text3)">(${pmDays(p.start,p.end)} d)</span></div>
       <div><div class="l">Gestor</div>${people[p.gestor]||p.gestor||'<span style="color:var(--blocked)">chybí</span>'}</div>
       <div><div class="l">Spolugestoři</div>${co}</div>
+      <div><div class="l">Dotčení</div>${escXml(aff)}</div>
       <div><div class="l">Milníky</div>${ms}</div>
       <div><div class="l">Vazby</div>${lk}</div>
       <div><div class="l">Popis</div>${escXml(p.desc||'—')}</div>
@@ -2197,6 +2265,13 @@ function pmPointerDown(e){
   if(tog){const p=pmById(tog.dataset.tog);if(p){p.collapsed=!p.collapsed;pmQueue(p);renderPMap()}return}
   const g=e.target.closest('.pmb'); if(!g)return;
   const p=pmById(g.dataset.id); if(!p)return;
+  if(PM.splitMode){
+    e.preventDefault();
+    if(PM.mode!=='concept'){toast('Rychlé dělení funguje jen v konceptu');return}
+    const day=pmDayAt(e.clientX); if(day==null)return;
+    pmSplitProcess(p.id,pmISO(day));
+    return;
+  }
   PM.sel=p.id;
   if(!document.body.classList.contains('editing')){renderPMap();return}
   const resize=!!e.target.closest('.pmgrip');
@@ -2238,6 +2313,68 @@ function pmPointerUp(){
 function pmDblClick(e){
   const g=e.target.closest('.pmb'); if(!g)return;
   if(document.body.classList.contains('editing'))openEditor('process',g.dataset.id);
+}
+
+/* ================= RYCHLÉ DĚLENÍ PROCESU (jen koncept) =================
+   Zapnutý režim + klik na proces v místě dělení = okamžitě dva navazující
+   procesy. Zůstává zapnutý, aby šlo takhle projet celý koncept za pár vteřin. */
+function pmSetSplit(on){
+  PM.splitMode=on;
+  const b=$('#pm-splitbtn'); if(b)b.classList.toggle('on',on);
+  const host=$('#pm-canvas'); if(host)host.classList.toggle('pm-splitting',on&&PM.mode==='concept');
+  if(!on){const gd=$('#pm-splitguide'); if(gd)gd.style.display='none'}
+}
+function pmToggleSplit(){pmSetSplit(!PM.splitMode)}
+/* přepočte klientské X na den, se zohledněním posunu plátna scrollem */
+function pmDayAt(clientX){
+  const host=$('#pm-canvas'), svg=host&&host.querySelector('svg'); if(!svg)return null;
+  const rect=svg.getBoundingClientRect(), localX=clientX-rect.left;
+  const b=pmBounds(pmVisible()), px=PM_PXD[PM.unit];
+  return Math.round((b.t0+(localX-PM_PAD)/px*PMDAY)/PMDAY)*PMDAY;
+}
+function pmSplitPreview(e){
+  if(!PM.splitMode||PM.mode!=='concept')return;
+  const host=$('#pm-canvas'), svg=host.querySelector('svg'); if(!svg)return;
+  const g=e.target.closest('.pmb');
+  let guide=document.getElementById('pm-splitguide');
+  if(!g){if(guide)guide.style.display='none';return}
+  const p=pmById(g.dataset.id); if(!p)return;
+  if(!guide){guide=document.createElement('div');guide.id='pm-splitguide';guide.className='pm-splitguide';host.appendChild(guide)}
+  const rect=svg.getBoundingClientRect(), localX=e.clientX-rect.left;
+  const geo=pmGeom(p,pmBounds(pmVisible()));
+  guide.style.display='block';
+  guide.style.left=localX+'px';
+  guide.style.top=(geo.y-8)+'px';
+  guide.style.height=(geo.h+16)+'px';
+}
+/* proces se rozřízne v daném dni na dva navazující — první si nechá začátek,
+   druhý konec; milník na konci se přenese na druhou půlku, vazby typu FS/FF/
+   neutrální (závislé na dokončení) se přesměrují na druhou půlku, SS zůstává
+   navázané na první (nezměněný začátek) */
+function pmSplitProcess(id,dateStr){
+  const p=pmById(id); if(!p)return;
+  if(pmDays(p.start,dateStr)<1||pmDays(dateStr,p.end)<1){toast('Bod dělení je moc blízko okraje procesu');return}
+  const second=Object.assign({},p,{
+    id:nextId('process'),
+    name:p.name.replace(/\s*\(pokr\.\)$/,'')+' (pokr.)',
+    start:dateStr,end:p.end,
+    cogestors:JSON.parse(JSON.stringify(p.cogestors||[])),
+    affected:(p.affected||[]).slice(),
+    links:[{from:p.id,type:'',lag:0}],
+    msStart:[],msEnd:(p.msEnd||[]).slice(),
+    collapsed:false,mapEdited:false
+  });
+  p.end=dateStr; p.msEnd=[];
+  pmAll().forEach(q=>{
+    if(q.id===p.id||q.id===second.id)return;
+    (q.links||[]).forEach(l=>{if(l.from===p.id&&l.type!=='SS')l.from=second.id});
+  });
+  processes.splice(processes.indexOf(p)+1,0,second);
+  pmSyncMilestones(p); pmSyncMilestones(second);
+  PM.sel=second.id;
+  pmQueue(p); pmQueue(second);
+  renderPMap();
+  toast(`Rozděleno — „${p.name}“ a „${second.name}“`);
 }
 
 /* ================= PŘEPOČET NÁVAZNOSTÍ (ASAP) ================= */
@@ -2580,6 +2717,7 @@ SCHEMAS.process={title:'Proces',entity:'process',arr:()=>processes,idf:'id',pref
   {k:'parent',l:'Nadřazený proces',t:'select',opts:()=>[['','— kořenová úroveň']].concat(
      processes.filter(p=>p.scope===pmScope()&&!p.parent&&p.id!==(edCtx&&edCtx.obj?edCtx.obj.id:'')).map(p=>[p.id,p.id+' · '+p.name]))},
   {k:'cogestors',l:'Spolugestoři a jejich odpovědnost',t:'roles',full:1},
+  {k:'affected',l:'Dotčení / konzultovaní',t:'peoplerefs',full:1},
   {k:'links',l:'Vazby na předchůdce',t:'plinks',full:1},
   {k:'msEnd',l:'Milníky na konci procesu',t:'msrefs',full:1},
   {k:'msStart',l:'Milníky na začátku procesu',t:'msrefs',full:1}
@@ -2628,6 +2766,12 @@ function pmSubRender(k){
     h+=`<button type="button" class="pm-addbtn" onclick="edCtx.obj.links.push({from:'',type:'',lag:0});pmSubRender('links')">＋ Vazba</button>
         <div class="pm-hint" style="margin-top:2px">V konceptu vazby nic neposouvají — typ se doplní až při zpevnění.</div>`;
   }
+  else if(k==='affected'){
+    h=o[k].map((id,i)=>`<div class="pm-subrow">
+        <select onchange="edCtx.obj.affected[${i}]=this.value">${who(id)}</select>
+        <button type="button" class="x" onclick="edCtx.obj.affected.splice(${i},1);pmSubRender('affected')">✕</button></div>`).join('');
+    h+=`<button type="button" class="pm-addbtn" onclick="edCtx.obj.affected.push('');pmSubRender('affected')">＋ Osoba</button>`;
+  }
   else {
     h=o[k].map((id,i)=>`<div class="pm-subrow">
         <select onchange="edCtx.obj.${k}[${i}]=this.value">${[['','—']].concat(MS_OPTS())
@@ -2663,6 +2807,8 @@ function pmNormalize(){
   host.addEventListener('pointerdown',pmPointerDown);
   host.addEventListener('dblclick',pmDblClick);
   host.addEventListener('scroll',pmSyncSticky);
+  host.addEventListener('mousemove',pmSplitPreview);
+  host.addEventListener('mouseleave',()=>{const gd=document.getElementById('pm-splitguide');if(gd)gd.style.display='none'});
   window.addEventListener('pointermove',pmPointerMove);
   window.addEventListener('pointerup',pmPointerUp);
   window.addEventListener('pointercancel',pmPointerUp);
@@ -2670,7 +2816,7 @@ function pmNormalize(){
 })();
 
 /* ================= INIT ================= */
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeModal();closeEditor();closeLogin()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeModal();closeEditor();closeLogin();closeNewPassword();if(PM.splitMode)pmSetSplit(false)}});
 const mq=matchMedia('(max-width:1000px)');const fix=()=>{document.querySelectorAll('.two-col').forEach(n=>n.style.gridTemplateColumns=mq.matches?'1fr':'')};mq.addEventListener('change',fix);fix();
 boot();
 </script>
