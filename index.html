@@ -444,6 +444,69 @@ body.editing #exec-name:hover{color:var(--accent)}
   .ms .node{margin:2px 0 0}
   .ms:hover{transform:none}
 }
+/* ================= PROCESNÍ MAPA A KONCEPT ================= */
+.ed-only{display:none!important}
+body.editing .ed-only{display:inline-flex!important}
+.pm-hide,body.editing .pm-hide{display:none!important}
+.pm-bar{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-bottom:14px}
+.pm-seg{display:inline-flex;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px}
+.pm-seg button{background:none;border:0;color:var(--text2);font:600 12px 'Inter',sans-serif;padding:6px 12px;border-radius:7px;cursor:pointer;transition:.15s}
+.pm-seg button:hover{color:var(--text)}
+.pm-seg button.on{background:var(--accent);color:#fff}
+.pm-seg button:disabled{opacity:.35;cursor:not-allowed}
+.pm-sel{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:7px 10px;font:500 12.5px 'Inter',sans-serif;cursor:pointer;max-width:280px}
+.pm-spacer{flex:1}
+.pm-hint{font-size:11.5px;color:var(--text3);font-family:var(--mono)}
+.pm-canvas{position:relative;overflow:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--panel)}
+.pm-canvas svg{display:block}
+.pm-empty{padding:56px 30px;text-align:center;color:var(--text3)}
+.pm-empty b{display:block;color:var(--text);font-size:15px;margin-bottom:6px}
+.pm-legend{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:12px;font-size:11.5px;color:var(--text3)}
+.pm-legend span{display:inline-flex;align-items:center;gap:7px}
+.pm-legend i{width:24px;height:12px;border:1.4px solid var(--accent2);display:inline-block}
+.pm-legend i.k{background:none;border-style:dashed}
+.pm-legend i.o{background:repeating-linear-gradient(45deg,rgba(154,161,181,.45) 0 2px,transparent 2px 5px)}
+.pm-legend i.p{background:rgba(61,130,196,.16)}
+.pmb{cursor:default}
+body.editing .pmb{cursor:grab}
+body.editing .pmb.dragging{cursor:grabbing}
+.pm-wiz .modal{width:min(940px,94vw)}
+.pm-steps{display:flex;gap:6px;margin:0 0 18px;flex-wrap:wrap}
+.pm-steps div{flex:1;min-width:110px;padding:8px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.03em}
+.pm-steps div.on{border-color:var(--accent);color:var(--accent);background:rgba(255,82,0,.09)}
+.pm-steps div.done{color:var(--ok);border-color:rgba(61,220,151,.4)}
+.pm-steps b{display:block;font-family:var(--mono);font-size:10px;opacity:.7;font-weight:500}
+.pm-wbody{max-height:52vh;overflow:auto;margin:0 -4px;padding:0 4px}
+.pm-tab{width:100%;border-collapse:collapse;font-size:12.5px}
+.pm-tab th{text-align:left;padding:8px 10px;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border2);position:sticky;top:0;background:var(--panel);z-index:2}
+.pm-tab td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.pm-tab tr.bad td{background:rgba(255,92,106,.06)}
+.pm-tab input,.pm-tab select{background:var(--panel2);border:1px solid var(--border2);color:var(--text);border-radius:7px;padding:5px 7px;font:400 12px 'Inter',sans-serif;width:100%;min-width:80px}
+.pm-tab input.miss,.pm-tab select.miss{border-color:var(--blocked)}
+.pm-req{color:var(--blocked);font-family:var(--mono);font-size:10.5px}
+.pm-ok{color:var(--ok);font-family:var(--mono);font-size:10.5px}
+.pm-note{font-size:12px;color:var(--text2);background:var(--panel2);border-left:2px solid var(--accent2);padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:14px}
+.pm-note.warn{border-left-color:var(--blocked)}
+.pm-diff h4{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:16px 0 6px}
+.pm-diff h4:first-child{margin-top:0}
+.pm-drow{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:12.5px;background:var(--panel2)}
+.pm-drow.conf{border-color:rgba(255,92,106,.45)}
+.pm-drow input[type=checkbox]{margin-top:3px;width:auto;flex:none}
+.pm-drow .was{color:var(--text3);text-decoration:line-through;margin-right:6px}
+.pm-sub{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.pm-subrow{display:flex;gap:6px;align-items:center}
+.pm-subrow select,.pm-subrow input{flex:1;min-width:0}
+.pm-subrow .x{flex:none;width:26px;height:26px;border-radius:6px;border:1px solid var(--border2);background:var(--panel2);color:var(--text3);cursor:pointer;font-size:13px;line-height:1}
+.pm-subrow .x:hover{color:var(--blocked);border-color:var(--blocked)}
+.pm-addbtn{align-self:flex-start;background:var(--panel2);border:1px dashed var(--border2);color:var(--text2);border-radius:7px;padding:5px 11px;font:600 11.5px 'Inter',sans-serif;cursor:pointer}
+.pm-addbtn:hover{color:var(--accent);border-color:var(--accent)}
+.pm-insp{border:1px solid var(--border);border-radius:var(--r);background:var(--panel);padding:16px 18px;margin-top:14px}
+.pm-insp .h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.pm-insp .h b{font-size:15px}
+.pm-insp .code{font-family:var(--mono);font-size:11px;color:var(--accent)}
+.pm-igrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 20px;font-size:12.5px}
+.pm-igrid .l{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:2px}
+@media(max-width:820px){.pm-sel{max-width:170px}}
 </style>
 </head>
 <body>
@@ -486,6 +549,7 @@ body.editing #exec-name:hover{color:var(--accent)}
   <div class="nav-item" data-view="board"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="10" rx="1"/><rect x="17" y="4" width="4" height="13" rx="1"/></svg>Milníková nástěnka<span class="count" id="nav-open-q">5</span></div>
   <div class="nav-item" data-view="meetings"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>Schůzky<span class="count">5</span></div>
   <div class="nav-item" data-view="ai"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.9 2.3L22 18l-2.1.7L19 21l-.9-2.3L16 18l2.1-.7z"/></svg>AI analytik</div>
+  <div class="nav-item" data-view="pmap"><svg viewBox="0 0 24 24"><path d="M3 17h6l3-5 3 5h6M3 7h7M14 7h7M12 3v18"/></svg>Procesní mapa<span class="count" id="nav-pm">0</span></div>
   <div class="nav-label">Záznamy</div>
   <div class="nav-item" data-view="decisions"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-5M12 21a9 9 0 100-18 9 9 0 000 18z"/></svg>Log rozhodnutí<span class="count" id="nav-dec">6</span></div>
   <div class="nav-item" data-view="issues"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 114.1 1.9c-.8.7-1.6 1.2-1.6 2.3M12 17h.01"/></svg>Log otázek<span class="count" id="nav-iss">5</span></div>
@@ -762,7 +826,64 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
     </div>
   </section>
 
+  <!-- ================= PROCESNÍ MAPA ================= -->
+  <section class="view" id="view-pmap">
+    <div class="section-title" style="margin-top:0">
+      <h2 id="pm-title">Procesní mapa</h2><span id="pm-sub">koncept a mapa nad jednou sadou dat</span>
+    </div>
+
+    <div class="pm-bar">
+      <div class="pm-seg" id="pm-mode">
+        <button data-m="concept" class="on" onclick="pmSetMode('concept')">Koncept</button>
+        <button data-m="map" onclick="pmSetMode('map')">Procesní mapa</button>
+      </div>
+      <select class="pm-sel" id="pm-variant" onchange="pmPickConcept(this.value)"></select>
+      <select class="pm-sel" id="pm-axis" onchange="pmSetAxis(this.value)" title="Režim časové osy">
+        <option value="off">Osa vypnutá</option>
+        <option value="rel">Osa relativní (T0 + odstupy)</option>
+        <option value="cal">Osa kalendářní</option>
+      </select>
+      <div class="pm-seg" id="pm-unit">
+        <button data-u="week" onclick="pmSetUnit('week')">Týden</button>
+        <button data-u="month" class="on" onclick="pmSetUnit('month')">Měsíc</button>
+        <button data-u="quarter" onclick="pmSetUnit('quarter')">Kvartál</button>
+      </div>
+      <div class="pm-spacer"></div>
+      <span class="pm-hint" id="pm-count"></span>
+      <button class="btn ghost sm ed-only" id="pm-newvar" onclick="pmNewConcept()">＋ Varianta</button>
+      <button class="btn ghost sm ed-only" id="pm-editvar" onclick="pmEditConcept()">✎ Varianta</button>
+      <button class="btn ghost sm ed-only" onclick="pmNewProcess()">＋ Proces</button>
+      <button class="btn ghost sm ed-only" id="pm-recalc" onclick="pmRecalc()">↻ Přepočítat návaznosti</button>
+      <button class="btn primary sm ed-only" id="pm-promote" onclick="pmOpenWizard()">Zpevnit do mapy</button>
+    </div>
+
+    <div class="pm-canvas" id="pm-canvas"></div>
+
+    <div class="pm-legend">
+      <span><i class="k"></i>koncept — jen obrys</span>
+      <span><i class="o"></i>odvozený — šrafovaný</span>
+      <span><i class="p"></i>potvrzený — plný</span>
+      <span>Barva obrysu = stav plnění · červená vazba = porušená</span>
+    </div>
+
+    <div id="pm-inspector"></div>
+  </section>
+
 </div>
+</div>
+
+<!-- Průvodce zpevněním -->
+<div class="modal-veil pm-wiz" id="pm-wizard">
+  <div class="modal">
+    <h3 id="pm-wtitle">Zpevnění konceptu do procesní mapy</h3>
+    <div class="pm-steps" id="pm-wsteps"></div>
+    <div class="pm-wbody" id="pm-wbody"></div>
+    <div class="m-actions">
+      <button class="btn ghost" onclick="pmCloseWizard()">Zrušit</button>
+      <button class="btn ghost" id="pm-wback" onclick="pmWizStep(-1)">Zpět</button>
+      <button class="btn primary" id="pm-wnext" onclick="pmWizStep(1)">Pokračovat</button>
+    </div>
+  </div>
 </div>
 
 <!-- Drawer -->
@@ -1103,7 +1224,7 @@ function renderLandStats(){
 }
 
 /* ================= NAV ================= */
-const viewNames={overview:'Přehled',board:'Milníková nástěnka',meetings:'Schůzky',ai:'AI analytik',decisions:'Log rozhodnutí',issues:'Log otázek',changes:'Co se změnilo',model:'Datový model'};
+const viewNames={overview:'Přehled',board:'Milníková nástěnka',meetings:'Schůzky',ai:'AI analytik',pmap:'Procesní mapa',decisions:'Log rozhodnutí',issues:'Log otázek',changes:'Co se změnilo',model:'Datový model'};
 function go(v){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===v));
   document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id==='view-'+v));
@@ -1415,6 +1536,7 @@ function renderAll(){
   computePositions(); applyProjectMeta(); renderLandStats();
   renderTimeline(); renderBoard(); renderMeetings(); renderIssues(); renderDecisions();
   renderFeeds(); renderRiskCompact(); syncCounts(); buildWave();
+  if(typeof renderPMap==='function')renderPMap();
   if(document.body.classList.contains('in-app')){const p=$('#tlp');if(p)p.style.width=TODAY_POS+'%';const b=$('#kpi-bar');if(b)b.style.width=project.progress+'%';}
 }
 
@@ -1456,6 +1578,7 @@ const SCHEMAS={
    {k:'date',l:'Datum',t:'date'},{k:'status',l:'Stav',t:'select',opts:ST_OPTS},
    {k:'progress',l:'Dokončení %',t:'number'},{k:'owner',l:'Vlastník',t:'select',opts:OWNER_OPTS},
    {k:'phase',l:'Fáze',t:'text'},{k:'dep',l:'Závisí na',t:'select',opts:()=>[['','—']].concat(MS_OPTS())},
+   {k:'locked',l:'Zamčený termín (smluvní — neposune se za procesem)',t:'check',full:1},
    {k:'short',l:'Krátký popis (roadmapa)',t:'text',full:1},
    {k:'objective',l:'Cíl milníku',t:'textarea',full:1},
    {k:'blocking',l:'Blokující problémy (jeden na řádek)',t:'lines',full:1},
@@ -1525,12 +1648,14 @@ function openEditor(key,id){
   $('#ed-title').textContent=(isNew?'Nový: ':'Upravit: ')+sc.title;
   $('#ed-del').style.display=(!isNew&&key!=='project')?'inline-flex':'none';
   $('#ed-fields').innerHTML='<div class="grid2">'+sc.fields.map(f=>fieldHTML(f,obj)).join('')+'</div>';
+  sc.fields.forEach(f=>{if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs')pmSubRender(f.k)});
   $('#editor').classList.add('open');
 }
 function fieldHTML(f,o){
   let v=o[f.k]; if(v===undefined||v===null)v='';
   const id='edf-'+f.k, cls=f.full?'full':'';
   if(f.t==='check')return `<div class="${cls}" style="display:flex;align-items:center;gap:9px;margin-top:8px"><input type="checkbox" id="${id}" ${v?'checked':''} style="width:auto"><label style="margin:0;text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--text2)">${f.l}</label></div>`;
+  if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs')return `<div class="${cls}"><label>${f.l}</label><div class="pm-sub" id="${id}"></div></div>`;
   let input;
   if(f.t==='textarea')input=`<textarea id="${id}" style="min-height:70px">${esc(v)}</textarea>`;
   else if(f.t==='lines')input=`<textarea id="${id}" style="min-height:70px">${esc(Array.isArray(v)?v.join('\n'):v)}</textarea>`;
@@ -1543,6 +1668,7 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function saveEditor(){
   const sc=SCHEMAS[edCtx.key], o=edCtx.obj;
   sc.fields.forEach(f=>{
+    if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs')return;   // zapsáno průběžně dílčím editorem
     const el=document.getElementById('edf-'+f.k); if(!el)return;
     if(f.t==='check')o[f.k]=el.checked;
     else if(f.t==='number')o[f.k]=+el.value||0;
@@ -1555,6 +1681,16 @@ function saveEditor(){
     const arr=sc.arr();
     if(edCtx.key==='meeting'&&o.date){const d=new Date(o.date);o.day=String(d.getDate()).padStart(2,'0');o.mon=monCz[d.getMonth()];}
     if((edCtx.key==='meeting'||edCtx.key==='evidence')&&!o.uid)o.uid='u'+Date.now();
+    if(edCtx.key==='concept'&&o.src){
+      concepts.forEach(c=>{if(c.id!==o.id&&c.src){c.src=false;persist('concept',c,concepts.indexOf(c))}});
+    }
+    if(edCtx.key==='process'){
+      if(!o.scope)o.scope=pmScope();
+      if(o.end&&o.start&&pmD(o.end)<pmD(o.start))o.end=o.start;
+      if(o.scope==='map'&&!edCtx.isNew)o.mapEdited=true;   // chrání ruční úpravy před dalším zpevněním
+      o.lane=Math.max(0,+o.lane||0);
+      pmSyncMilestones(o);
+    }
     if(edCtx.isNew)arr.push(o);
     else if(edCtx.ref)Object.assign(edCtx.ref,o);   // zachová referenci a přepíše hodnoty
     const target=edCtx.isNew?o:edCtx.ref;
@@ -1576,6 +1712,7 @@ function normalizeData(){
   milestones.forEach(m=>{['blocking','decisions','evidence','meetings'].forEach(k=>{if(!Array.isArray(m[k]))m[k]=m[k]?[m[k]]:[]});['short','objective','next','phase'].forEach(k=>{if(m[k]==null)m[k]=''})});
   meetings.forEach((m,i)=>{if(!m.uid)m.uid='m'+i+'-'+(m.date||'');if(!Array.isArray(m.parts))m.parts=[]});
   evidence.forEach((e,i)=>{if(!e.uid)e.uid='e'+i});
+  if(typeof pmNormalize==='function')pmNormalize();
 }
 function idOf(entity,o){const idf=(SCHEMAS[entity]||{}).idf||'id';return String(o[idf]||o.id||o.t||o.name)}
 async function boot(){
@@ -1602,12 +1739,13 @@ function hydrate(rows){
   if(by.question)questions=by.question; if(by.decision)decisions=by.decision;
   if(by.task)tasks=by.task; if(by.risk)risks=by.risk; if(by.evidence)evidence=by.evidence;
   if(by.change)changes=by.change;
+  if(by.concept)concepts=by.concept; if(by.process)processes=by.process;
 }
 function rowFor(entity,o,i){return {project_id:SUPA.projectId,entity,id:idOf(entity,o),sort:i,data:o}}
 async function persistAll(){
   if(!ONLINE)return;
   const rows=[rowFor('project',project,0),rowFor('people',people,0)];
-  [['milestone',milestones],['meeting',meetings],['question',questions],['decision',decisions],['task',tasks],['risk',risks],['evidence',evidence]]
+  [['milestone',milestones],['meeting',meetings],['question',questions],['decision',decisions],['task',tasks],['risk',risks],['evidence',evidence],['concept',concepts],['process',processes]]
     .forEach(([e,arr])=>arr.forEach((o,i)=>rows.push(rowFor(e,o,i))));
   // people uložíme jako celý objekt pod jedním id
   rows[1].id='meta';
@@ -1639,6 +1777,897 @@ async function doLogin(){
 }
 async function doLogout(){ if(sb)await sb.auth.signOut(); await refreshAuth(); toast('Odhlášeno — režim jen pro čtení'); }
 function manageProject(){ enterApp('overview'); setTimeout(()=>{ if(AUTH){setEdit(true);openEditor('project','PRJ')} else openLogin(); },400); }
+
+/* =========================================================
+   PROCESNÍ MAPA A KONCEPT
+   Koncept = plocha pro objevování procesů (vazby nic neposouvají).
+   Procesní mapa = plán s typovanými vazbami, ze kterého se odvíjejí milníky.
+   Obojí nad jednou sadou dat; rozlišuje je pole `scope` a stav zralosti.
+   ========================================================= */
+
+let concepts=[
+ {id:'K-01',name:'Varianta A — postupné nasazení',axis:'rel',t0:'2026-03-02',src:true},
+ {id:'K-02',name:'Varianta B — souběžná příprava',axis:'cal',t0:'2026-03-02',src:false}
+];
+
+let processes=[
+ {id:'P-01',scope:'concept:K-01',name:'Analýza stávajícího zabezpečení',desc:'Prohlídka přejezdů, pasport zabezpečovacích zařízení a datových rozhraní.',
+  gestor:'MK',cogestors:[{who:'PN',resp:'Terénní pasport a fotodokumentace'}],affected:['ZH'],parent:'',state:'koncept',status:'done',
+  start:'2026-03-02',end:'2026-05-15',lane:0,links:[],msStart:[],msEnd:['M2'],collapsed:false},
+ {id:'P-02',scope:'concept:K-01',name:'Sběr provozních dat',desc:'Získání a ověření datových feedů SŽ a ŘSD pro vyhodnocení spolehlivosti.',
+  gestor:'MK',cogestors:[],affected:[],parent:'',state:'koncept',status:'track',
+  start:'2026-03-16',end:'2026-06-30',lane:1,links:[],msStart:[],msEnd:[],collapsed:false},
+ {id:'P-03',scope:'concept:K-01',name:'Návrh architektury ETCS L2',desc:'Varianty traťové části, rozhraní na stávající zabezpečovací zařízení.',
+  gestor:'ZH',cogestors:[{who:'TB',resp:'Posouzení interoperability'}],affected:['MK'],parent:'',state:'koncept',status:'track',
+  start:'2026-05-18',end:'2026-09-30',lane:0,links:[{from:'P-01',type:'',lag:0}],msStart:[],msEnd:['M4'],collapsed:false},
+ {id:'P-04',scope:'concept:K-01',name:'Majetkoprávní příprava',desc:'Výkupy a věcná břemena pro traťová zařízení.',
+  gestor:'JS',cogestors:[],affected:['LEG'],parent:'',state:'koncept',status:'risk',
+  start:'2026-05-18',end:'2026-11-30',lane:2,links:[],msStart:[],msEnd:[],collapsed:false},
+ {id:'P-05',scope:'concept:K-01',name:'Projektová dokumentace',desc:'Zpracování stupňů DÚR a DSP včetně projednání s dotčenými orgány.',
+  gestor:'PN',cogestors:[{who:'ZH',resp:'Technické zadání a přejímka'}],affected:[],parent:'',state:'koncept',status:'idle',
+  start:'2026-10-01',end:'2027-03-31',lane:0,links:[{from:'P-03',type:'',lag:0}],msStart:[],msEnd:['M5'],collapsed:false},
+ {id:'P-06',scope:'concept:K-01',name:'DÚR',desc:'Dokumentace pro územní rozhodnutí.',
+  gestor:'PN',cogestors:[],affected:[],parent:'P-05',state:'koncept',status:'idle',
+  start:'2026-10-01',end:'2026-12-20',lane:3,links:[],msStart:[],msEnd:[],collapsed:false},
+ {id:'P-07',scope:'concept:K-01',name:'DSP',desc:'Dokumentace pro stavební povolení.',
+  gestor:'PN',cogestors:[],affected:[],parent:'P-05',state:'koncept',status:'idle',
+  start:'2027-01-05',end:'2027-03-31',lane:4,links:[{from:'P-06',type:'',lag:0}],msStart:[],msEnd:[],collapsed:false},
+ {id:'P-08',scope:'concept:K-01',name:'Ověření interoperability',desc:'Zkoušky komponent proti TSI CCS a notifikace NoBo.',
+  gestor:'TB',cogestors:[],affected:['ZH'],parent:'',state:'koncept',status:'idle',
+  start:'2027-01-15',end:'2027-05-31',lane:1,links:[{from:'P-03',type:'',lag:0}],msStart:[],msEnd:[],collapsed:false},
+ {id:'P-09',scope:'concept:K-01',name:'Žádost o dotaci',desc:'Kompletace a podání žádosti včetně příloh a rozpočtu.',
+  gestor:'ZH',cogestors:[{who:'JS',resp:'Doložení majetkoprávních vztahů'}],affected:['LEG'],parent:'',state:'koncept',status:'idle',
+  start:'2027-04-01',end:'2027-05-14',lane:2,links:[],msStart:[],msEnd:['M6'],collapsed:false},
+
+ {id:'P-10',scope:'concept:K-02',name:'Souběžná analýza a sběr dat',desc:'Analýza stavu a sběr dat vedeny současně jedním týmem.',
+  gestor:'MK',cogestors:[],affected:[],parent:'',state:'koncept',status:'track',
+  start:'2026-03-02',end:'2026-06-30',lane:0,links:[],msStart:[],msEnd:['M2'],collapsed:false},
+ {id:'P-11',scope:'concept:K-02',name:'Architektura a majetkoprávní příprava',desc:'Obojí zahájeno hned po prvních výsledcích analýzy.',
+  gestor:'ZH',cogestors:[],affected:['JS'],parent:'',state:'koncept',status:'idle',
+  start:'2026-05-04',end:'2026-10-30',lane:1,links:[{from:'P-10',type:'',lag:0}],msStart:[],msEnd:['M4'],collapsed:false},
+ {id:'P-12',scope:'concept:K-02',name:'Projektová dokumentace v jednom kroku',desc:'DÚR a DSP zpracovány společně, s vyšším rizikem přepracování.',
+  gestor:'PN',cogestors:[],affected:[],parent:'',state:'koncept',status:'idle',
+  start:'2026-09-01',end:'2027-02-26',lane:0,links:[{from:'P-11',type:'',lag:0}],msStart:[],msEnd:['M5'],collapsed:false}
+];
+
+const PM={mode:'concept',conceptId:'K-01',unit:'month',sel:null};
+const PM_STATE={koncept:'koncept',odvozeny:'odvozený',potvrzeny:'potvrzený'};
+const PM_LANE=62, PM_PAD=26;
+const PMDAY=86400000;
+const PM_PXD={week:13,month:4.6,quarter:1.7};
+
+const pmD=s=>Date.UTC(+String(s).slice(0,4),+String(s).slice(5,7)-1,+String(s).slice(8,10));
+const pmISO=t=>new Date(t).toISOString().slice(0,10);
+const pmDays=(a,b)=>Math.round((pmD(b)-pmD(a))/PMDAY);
+const pmAdd=(s,n)=>pmISO(pmD(s)+n*PMDAY);
+const pmScope=()=>PM.mode==='map'?'map':'concept:'+PM.conceptId;
+const pmConcept=()=>concepts.find(c=>c.id===PM.conceptId)||concepts[0];
+const pmAxisMode=()=>PM.mode==='map'?'cal':(pmConcept()?pmConcept().axis:'cal');
+const pmAll=()=>processes.filter(p=>p.scope===pmScope());
+const pmById=id=>processes.find(p=>p.id===id);
+const PM_MON=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+const PM_MONFULL=['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
+
+function pmIsoWeek(t){
+  const d=new Date(t), dn=(d.getUTCDay()+6)%7;
+  d.setUTCDate(d.getUTCDate()-dn+3);
+  const f=new Date(Date.UTC(d.getUTCFullYear(),0,4)), fd=(f.getUTCDay()+6)%7;
+  f.setUTCDate(f.getUTCDate()-fd+3);
+  return 1+Math.round((d.getTime()-f.getTime())/(7*PMDAY));
+}
+function pmWeekStart(t){const dn=(new Date(t).getUTCDay()+6)%7;return t-dn*PMDAY}
+function pmMonthsBetween(a,b){
+  const A=new Date(pmD(a)),B=new Date(pmD(b));
+  return (B.getUTCFullYear()-A.getUTCFullYear())*12+(B.getUTCMonth()-A.getUTCMonth());
+}
+
+/* ---- které procesy jsou vidět (sbalený rodič skryje potomky) ---- */
+function pmVisible(){
+  const all=pmAll();
+  return all.filter(p=>{
+    if(!p.parent)return true;
+    const par=all.find(x=>x.id===p.parent);
+    return !par||!par.collapsed;
+  }).sort((a,b)=>(a.lane||0)-(b.lane||0));
+}
+/* nejbližší viditelný předek — kvůli povýšení vazby při sbalení */
+function pmAnchorId(id){
+  const vis=pmVisible(); let cur=pmById(id), guard=0;
+  while(cur&&guard++<6){
+    if(vis.indexOf(cur)>-1)return cur.id;
+    cur=cur.parent?pmById(cur.parent):null;
+  }
+  return null;
+}
+function pmBounds(list){
+  if(!list.length){const c=pmConcept();return {t0:pmD(c?c.t0:project.start),t1:pmD(c?c.t0:project.start)+300*PMDAY}}
+  let a=Math.min(...list.map(p=>pmD(p.start))), b=Math.max(...list.map(p=>pmD(p.end)));
+  const u=PM.unit;
+  /* u relativní osy nezačínáme před T0 — záporné odstupy nedávají smysl */
+  const rel=pmAxisMode()==='rel', c0=pmConcept();
+  if(rel&&c0)a=Math.min(a,pmD(c0.t0));
+  const backPad=rel?0:1;
+  if(u==='week'){a=pmWeekStart(a)-backPad*7*PMDAY;b=pmWeekStart(b)+21*PMDAY}
+  else{const A=new Date(a),B=new Date(b);
+    const m0=u==='quarter'?Math.floor(A.getUTCMonth()/3)*3:A.getUTCMonth();
+    a=Date.UTC(A.getUTCFullYear(),m0-backPad*(u==='quarter'?3:1),1);
+    const m1=u==='quarter'?Math.floor(B.getUTCMonth()/3)*3+3:B.getUTCMonth()+1;
+    b=Date.UTC(B.getUTCFullYear(),m1+1,1);
+  }
+  return {t0:a,t1:b};
+}
+function pmGeom(p,b){
+  const px=PM_PXD[PM.unit];
+  const x=PM_PAD+(pmD(p.start)-b.t0)/PMDAY*px;
+  const w=Math.max(16,(pmD(p.end)-pmD(p.start))/PMDAY*px);
+  const h=p.parent?22:30, head=pmHeadH();
+  const y=head+(p.lane||0)*PM_LANE+(PM_LANE-h)/2;
+  return {x,y,w,h};
+}
+const pmHeadH=()=>pmAxisMode()==='off'?14:52;
+function pmRailPath(x,y,w,h){
+  const c=Math.min(8,h/3);
+  return `M ${x+c} ${y} H ${x+w-c} L ${x+w} ${y+c} V ${y+h-c} L ${x+w-c} ${y+h} H ${x+c} L ${x} ${y+h-c} V ${y+c} Z`;
+}
+const PM_STATUSCOL={done:'var(--ok)',track:'var(--track)',risk:'var(--risk)',blocked:'var(--blocked)',replanned:'var(--replanned)',idle:'var(--idle)'};
+
+/* ---- kontrola porušených vazeb ---- */
+function pmViolated(l,target){
+  const a=pmById(l.from); if(!a||!l.type)return false;
+  const lag=+l.lag||0;
+  if(l.type==='FS')return pmD(target.start)<pmD(a.end)+lag*PMDAY;
+  if(l.type==='SS')return pmD(target.start)<pmD(a.start)+lag*PMDAY;
+  if(l.type==='FF')return pmD(target.end)<pmD(a.end)+lag*PMDAY;
+  return false;
+}
+/* ---- zamčený milník, který proces přejel ---- */
+function pmMsOverrun(p){
+  return (p.msEnd||[]).some(id=>{
+    const m=milestones.find(x=>x.id===id);
+    return m&&m.locked&&pmD(p.end)>pmD(m.date);
+  });
+}
+
+/* ================= VYKRESLENÍ ================= */
+function renderPMap(){
+  const host=$('#pm-canvas'); if(!host)return;
+  pmSyncControls();
+  const list=pmVisible(), b=pmBounds(list), px=PM_PXD[PM.unit], head=pmHeadH();
+  const lanes=Math.max(3,(list.length?Math.max(...list.map(p=>p.lane||0)):0)+2);
+  const W=Math.max(PM_PAD*2+(b.t1-b.t0)/PMDAY*px, host.clientWidth-2);
+  const H=head+lanes*PM_LANE+20;
+
+  if(!list.length){
+    host.innerHTML=`<div class="pm-empty"><b>${PM.mode==='map'?'Procesní mapa je zatím prázdná':'Tento koncept nemá žádné procesy'}</b>
+      ${PM.mode==='map'
+        ? 'Vznikne zpevněním zdrojového konceptu — tlačítko <b>Zpevnit do mapy</b> v editačním režimu.'
+        : 'V editačním režimu přidejte první proces tlačítkem <b>＋ Proces</b>.'}</div>`;
+    $('#pm-count').textContent='';
+    return;
+  }
+
+  let s=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="pmHatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="7" stroke="rgba(154,161,181,.42)" stroke-width="2.4"/>
+    </pattern>
+    <pattern id="pmSleep" width="15" height="10" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="10" stroke="rgba(255,255,255,.028)" stroke-width="1"/>
+    </pattern>
+    <marker id="pmArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 0L10 5L0 10z" fill="rgba(154,161,181,.75)"/></marker>
+    <marker id="pmArrBad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 0L10 5L0 10z" fill="#ff5c6a"/></marker>
+  </defs>`;
+
+  /* pruhy = souběžné koleje */
+  for(let i=0;i<lanes;i++){
+    s+=`<rect x="0" y="${head+i*PM_LANE}" width="${W}" height="${PM_LANE}" fill="url(#pmSleep)"/>
+        <line x1="0" y1="${head+i*PM_LANE}" x2="${W}" y2="${head+i*PM_LANE}" stroke="rgba(255,255,255,.045)"/>`;
+  }
+
+  /* časová osa */
+  if(pmAxisMode()!=='off') s+=pmAxisSVG(b,W,head);
+
+  /* dnešek */
+  const tx=PM_PAD+(pmD(TODAY)-b.t0)/PMDAY*px;
+  if(tx>0&&tx<W) s+=`<line x1="${tx}" y1="${head}" x2="${tx}" y2="${H}" stroke="rgba(255,82,0,.5)" stroke-width="1.4" stroke-dasharray="4 4"/>
+    <text x="${tx+6}" y="${head+13}" fill="var(--accent)" font-family="var(--mono)" font-size="10">DNES</text>`;
+
+  /* vazby — oblouk výhybky */
+  list.forEach(p=>{
+    (p.links||[]).forEach(l=>{
+      const aId=pmAnchorId(l.from); if(!aId||aId===p.id)return;
+      const a=pmById(aId), ga=pmGeom(a,b), gb=pmGeom(p,b);
+      const bad=pmViolated(l,p);
+      let x1,x2;
+      if(l.type==='SS'){x1=ga.x;x2=gb.x}
+      else if(l.type==='FF'){x1=ga.x+ga.w;x2=gb.x+gb.w}
+      else {x1=ga.x+ga.w;x2=gb.x}
+      const y1=ga.y+ga.h/2, y2=gb.y+gb.h/2;
+      const dx=Math.max(26,Math.min(70,Math.abs(x2-x1)/2+18));
+      const col=bad?'#ff5c6a':'rgba(154,161,181,.55)';
+      const dash=l.type?'':'stroke-dasharray="5 4"';
+      s+=`<path d="M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}" fill="none"
+            stroke="${col}" stroke-width="${bad?2:1.5}" ${dash} marker-end="url(#${bad?'pmArrBad':'pmArr'})"/>`;
+      /* popisek jen tam, kde nese informaci — FS bez prodlevy je výchozí stav */
+      if(l.type&&(l.type!=='FS'||+l.lag||bad)){
+        const mx=(x1+x2)/2, my=Math.min(y1,y2)-9;
+        s+=`<text x="${mx}" y="${my}" text-anchor="middle" font-family="var(--mono)" font-size="9.5"
+              fill="${bad?'#ff5c6a':'var(--text3)'}">${l.type}${+l.lag?(l.lag>0?'+':'')+l.lag+' d':''}</text>`;
+      }
+    });
+  });
+
+  /* procesy */
+  list.forEach(p=>{
+    const g=pmGeom(p,b), col=PM_STATUSCOL[p.status]||'var(--idle)';
+    const over=pmMsOverrun(p);
+    const stroke=over?'#ff5c6a':col;
+    let fill='none', dash='';
+    if(p.state==='odvozeny')fill='url(#pmHatch)';
+    else if(p.state==='potvrzeny')fill='rgba(61,130,196,.15)';
+    else dash='stroke-dasharray="5 3"';
+    s+=`<g class="pmb${PM.sel===p.id?' sel':''}" data-id="${p.id}">
+      <path d="${pmRailPath(g.x,g.y,g.w,g.h)}" fill="${fill}" stroke="${stroke}" stroke-width="${PM.sel===p.id?2.4:1.6}" ${dash}/>`;
+    if(p.state==='potvrzeny'){
+      s+=`<line x1="${g.x+4}" y1="${g.y+3}" x2="${g.x+4}" y2="${g.y+g.h-3}" stroke="${stroke}" stroke-width="1.6"/>
+          <line x1="${g.x+g.w-4}" y1="${g.y+3}" x2="${g.x+g.w-4}" y2="${g.y+g.h-3}" stroke="${stroke}" stroke-width="1.6"/>`;
+    }
+    const kids=pmAll().filter(x=>x.parent===p.id).length;
+    let tx0=g.x+10;
+    if(kids){
+      s+=`<text class="pmtog" data-tog="${p.id}" x="${g.x+9}" y="${g.y+g.h/2+4}" font-size="11" fill="var(--text2)" style="cursor:pointer">${p.collapsed?'▸':'▾'}</text>`;
+      tx0=g.x+22;
+    }
+    const maxc=Math.max(0,Math.floor((g.w-(tx0-g.x)-8)/6.4));
+    const label=p.name.length>maxc?p.name.slice(0,Math.max(1,maxc-1))+'…':p.name;
+    if(maxc>2) s+=`<text x="${tx0}" y="${g.y+g.h/2+4}" font-size="${p.parent?11:12}" fill="var(--text)" font-family="Inter,sans-serif">${escXml(label)}</text>`;
+    else s+=`<text x="${g.x+g.w+8}" y="${g.y+g.h/2+4}" font-size="11.5" fill="var(--text2)" font-family="Inter,sans-serif">${escXml(p.name)}</text>`;
+    s+=`<rect class="pmgrip" data-grip="${p.id}" x="${g.x+g.w-7}" y="${g.y}" width="9" height="${g.h}" fill="transparent" style="cursor:ew-resize"/>`;
+    s+=`</g>`;
+
+    /* milníky = návěstidla na hranicích */
+    (p.msStart||[]).forEach((id,i)=>{s+=pmSignalSVG(id,g.x,g.y,g.h,i,p,false)});
+    (p.msEnd||[]).forEach((id,i)=>{s+=pmSignalSVG(id,g.x+g.w,g.y,g.h,i,p,true)});
+  });
+
+  s+=`</svg>`;
+  host.innerHTML=s;
+  pmSyncSticky();
+  $('#pm-count').textContent=`${pmAll().length} procesů`;
+  pmRenderInspector();
+}
+
+function escXml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function pmSignalSVG(id,x,y,h,i,p,isEnd){
+  const m=milestones.find(z=>z.id===id); if(!m)return '';
+  const bad=m.locked&&isEnd&&pmD(p.end)>pmD(m.date);
+  const col=bad?'#ff5c6a':(m.status==='done'?'var(--ok)':'var(--text3)');
+  const mx=x+(isEnd?-2:2)+i*13, top=y-16;
+  return `<g><line x1="${mx}" y1="${y}" x2="${mx}" y2="${top+6}" stroke="${bad?'#ff5c6a':'var(--text2)'}" stroke-width="1.4"/>
+    <circle cx="${mx}" cy="${top}" r="5" fill="${m.status==='done'||bad?col:'var(--panel)'}" stroke="${col}" stroke-width="1.5"/>
+    ${m.locked?`<rect x="${mx+6}" y="${top-5}" width="8" height="7" rx="1" fill="none" stroke="${col}" stroke-width="1.2"/>
+      <path d="M ${mx+8} ${top-5} v -2 a 2 2 0 0 1 4 0 v 2" fill="none" stroke="${col}" stroke-width="1.2"/>`:''}
+    <title>${escXml(m.id+' · '+m.name+(m.locked?' · zamčený termín '+m.date:''))}</title></g>`;
+}
+
+/* ---- záhlaví osy: jednotky + kontextový pruh ---- */
+function pmAxisSVG(b,W,head){
+  const px=PM_PXD[PM.unit], rel=pmAxisMode()==='rel', c=pmConcept();
+  const t0c=rel&&c?c.t0:null;
+  let cells=[], ctx=[];
+  const X=t=>PM_PAD+(t-b.t0)/PMDAY*px;
+
+  if(PM.unit==='week'){
+    for(let t=pmWeekStart(b.t0);t<b.t1;t+=7*PMDAY){
+      cells.push({x0:X(t),x1:X(t+7*PMDAY),lab:rel?'+'+Math.round((t-pmD(t0c))/(7*PMDAY))+' T':String(pmIsoWeek(t))});
+    }
+    /* kontext: měsíc + rok podle čtvrtka týdne */
+    let cur=null;
+    for(let t=pmWeekStart(b.t0);t<b.t1;t+=7*PMDAY){
+      const th=new Date(t+3*PMDAY), key=th.getUTCFullYear()+'-'+th.getUTCMonth();
+      const lab=rel?(Math.floor(pmMonthsBetween(t0c,pmISO(t))/12)+1)+'. rok':PM_MONFULL[th.getUTCMonth()]+' '+th.getUTCFullYear();
+      if(cur&&cur.key===key)cur.x1=X(t+7*PMDAY);
+      else{cur={key,lab,x0:X(t),x1:X(t+7*PMDAY)};ctx.push(cur)}
+    }
+  } else {
+    const step=PM.unit==='quarter'?3:1;
+    const A=new Date(b.t0);
+    let y=A.getUTCFullYear(), m=PM.unit==='quarter'?Math.floor(A.getUTCMonth()/3)*3:A.getUTCMonth();
+    let cur=null;
+    while(Date.UTC(y,m,1)<b.t1){
+      const t=Date.UTC(y,m,1), tn=Date.UTC(y,m+step,1);
+      const lab=rel
+        ? (PM.unit==='quarter'?'+'+Math.round(pmMonthsBetween(t0c,pmISO(t))/3)+' Q':'+'+pmMonthsBetween(t0c,pmISO(t))+' M')
+        : (PM.unit==='quarter'?'Q'+(Math.floor(m/3)+1):PM_MON[m]);
+      cells.push({x0:X(t),x1:X(tn),lab});
+      const clab=rel?(Math.floor(pmMonthsBetween(t0c,pmISO(t))/12)+1+'. rok'):String(y);
+      if(cur&&cur.key===clab)cur.x1=X(tn);
+      else{cur={key:clab,lab:clab,x0:X(t),x1:X(tn)};ctx.push(cur)}
+      m+=step; if(m>11){m-=12;y++}
+    }
+  }
+
+  let s=`<rect x="0" y="0" width="${W}" height="${head}" fill="var(--panel2)"/>`;
+  ctx.forEach(c2=>{
+    s+=`<line x1="${c2.x0}" y1="0" x2="${c2.x0}" y2="${head}" stroke="rgba(255,255,255,.1)"/>
+      <text class="pmctx" data-x0="${c2.x0}" data-x1="${c2.x1}" x="${c2.x0+10}" y="16"
+        font-size="11" font-weight="600" fill="var(--text)" font-family="Inter,sans-serif">${escXml(c2.lab)}</text>`;
+  });
+  s+=`<line x1="0" y1="24" x2="${W}" y2="24" stroke="rgba(255,255,255,.08)"/>`;
+  cells.forEach(c2=>{
+    s+=`<line x1="${c2.x0}" y1="24" x2="${c2.x0}" y2="${head}" stroke="rgba(255,255,255,.05)"/>
+      <text x="${(c2.x0+c2.x1)/2}" y="42" text-anchor="middle" font-size="10"
+        fill="var(--text3)" font-family="var(--mono)">${escXml(c2.lab)}</text>`;
+  });
+  s+=`<line x1="0" y1="${head}" x2="${W}" y2="${head}" stroke="rgba(255,255,255,.12)"/>`;
+  return s;
+}
+
+/* popisek kontextu přilepený k levému okraji, dokud pruh neodejde */
+function pmSyncSticky(){
+  const host=$('#pm-canvas'); if(!host)return;
+  const sl=host.scrollLeft;
+  host.querySelectorAll('.pmctx').forEach(t=>{
+    const x0=+t.dataset.x0, x1=+t.dataset.x1, w=Math.min(110,x1-x0-8);
+    t.setAttribute('x',Math.min(Math.max(sl+10,x0+10),Math.max(x0+10,x1-w)));
+  });
+}
+
+/* ================= OVLÁDACÍ PRVKY ================= */
+function pmSyncControls(){
+  const isMap=PM.mode==='map';
+  document.querySelectorAll('#pm-mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===PM.mode));
+  document.querySelectorAll('#pm-unit button').forEach(b=>b.classList.toggle('on',b.dataset.u===PM.unit));
+  const v=$('#pm-variant'), ax=$('#pm-axis');
+  v.style.display=isMap?'none':'';
+  v.innerHTML=concepts.map(c=>`<option value="${c.id}" ${c.id===PM.conceptId?'selected':''}>${escXml(c.name)}${c.src?' · zdroj mapy':''}</option>`).join('');
+  ax.style.display=isMap?'none':'';
+  ax.value=pmAxisMode();
+  ['pm-promote','pm-newvar','pm-editvar'].forEach(id=>$('#'+id).classList.toggle('pm-hide',isMap));
+  $('#pm-recalc').classList.toggle('pm-hide',!isMap);
+  const c=pmConcept();
+  $('#pm-title').textContent=isMap?'Procesní mapa':'Koncept';
+  $('#pm-sub').textContent=isMap
+    ? 'plán projektu — typované vazby, milníky a roadmapa se odvíjejí odtud'
+    : (c&&c.src?'zdrojová varianta — jen tuto lze zpevnit do mapy':'varianta k porovnání — zpevnit lze pouze zdrojový koncept');
+  const nb=$('#nav-pm'); if(nb)nb.textContent=processes.filter(p=>p.scope==='map').length||pmAll().length;
+}
+function pmSetMode(m){PM.mode=m;PM.sel=null;renderPMap()}
+function pmPickConcept(id){PM.conceptId=id;PM.sel=null;renderPMap()}
+function pmSetUnit(u){PM.unit=u;renderPMap()}
+function pmSetAxis(a){
+  const c=pmConcept(); if(!c)return;
+  c.axis=a; persist('concept',c,concepts.indexOf(c)); renderPMap();
+}
+
+/* ================= INSPEKTOR VYBRANÉHO PROCESU ================= */
+function pmRenderInspector(){
+  const host=$('#pm-inspector'); if(!host)return;
+  const p=PM.sel?pmById(PM.sel):null;
+  if(!p){host.innerHTML='';return}
+  const co=(p.cogestors||[]).map(r=>`${people[r.who]||r.who}${r.resp?' — '+escXml(r.resp):''}`).join('<br>')||'—';
+  const ms=[...(p.msStart||[]).map(i=>i+' (začátek)'),...(p.msEnd||[]).map(i=>i+' (konec)')].join(', ')||'—';
+  const lk=(p.links||[]).map(l=>`${l.from} ${l.type||'neutrální'}${+l.lag?(l.lag>0?' +':' ')+l.lag+' d':''}${pmViolated(l,p)?' <span style="color:var(--blocked)">· porušená</span>':''}`).join('<br>')||'—';
+  host.innerHTML=`<div class="pm-insp">
+    <div class="h"><span class="code">${p.id}</span><b>${escXml(p.name)}</b>${chip(p.status)}
+      <span class="tag">${PM_STATE[p.state]||p.state}</span>
+      <div style="flex:1"></div>
+      <button class="btn ghost sm ed-only" onclick="openEditor('process','${p.id}')">✎ Upravit</button>
+      ${PM.mode==='map'&&p.state!=='potvrzeny'?`<button class="btn primary sm ed-only" onclick="pmConfirm('${p.id}')">Potvrdit</button>`:''}
+    </div>
+    <div class="pm-igrid">
+      <div><div class="l">Termín</div>${p.start} → ${p.end} <span style="color:var(--text3)">(${pmDays(p.start,p.end)} d)</span></div>
+      <div><div class="l">Gestor</div>${people[p.gestor]||p.gestor||'<span style="color:var(--blocked)">chybí</span>'}</div>
+      <div><div class="l">Spolugestoři</div>${co}</div>
+      <div><div class="l">Milníky</div>${ms}</div>
+      <div><div class="l">Vazby</div>${lk}</div>
+      <div><div class="l">Popis</div>${escXml(p.desc||'—')}</div>
+    </div></div>`;
+}
+function pmConfirm(id){
+  const p=pmById(id); if(!p)return;
+  p.state='potvrzeny'; p.mapEdited=true;
+  persist('process',p,processes.indexOf(p)); renderPMap(); toast('Proces potvrzen');
+}
+
+/* ================= TAŽENÍ A ROZTAHOVÁNÍ ================= */
+let pmDrag=null, pmSaveT=null, pmDirty=new Set();
+function pmQueue(o){pmDirty.add(o);clearTimeout(pmSaveT);pmSaveT=setTimeout(pmFlush,700)}
+function pmFlush(){
+  pmDirty.forEach(o=>{
+    const isMs=milestones.indexOf(o)>-1;
+    persist(isMs?'milestone':'process',o,(isMs?milestones:processes).indexOf(o));
+  });
+  pmDirty.clear();
+}
+/* milník sleduje proces; zamčený se neposune */
+function pmSyncMilestones(p){
+  const move=(ids,date)=>(ids||[]).forEach(id=>{
+    const m=milestones.find(x=>x.id===id);
+    if(m&&!m.locked&&m.date!==date){m.date=date;pmQueue(m)}
+  });
+  move(p.msStart,p.start); move(p.msEnd,p.end);
+}
+function pmPointerDown(e){
+  const host=$('#pm-canvas');
+  const tog=e.target.closest('.pmtog');
+  if(tog){const p=pmById(tog.dataset.tog);if(p){p.collapsed=!p.collapsed;pmQueue(p);renderPMap()}return}
+  const g=e.target.closest('.pmb'); if(!g)return;
+  const p=pmById(g.dataset.id); if(!p)return;
+  PM.sel=p.id;
+  if(!document.body.classList.contains('editing')){renderPMap();return}
+  const resize=!!e.target.closest('.pmgrip');
+  pmDrag={p,resize,x:e.clientX,y:e.clientY,start:p.start,end:p.end,lane:p.lane||0,moved:false};
+  g.classList.add('dragging');
+  host.setPointerCapture&&host.setPointerCapture(e.pointerId);
+  e.preventDefault();
+}
+function pmPointerMove(e){
+  if(!pmDrag)return;
+  const px=PM_PXD[PM.unit];
+  const dd=Math.round((e.clientX-pmDrag.x)/px);
+  const dl=Math.round((e.clientY-pmDrag.y)/PM_LANE);
+  if(Math.abs(e.clientX-pmDrag.x)>3||Math.abs(e.clientY-pmDrag.y)>3)pmDrag.moved=true;
+  const p=pmDrag.p;
+  if(pmDrag.resize){
+    const dur=pmDays(pmDrag.start,pmDrag.end);
+    p.end=pmAdd(pmDrag.end,Math.max(dd,1-dur));
+  } else {
+    p.start=pmAdd(pmDrag.start,dd);
+    p.end=pmAdd(pmDrag.end,dd);
+    p.lane=Math.max(0,pmDrag.lane+dl);
+  }
+  if(!pmDrag.raf)pmDrag.raf=requestAnimationFrame(()=>{pmDrag&&(pmDrag.raf=0);renderPMap()});
+}
+function pmPointerUp(){
+  if(!pmDrag)return;
+  const p=pmDrag.p, moved=pmDrag.moved;
+  pmDrag=null;
+  if(moved){
+    if(p.scope==='map')p.mapEdited=true;
+    pmSyncMilestones(p);
+    pmQueue(p);
+    computePositions();
+    toast(ONLINE?'Uloženo · Supabase':'Změněno · DEMO (neuloží se)');
+  }
+  renderPMap();
+}
+function pmDblClick(e){
+  const g=e.target.closest('.pmb'); if(!g)return;
+  if(document.body.classList.contains('editing'))openEditor('process',g.dataset.id);
+}
+
+/* ================= PŘEPOČET NÁVAZNOSTÍ (ASAP) ================= */
+function pmRecalc(){
+  const list=processes.filter(p=>p.scope==='map');
+  if(!list.length){toast('Mapa je prázdná');return}
+  const idx={}; list.forEach(p=>idx[p.id]=p);
+  const indeg={}, out={};
+  list.forEach(p=>{indeg[p.id]=0;out[p.id]=[]});
+  list.forEach(p=>(p.links||[]).forEach(l=>{if(idx[l.from]&&l.type){indeg[p.id]++;out[l.from].push(p.id)}}));
+  const q=list.filter(p=>!indeg[p.id]).map(p=>p.id), order=[];
+  while(q.length){
+    const id=q.shift(); order.push(id);
+    out[id].forEach(n=>{if(--indeg[n]===0)q.push(n)});
+  }
+  if(order.length<list.length){toast('V mapě je cyklus — přepočet nelze provést');return}
+  let moved=0;
+  order.forEach(id=>{
+    const p=idx[id]; if(!(p.links||[]).length)return;
+    let earliest=null;
+    p.links.forEach(l=>{
+      const a=idx[l.from]; if(!a||!l.type)return;
+      const lag=(+l.lag||0)*PMDAY;
+      let need=null;
+      if(l.type==='FS')need=pmD(a.end)+lag;
+      else if(l.type==='SS')need=pmD(a.start)+lag;
+      else if(l.type==='FF')need=pmD(a.end)+lag-(pmD(p.end)-pmD(p.start));
+      if(need!==null&&(earliest===null||need>earliest))earliest=need;
+    });
+    if(earliest!==null&&pmD(p.start)<earliest){
+      const shift=Math.round((earliest-pmD(p.start))/PMDAY);
+      p.start=pmAdd(p.start,shift); p.end=pmAdd(p.end,shift);
+      pmSyncMilestones(p); pmQueue(p); moved++;
+    }
+  });
+  computePositions(); renderPMap();
+  toast(moved?`Přepočteno — posunuto ${moved} procesů`:'Vazby jsou v pořádku, nic se neposunulo');
+}
+
+/* cyklus: vedla by vazba from → to ke kruhu? */
+function pmWouldCycle(fromId,toId){
+  const scope=pmById(toId)?pmById(toId).scope:null;
+  const seen={}; const stack=[fromId];
+  while(stack.length){
+    const cur=stack.pop();
+    if(cur===toId)return true;
+    if(seen[cur])continue; seen[cur]=1;
+    const p=pmById(cur); if(!p||p.scope!==scope)continue;
+    (p.links||[]).forEach(l=>stack.push(l.from));
+  }
+  return false;
+}
+
+/* ================= NOVÝ PROCES ================= */
+function pmNewProcess(){
+  if(PM.mode==='map'&&!processes.some(p=>p.scope==='map')){
+    toast('Mapa vzniká zpevněním konceptu, ne ručně'); return;
+  }
+  const list=pmAll();
+  const lane=list.length?Math.max(...list.map(p=>p.lane||0))+1:0;
+  const start=list.length?list[list.length-1].end:(pmConcept()?pmConcept().t0:project.start);
+  const o={id:nextId('process'),scope:pmScope(),name:'Nový proces',desc:'',gestor:'',cogestors:[],affected:[],
+    parent:'',state:PM.mode==='map'?'potvrzeny':'koncept',status:'idle',
+    start,end:pmAdd(start,60),lane,links:[],msStart:[],msEnd:[],collapsed:false};
+  processes.push(o); PM.sel=o.id;
+  persist('process',o,processes.length-1);
+  renderPMap(); openEditor('process',o.id);
+}
+
+/* ================= ODVOZENÍ VAZEB Z GEOMETRIE ================= */
+function pmInferLinks(list){
+  const tol={week:7,month:30,quarter:91}[PM.unit];
+  const out=[], has=(a,b)=>out.some(o=>o.from===a&&o.to===b);
+  const linked=(a,b)=>{const p=list.find(x=>x.id===b);return p&&(p.links||[]).some(l=>l.from===a)};
+
+  /* neutrální spojnice, které uživatel nakreslil — mají přednost */
+  list.forEach(p=>(p.links||[]).forEach(l=>{
+    if(!list.some(x=>x.id===l.from))return;
+    const a=list.find(x=>x.id===l.from);
+    const gap=pmDays(a.end,p.start);
+    out.push({from:l.from,to:p.id,type:l.type||'FS',lag:l.type?(+l.lag||0):(Math.abs(gap)<=tol?Math.max(0,gap):0),
+      why:l.type?'existující vazba':'neutrální spojnice',on:true});
+  }));
+
+  list.forEach(a=>list.forEach(b=>{
+    if(a.id===b.id||has(a.id,b.id)||has(b.id,a.id)||linked(a.id,b.id))return;
+    const d=(x,y)=>Math.abs(pmDays(x,y));
+    if(pmD(b.start)>=pmD(a.start)&&d(a.end,b.start)<=tol){
+      out.push({from:a.id,to:b.id,type:'FS',lag:Math.max(0,pmDays(a.end,b.start)),why:'konec A ≈ začátek B',on:true});
+    } else if(a.id<b.id&&d(a.start,b.start)<=Math.min(tol,3)){
+      out.push({from:a.id,to:b.id,type:'SS',lag:pmDays(a.start,b.start),why:'společný začátek',on:true});
+    } else if(a.id<b.id&&d(a.end,b.end)<=Math.min(tol,3)){
+      out.push({from:a.id,to:b.id,type:'FF',lag:pmDays(a.end,b.end),why:'společný konec',on:true});
+    }
+  }));
+  return out;
+}
+
+/* ================= PRŮVODCE ZPEVNĚNÍM ================= */
+let PW=null;
+function pmOpenWizard(){
+  const c=pmConcept();
+  if(!c){toast('Není vybrán koncept');return}
+  if(!c.src){toast('Zpevnit lze jen zdrojový koncept — označte jej v úpravách varianty');return}
+  const src=processes.filter(p=>p.scope==='concept:'+c.id);
+  if(!src.length){toast('Koncept nemá žádné procesy');return}
+  const hasMap=processes.some(p=>p.scope==='map');
+  PW={step:1,c,src,shift:0,t0:c.t0,links:[],ms:{},hasMap,steps:['Úplnost','Ukotvení času','Vazby','Milníky'].concat(hasMap?['Rozdíly']:[])};
+  $('#pm-wizard').classList.add('open');
+  pmWizRender();
+}
+function pmCloseWizard(){$('#pm-wizard').classList.remove('open');PW=null}
+function pmWizStep(d){
+  if(!PW)return;
+  if(d>0&&!pmWizCommit())return;
+  const n=PW.step+d;
+  if(n<1)return;
+  if(n>PW.steps.length){pmApplyPromotion();return}
+  PW.step=n; pmWizRender();
+}
+/* uloží hodnoty aktuálního kroku */
+function pmWizCommit(){
+  if(PW.step===1){
+    let bad=0;
+    PW.src.forEach(p=>{
+      const g=k=>{const el=document.getElementById('pw-'+k+'-'+p.id);return el?el.value:''};
+      p.name=g('name')||p.name; p.gestor=g('gestor'); p.start=g('start')||p.start; p.end=g('end')||p.end;
+      if(pmD(p.end)<pmD(p.start))p.end=p.start;
+      if(!p.name||!p.gestor||!p.start||!p.end)bad++;
+      pmQueue(p);
+    });
+    if(bad){toast(`Doplňte povinné údaje u ${bad} procesů`);pmWizRender();return false}
+  }
+  if(PW.step===2){
+    const el=document.getElementById('pw-t0');
+    if(el&&el.value){PW.t0=el.value;PW.shift=pmDays(PW.c.t0,el.value)}
+  }
+  if(PW.step===3){
+    PW.links.forEach((l,i)=>{
+      const on=document.getElementById('pw-l-'+i), ty=document.getElementById('pw-lt-'+i), lg=document.getElementById('pw-lg-'+i);
+      if(on)l.on=on.checked; if(ty)l.type=ty.value; if(lg)l.lag=+lg.value||0;
+    });
+  }
+  if(PW.step===4){
+    PW.src.forEach(p=>{
+      const el=document.getElementById('pw-ms-'+p.id), lk=document.getElementById('pw-lock-'+p.id);
+      if(el)PW.ms[p.id]={id:el.value,lock:lk?lk.checked:false};
+    });
+  }
+  return true;
+}
+function pmWizRender(){
+  if(!PW)return;
+  $('#pm-wsteps').innerHTML=PW.steps.map((s,i)=>
+    `<div class="${i+1===PW.step?'on':(i+1<PW.step?'done':'')}"><b>${String(i+1).padStart(2,'0')}</b>${s}</div>`).join('');
+  $('#pm-wback').style.display=PW.step>1?'':'none';
+  $('#pm-wnext').textContent=PW.step===PW.steps.length?'Zpevnit':'Pokračovat';
+  const body=$('#pm-wbody');
+  const opts=(sel)=>[['','—']].concat(OWNER_OPTS()).map(([v,l])=>`<option value="${v}" ${v===sel?'selected':''}>${escXml(l)}</option>`).join('');
+
+  if(PW.step===1){
+    body.innerHTML=`<div class="pm-note">Blokující údaje musí být vyplněny: <b>název, gestor, termíny</b>. Popis, spolugestoři a milníky blokující nejsou — doplníte je kdykoli později. Upravujte přímo v tabulce.</div>
+    <table class="pm-tab"><thead><tr><th style="width:60px">ID</th><th>Název</th><th style="width:150px">Gestor</th><th style="width:135px">Začátek</th><th style="width:135px">Konec</th></tr></thead><tbody>
+    ${PW.src.map(p=>{
+      const miss=!p.name||!p.gestor||!p.start||!p.end;
+      return `<tr class="${miss?'bad':''}">
+        <td><span class="mono" style="font-family:var(--mono);font-size:11px;color:var(--accent)">${p.id}</span></td>
+        <td><input id="pw-name-${p.id}" value="${esc(p.name||'')}" class="${!p.name?'miss':''}"></td>
+        <td><select id="pw-gestor-${p.id}" class="${!p.gestor?'miss':''}">${opts(p.gestor)}</select></td>
+        <td><input id="pw-start-${p.id}" type="date" value="${p.start||''}" class="${!p.start?'miss':''}"></td>
+        <td><input id="pw-end-${p.id}" type="date" value="${p.end||''}" class="${!p.end?'miss':''}"></td></tr>`;
+    }).join('')}</tbody></table>`;
+  }
+
+  else if(PW.step===2){
+    const rel=PW.c.axis==='rel';
+    body.innerHTML=rel
+      ? `<div class="pm-note">Koncept pracuje s <b>relativní osou</b>. Zadejte skutečné datum T0 — odstupy se převedou na termíny. Koncept zůstane nedotčený, posun se použije jen na kopie v mapě.</div>
+         <div style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap">
+           <div><label style="display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:5px">T0 — zahájení</label>
+             <input id="pw-t0" type="date" value="${PW.t0}" style="background:var(--panel2);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:8px 10px"></div>
+           <div class="pm-hint">dosavadní kotva: ${PW.c.t0}</div>
+         </div>`
+      : `<div class="pm-note">Koncept už pracuje s <b>kalendářní osou</b>, termíny se přenesou beze změny. Ukotvení není potřeba.</div>`;
+  }
+
+  else if(PW.step===3){
+    if(!PW.links.length)PW.links=pmInferLinks(PW.src);
+    body.innerHTML=`<div class="pm-note">Vazby odvozené z toho, jak procesy v konceptu leží. Zkontrolujte typ a prodlevu, nepotřebné odškrtněte. Tolerance shody je jedna zobrazená jednotka osy.</div>
+    ${PW.links.length?`<table class="pm-tab"><thead><tr><th style="width:44px"></th><th>Vazba</th><th style="width:110px">Typ</th><th style="width:110px">Prodleva (d)</th><th style="width:180px">Odvozeno z</th></tr></thead><tbody>
+    ${PW.links.map((l,i)=>`<tr>
+      <td><input type="checkbox" id="pw-l-${i}" ${l.on?'checked':''} style="width:auto"></td>
+      <td><b>${l.from}</b> → <b>${l.to}</b><div style="color:var(--text3);font-size:11px">${escXml((pmById(l.from)||{}).name||'')} → ${escXml((pmById(l.to)||{}).name||'')}</div></td>
+      <td><select id="pw-lt-${i}">${['FS','SS','FF'].map(t=>`<option ${t===l.type?'selected':''}>${t}</option>`).join('')}</select></td>
+      <td><input id="pw-lg-${i}" type="number" value="${l.lag||0}"></td>
+      <td style="color:var(--text3);font-size:11.5px">${l.why}</td></tr>`).join('')}
+    </tbody></table>`:'<div class="pm-empty">Z geometrie nevyplynula žádná vazba. Procesy se do mapy přenesou bez závislostí.</div>'}`;
+  }
+
+  else if(PW.step===4){
+    const mopts=(sel)=>[['','—']].concat(MS_OPTS()).map(([v,l])=>`<option value="${v}" ${v===sel?'selected':''}>${escXml(l)}</option>`).join('');
+    body.innerHTML=`<div class="pm-note">Volitelný krok. Milník na konci procesu sleduje jeho termín; <b>zamčený</b> se neposune nikdy a při přejetí zčervená — použijte u termínů plynoucích ze smlouvy.</div>
+    <table class="pm-tab"><thead><tr><th>Proces</th><th style="width:280px">Milník na konci</th><th style="width:110px">Zamknout</th></tr></thead><tbody>
+    ${PW.src.map(p=>{
+      const cur=(PW.ms[p.id]&&PW.ms[p.id].id)||(p.msEnd&&p.msEnd[0])||'';
+      const m=milestones.find(x=>x.id===cur);
+      return `<tr><td>${escXml(p.name)}<div style="color:var(--text3);font-size:11px">konec ${p.end}</div></td>
+        <td><select id="pw-ms-${p.id}">${mopts(cur)}</select></td>
+        <td><input type="checkbox" id="pw-lock-${p.id}" ${m&&m.locked?'checked':''} style="width:auto"></td></tr>`;
+    }).join('')}</tbody></table>`;
+  }
+
+  else if(PW.step===5){
+    const d=pmDiff(); PW.diff=d;
+    const row=(o,i,kind)=>`<div class="pm-drow ${o.conflict?'conf':''}">
+      <input type="checkbox" id="pw-d-${kind}-${i}" checked>
+      <div><b>${escXml(o.label)}</b>${o.detail?`<div style="color:var(--text3);font-size:11.5px">${o.detail}</div>`:''}
+      ${o.conflict?'<div style="color:var(--blocked);font-size:11.5px">Pozor: tento proces byl po zpevnění upraven přímo v mapě.</div>':''}</div></div>`;
+    body.innerHTML=`<div class="pm-note warn">Mapa už existuje. Nic se nepřepíše bez vašeho potvrzení — odškrtnuté řádky zůstanou v mapě beze změny.</div>
+      <div class="pm-diff">
+      <h4>Přibylo (${d.added.length})</h4>${d.added.length?d.added.map((o,i)=>row(o,i,'a')).join(''):'<div class="pm-hint">nic</div>'}
+      <h4>Změnilo se (${d.changed.length})</h4>${d.changed.length?d.changed.map((o,i)=>row(o,i,'c')).join(''):'<div class="pm-hint">nic</div>'}
+      <h4>V konceptu už není (${d.removed.length})</h4>${d.removed.length?d.removed.map((o,i)=>row(o,i,'r')).join(''):'<div class="pm-hint">nic</div>'}
+      </div>`;
+  }
+}
+
+/* rozdíl mezi zdrojovým konceptem a mapou */
+function pmDiff(){
+  const map=processes.filter(p=>p.scope==='map');
+  const bySrc={}; map.forEach(p=>{if(p.srcId)bySrc[p.srcId]=p});
+  const srcIds={}; PW.src.forEach(p=>srcIds[p.id]=1);
+  const added=[], changed=[], removed=[];
+  PW.src.forEach(p=>{
+    const t=bySrc[p.id];
+    const st=pmAdd(p.start,PW.shift), en=pmAdd(p.end,PW.shift);
+    if(!t){added.push({src:p,label:`${p.id} · ${p.name}`,detail:`${st} → ${en}`});return}
+    const diffs=[];
+    if(t.name!==p.name)diffs.push(`název: <span class="was">${escXml(t.name)}</span>${escXml(p.name)}`);
+    if(t.gestor!==p.gestor)diffs.push(`gestor: <span class="was">${people[t.gestor]||t.gestor||'—'}</span>${people[p.gestor]||p.gestor}`);
+    if(t.start!==st)diffs.push(`začátek: <span class="was">${t.start}</span>${st}`);
+    if(t.end!==en)diffs.push(`konec: <span class="was">${t.end}</span>${en}`);
+    if(diffs.length)changed.push({src:p,target:t,label:`${t.id} · ${p.name}`,detail:diffs.join(' · '),conflict:!!t.mapEdited});
+  });
+  map.forEach(p=>{if(p.srcId&&!srcIds[p.srcId])removed.push({target:p,label:`${p.id} · ${p.name}`,detail:'v konceptu už neexistuje',conflict:!!p.mapEdited})});
+  return {added,changed,removed};
+}
+
+/* ================= PROVEDENÍ ZPEVNĚNÍ ================= */
+function pmApplyPromotion(){
+  const shift=PW.shift||0, srcList=PW.src;
+  const map=processes.filter(p=>p.scope==='map');
+  const bySrc={}; map.forEach(p=>{if(p.srcId)bySrc[p.srcId]=p});
+  const pick=(kind,i)=>{const el=document.getElementById('pw-d-'+kind+'-'+i);return !el||el.checked};
+  let created=0, updated=0, removed=0;
+
+  if(PW.hasMap&&PW.diff){
+    PW.diff.removed.forEach((o,i)=>{
+      if(!pick('r',i))return;
+      const idx=processes.indexOf(o.target);
+      if(idx>-1){persistDelete('process',o.target);processes.splice(idx,1);removed++}
+    });
+  }
+
+  /* 1. průchod — vytvoření a aktualizace */
+  const idMap={};
+  srcList.forEach(p=>{
+    const st=pmAdd(p.start,shift), en=pmAdd(p.end,shift);
+    let t=bySrc[p.id];
+    if(!t){
+      if(PW.hasMap&&PW.diff){
+        const i=PW.diff.added.findIndex(o=>o.src===p);
+        if(i>-1&&!pick('a',i))return;
+      }
+      t={id:nextId('process'),scope:'map',srcId:p.id,state:'odvozeny',mapEdited:false,collapsed:false,links:[]};
+      processes.push(t); created++;
+    } else {
+      if(PW.hasMap&&PW.diff){
+        const i=PW.diff.changed.findIndex(o=>o.target===t);
+        if(i>-1&&!pick('c',i)){idMap[p.id]=t.id;return}
+        if(i>-1)updated++;
+      }
+    }
+    Object.assign(t,{name:p.name,desc:p.desc,gestor:p.gestor,
+      cogestors:JSON.parse(JSON.stringify(p.cogestors||[])),affected:(p.affected||[]).slice(),
+      status:p.status,start:st,end:en,lane:p.lane,
+      msStart:(p.msStart||[]).slice(),msEnd:(p.msEnd||[]).slice()});
+    if(t.state!=='potvrzeny')t.state='odvozeny';
+    idMap[p.id]=t.id;
+  });
+
+  /* 2. průchod — rodiče a vazby v id mapy */
+  srcList.forEach(p=>{
+    const t=pmById(idMap[p.id]); if(!t)return;
+    t.parent=p.parent&&idMap[p.parent]?idMap[p.parent]:'';
+    t.links=[];
+  });
+  PW.links.filter(l=>l.on).forEach(l=>{
+    const to=pmById(idMap[l.to]), from=idMap[l.from];
+    if(!to||!from)return;
+    if(pmWouldCycle(from,to.id))return;
+    to.links.push({from,type:l.type||'FS',lag:+l.lag||0});
+  });
+
+  /* milníky z kroku 4 */
+  Object.keys(PW.ms).forEach(sid=>{
+    const cfg=PW.ms[sid], t=pmById(idMap[sid]), s=pmById(sid);
+    if(!cfg)return;
+    /* průvodce nabízí jen první milník — další, zadané v editoru, nepřepisujeme */
+    const setMs=o=>{
+      if(!o)return;
+      const cur=(o.msEnd||[])[0]||'';
+      if(cfg.id===cur)return;
+      const rest=(o.msEnd||[]).slice(1);
+      o.msEnd=cfg.id?[cfg.id].concat(rest):rest;
+    };
+    setMs(s); setMs(t);
+    const m=milestones.find(x=>x.id===cfg.id);
+    if(m){m.locked=!!cfg.lock; if(!m.locked&&t){m.date=t.end} pmQueue(m)}
+    if(s)pmQueue(s);
+  });
+
+  processes.filter(p=>p.scope==='map').forEach(p=>pmQueue(p));
+  pmFlush();
+  computePositions();
+  PM.mode='map'; PM.sel=null;
+  pmCloseWizard(); renderAll();
+  toast(`Zpevněno — ${created} nových, ${updated} aktualizovaných${removed?', '+removed+' odebráno':''}`);
+}
+
+/* ================= SCHÉMA PROCESU PRO EDITOR ================= */
+SCHEMAS.process={title:'Proces',entity:'process',arr:()=>processes,idf:'id',prefix:'P-',fields:[
+  {k:'name',l:'Název procesu',t:'text',full:1},
+  {k:'desc',l:'Popis — co se v něm děje a čím končí',t:'textarea',full:1},
+  {k:'gestor',l:'Gestor (odpovědná osoba)',t:'select',opts:()=>[['','—']].concat(OWNER_OPTS())},
+  {k:'status',l:'Stav plnění',t:'select',opts:ST_OPTS},
+  {k:'state',l:'Zralost',t:'select',opts:[['koncept','koncept'],['odvozeny','odvozený'],['potvrzeny','potvrzený']]},
+  {k:'start',l:'Začátek',t:'date'},{k:'end',l:'Konec',t:'date'},
+  {k:'lane',l:'Pruh (souběh)',t:'number'},
+  {k:'parent',l:'Nadřazený proces',t:'select',opts:()=>[['','— kořenová úroveň']].concat(
+     processes.filter(p=>p.scope===pmScope()&&!p.parent&&p.id!==(edCtx&&edCtx.obj?edCtx.obj.id:'')).map(p=>[p.id,p.id+' · '+p.name]))},
+  {k:'cogestors',l:'Spolugestoři a jejich odpovědnost',t:'roles',full:1},
+  {k:'links',l:'Vazby na předchůdce',t:'plinks',full:1},
+  {k:'msEnd',l:'Milníky na konci procesu',t:'msrefs',full:1},
+  {k:'msStart',l:'Milníky na začátku procesu',t:'msrefs',full:1}
+]};
+NEW_DEFAULT.process={scope:'concept:K-01',state:'koncept',status:'idle',lane:0,cogestors:[],affected:[],links:[],msStart:[],msEnd:[],collapsed:false};
+
+SCHEMAS.concept={title:'Varianta konceptu',entity:'concept',arr:()=>concepts,idf:'id',prefix:'K-',fields:[
+  {k:'name',l:'Název varianty',t:'text',full:1},
+  {k:'axis',l:'Časová osa',t:'select',opts:[['off','Vypnutá'],['rel','Relativní (T0 + odstupy)'],['cal','Kalendářní']]},
+  {k:'t0',l:'T0 — zahájení (kotva relativní osy)',t:'date'},
+  {k:'src',l:'Zdroj mapy — jen tuto variantu lze zpevnit',t:'check',full:1}
+]};
+NEW_DEFAULT.concept={axis:'rel',src:false};
+
+function pmNewConcept(){
+  const o=Object.assign({},NEW_DEFAULT.concept,{id:nextId('concept'),name:'Nová varianta',t0:project.start});
+  concepts.push(o); PM.conceptId=o.id; PM.mode='concept';
+  persist('concept',o,concepts.length-1);
+  renderPMap(); openEditor('concept',o.id);
+}
+function pmEditConcept(){const c=pmConcept();if(c)openEditor('concept',c.id)}
+
+/* dílčí editory pro složená pole */
+function pmSubRender(k){
+  const host=document.getElementById('edf-'+k); if(!host||!edCtx)return;
+  const o=edCtx.obj; if(!Array.isArray(o[k]))o[k]=[];
+  const who=v=>[['','—']].concat(OWNER_OPTS()).map(([a,l])=>`<option value="${a}" ${a===v?'selected':''}>${esc(l)}</option>`).join('');
+  let h='';
+  if(k==='cogestors'){
+    h=o[k].map((r,i)=>`<div class="pm-subrow">
+        <select onchange="edCtx.obj.cogestors[${i}].who=this.value">${who(r.who)}</select>
+        <input value="${esc(r.resp||'')}" placeholder="za co odpovídá" oninput="edCtx.obj.cogestors[${i}].resp=this.value">
+        <button type="button" class="x" onclick="edCtx.obj.cogestors.splice(${i},1);pmSubRender('cogestors')">✕</button></div>`).join('');
+    h+=`<button type="button" class="pm-addbtn" onclick="edCtx.obj.cogestors.push({who:'',resp:''});pmSubRender('cogestors')">＋ Spolugestor</button>`;
+  }
+  else if(k==='links'){
+    const cand=processes.filter(p=>p.scope===o.scope&&p.id!==o.id);
+    h=o[k].map((l,i)=>`<div class="pm-subrow">
+        <select onchange="pmLinkFrom(${i},this.value)">${[['','—']].concat(cand.map(p=>[p.id,p.id+' · '+p.name]))
+          .map(([v,t])=>`<option value="${v}" ${v===l.from?'selected':''}>${esc(t)}</option>`).join('')}</select>
+        <select style="max-width:140px" onchange="edCtx.obj.links[${i}].type=this.value">
+          ${[['','neutrální'],['FS','FS konec→začátek'],['SS','SS začátek→začátek'],['FF','FF konec→konec']]
+            .map(([v,t])=>`<option value="${v}" ${v===(l.type||'')?'selected':''}>${t}</option>`).join('')}</select>
+        <input type="number" style="max-width:90px" value="${+l.lag||0}" title="prodleva ve dnech" oninput="edCtx.obj.links[${i}].lag=+this.value||0">
+        <button type="button" class="x" onclick="edCtx.obj.links.splice(${i},1);pmSubRender('links')">✕</button></div>`).join('');
+    h+=`<button type="button" class="pm-addbtn" onclick="edCtx.obj.links.push({from:'',type:'',lag:0});pmSubRender('links')">＋ Vazba</button>
+        <div class="pm-hint" style="margin-top:2px">V konceptu vazby nic neposouvají — typ se doplní až při zpevnění.</div>`;
+  }
+  else {
+    h=o[k].map((id,i)=>`<div class="pm-subrow">
+        <select onchange="edCtx.obj.${k}[${i}]=this.value">${[['','—']].concat(MS_OPTS())
+          .map(([v,t])=>`<option value="${v}" ${v===id?'selected':''}>${esc(t)}</option>`).join('')}</select>
+        <button type="button" class="x" onclick="edCtx.obj.${k}.splice(${i},1);pmSubRender('${k}')">✕</button></div>`).join('');
+    h+=`<button type="button" class="pm-addbtn" onclick="edCtx.obj.${k}.push('');pmSubRender('${k}')">＋ Milník</button>`;
+  }
+  host.innerHTML=h;
+}
+function pmLinkFrom(i,v){
+  const o=edCtx.obj;
+  if(v&&o.id&&pmWouldCycle(v,o.id)){toast('Tato vazba by uzavřela kruh — odmítnuto');pmSubRender('links');return}
+  if(v&&o.parent===v){toast('Rodič a potomek nemohou být vázáni časově');pmSubRender('links');return}
+  o.links[i].from=v;
+}
+
+/* ================= NAPOJENÍ NA ZBYTEK APLIKACE ================= */
+function pmNormalize(){
+  concepts.forEach(c=>{if(!c.axis)c.axis='cal';if(!c.t0)c.t0=project.start});
+  if(!concepts.some(c=>c.src)&&concepts[0])concepts[0].src=true;
+  if(!concepts.some(c=>c.id===PM.conceptId)&&concepts[0])PM.conceptId=concepts[0].id;
+  processes.forEach(p=>{
+    ['cogestors','affected','links','msStart','msEnd'].forEach(k=>{if(!Array.isArray(p[k]))p[k]=[]});
+    if(!p.scope)p.scope='concept:'+(concepts[0]?concepts[0].id:'K-01');
+    if(!p.state)p.state='koncept';
+    if(!p.status)p.status='idle';
+    if(p.lane==null)p.lane=0;
+    p.links=p.links.filter(l=>l&&l.from);
+  });
+}
+(function pmBind(){
+  const host=$('#pm-canvas'); if(!host)return;
+  host.addEventListener('pointerdown',pmPointerDown);
+  host.addEventListener('dblclick',pmDblClick);
+  host.addEventListener('scroll',pmSyncSticky);
+  window.addEventListener('pointermove',pmPointerMove);
+  window.addEventListener('pointerup',pmPointerUp);
+  window.addEventListener('pointercancel',pmPointerUp);
+  window.addEventListener('resize',()=>{if($('#view-pmap').classList.contains('active'))renderPMap()});
+})();
 
 /* ================= INIT ================= */
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeModal();closeEditor();closeLogin()}});
