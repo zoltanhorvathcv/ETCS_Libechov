@@ -460,6 +460,25 @@ body.editing .ed-only{display:inline-flex!important}
 .pm-sel{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:7px 10px;font:500 12.5px 'Inter',sans-serif;cursor:pointer;max-width:280px}
 .pm-spacer{flex:1}
 .pm-hint{font-size:11.5px;color:var(--text3);font-family:var(--mono)}
+.pm-stage{position:relative}
+.pm-help{position:absolute;top:10px;right:16px;z-index:7;width:30px;height:30px;border-radius:50%;
+  display:none;place-items:center;cursor:pointer;opacity:.5;transition:.18s;
+  background:rgba(21,25,38,.75);backdrop-filter:blur(6px);
+  border:1px solid var(--border2);color:var(--text2);font:600 14px 'Inter',sans-serif}
+body.editing .pm-help{display:grid}
+.pm-help:hover{opacity:1;color:var(--accent);border-color:var(--accent)}
+.pm-help.on{opacity:1;background:var(--accent);color:#fff;border-color:var(--accent)}
+.pm-helpbox{position:absolute;top:48px;right:16px;z-index:7;width:min(660px,calc(100% - 32px));
+  display:none;padding:16px 18px;border-radius:14px;
+  background:rgba(14,17,25,.8);backdrop-filter:blur(16px);
+  border:1px solid var(--border2);box-shadow:0 20px 48px -18px rgba(0,0,0,.9);
+  max-height:min(72%,430px);overflow:auto}
+.pm-helpbox.on{display:block}
+.pm-helpgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:14px 24px}
+.pm-helpbox h4{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 5px}
+.pm-helprow{display:flex;gap:9px;align-items:baseline;font-size:12px;color:var(--text2);padding:2.5px 0}
+.pm-helprow kbd{flex:none;background:var(--panel2);border:1px solid var(--border2);border-bottom-width:2px;
+  border-radius:5px;padding:1px 6px;font:500 10.5px var(--mono);color:var(--text);white-space:nowrap}
 .pm-canvas{position:relative;overflow:auto;border:1px solid var(--border2);border-radius:var(--r);background:#181d2a;height:60vh;min-height:360px}
 .pm-canvas svg{display:block}
 .pm-empty{padding:56px 30px;text-align:center;color:var(--text3)}
@@ -916,14 +935,53 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       <button class="btn primary sm ed-only" id="pm-promote" onclick="pmOpenWizard()" title="Převést zdrojový koncept do procesní mapy">Zpevnit do mapy</button>
     </div>
 
-    <div class="pm-canvas" id="pm-canvas"></div>
+    <div class="pm-stage">
+      <div class="pm-canvas" id="pm-canvas"></div>
+      <button class="pm-help" id="pm-help" onclick="pmToggleHelp()" title="Ovládání plátna">?</button>
+      <div class="pm-helpbox" id="pm-helpbox">
+        <div class="pm-helpgrid">
+          <section>
+            <h4>Pohyb po plátně</h4>
+            <div class="pm-helprow"><kbd>tažení</kbd><span>posun plátna prázdnou plochou</span></div>
+            <div class="pm-helprow"><kbd>mezerník + tažení</kbd><span>posun i nad procesem</span></div>
+            <div class="pm-helprow"><kbd>prostřední tl.</kbd><span>totéž bez klávesnice</span></div>
+            <div class="pm-helprow"><kbd>Ctrl + kolečko</kbd><span>přiblížení kolem kurzoru</span></div>
+            <div class="pm-helprow"><kbd>− 100 % ＋</kbd><span>zoom tlačítky v liště</span></div>
+          </section>
+          <section>
+            <h4>Výběr</h4>
+            <div class="pm-helprow"><kbd>klik</kbd><span>vybrat proces</span></div>
+            <div class="pm-helprow"><kbd>Shift + klik</kbd><span>přidat nebo odebrat z výběru</span></div>
+            <div class="pm-helprow"><kbd>Shift + tažení</kbd><span>gumička — výběr více procesů</span></div>
+            <div class="pm-helprow"><kbd>Ctrl + A</kbd><span>vybrat vše</span></div>
+            <div class="pm-helprow"><kbd>Esc</kbd><span>zrušit výběr</span></div>
+          </section>
+          <section>
+            <h4>Úpravy</h4>
+            <div class="pm-helprow"><kbd>tažení procesu</kbd><span>posun; je-li vybráno víc, jede celá skupina</span></div>
+            <div class="pm-helprow"><kbd>tažení za okraj</kbd><span>změna délky procesu</span></div>
+            <div class="pm-helprow"><kbd>← →</kbd><span>posun o den, se Shiftem o týden</span></div>
+            <div class="pm-helprow"><kbd>↑ ↓</kbd><span>přesun do jiného pruhu</span></div>
+            <div class="pm-helprow"><kbd>Delete</kbd><span>smazat vybrané</span></div>
+            <div class="pm-helprow"><kbd>dvojklik</kbd><span>otevřít v pásu karet</span></div>
+            <div class="pm-helprow"><kbd>▸ ▾</kbd><span>sbalit nebo rozbalit podprocesy</span></div>
+          </section>
+          <section>
+            <h4>Historie a nástroje</h4>
+            <div class="pm-helprow"><kbd>Ctrl + Z</kbd><span>zpět</span></div>
+            <div class="pm-helprow"><kbd>Ctrl + Shift + Z</kbd><span>znovu</span></div>
+            <div class="pm-helprow"><kbd>✂ Rozdělit</kbd><span>klik na proces jej rozdělí v daném místě</span></div>
+            <div class="pm-helprow"><kbd>přichytávání</kbd><span>hrana skočí na hranu souseda a ukáže vodítko</span></div>
+          </section>
+        </div>
+      </div>
+    </div>
 
     <div class="pm-legend">
       <span><i class="k"></i>koncept — jen obrys</span>
       <span><i class="o"></i>odvozený — šrafovaný</span>
       <span><i class="p"></i>potvrzený — plný</span>
       <span>Barva obrysu = stav plnění · červená vazba = porušená</span>
-      <span class="ed-only">Tažením plochy posunete plátno · Shift+tažení vybere víc procesů · Ctrl+kolečko přiblíží</span>
     </div>
 
     <div id="pm-inspector"></div>
@@ -2577,6 +2635,19 @@ function pplSave(){
 }
 
 /* ================= CELÁ OBRAZOVKA ================= */
+/* Nápověda k ovládání — kroužek nad plátnem, panel s průhledným pozadím. */
+function pmToggleHelp(force){
+  const on=force===undefined?!$('#pm-helpbox').classList.contains('on'):!!force;
+  $('#pm-helpbox').classList.toggle('on',on);
+  $('#pm-help').classList.toggle('on',on);
+}
+document.addEventListener('pointerdown',e=>{
+  const box=$('#pm-helpbox');
+  if(!box||!box.classList.contains('on'))return;
+  if(e.target.closest('#pm-helpbox')||e.target.closest('#pm-help'))return;
+  pmToggleHelp(false);
+},true);
+
 function pmToggleFull(){
   const on=!document.body.classList.contains('pm-full');
   document.body.classList.toggle('pm-full',on);
@@ -3514,7 +3585,8 @@ function pmNormalize(){
 /* ================= INIT ================= */
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){
   closeDrawer();closeModal();closeEditor();closeLogin();closeNewPassword();closePeople();
-  if(PM.splitMode)pmSetSplit(false);
+  if($('#pm-helpbox')&&$('#pm-helpbox').classList.contains('on'))pmToggleHelp(false);
+  else if(PM.splitMode)pmSetSplit(false);
   else if(PM.sel.length){PM.sel=[];renderPMap()}
   if(document.body.classList.contains('pm-full'))pmToggleFull();
 }});
