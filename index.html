@@ -475,6 +475,9 @@ body.editing .pmb{cursor:grab}
 body.editing .pmb.dragging{cursor:grabbing}
 #pm-splitbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .pm-canvas.pm-splitting{cursor:crosshair}
+.pm-canvas.panready{cursor:grab}
+.pm-canvas.panning{cursor:grabbing}
+.pm-seg button:disabled{opacity:.3;cursor:not-allowed}
 .pm-canvas.pm-splitting .pmb{cursor:crosshair}
 .pm-splitguide{position:absolute;width:2px;background:var(--accent);pointer-events:none;z-index:5;box-shadow:0 0 7px rgba(255,82,0,.65);display:none}
 .pm-splitguide::before{content:'✂';position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:11px}
@@ -894,6 +897,10 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       </div>
       <div class="pm-spacer"></div>
       <span class="pm-hint" id="pm-count"></span>
+      <div class="pm-seg ed-only" id="pm-hist">
+        <button id="pm-undo" onclick="histUndo()" title="Zpět (Ctrl+Z)">↶</button>
+        <button id="pm-redo" onclick="histRedo()" title="Znovu (Ctrl+Shift+Z)">↷</button>
+      </div>
       <div class="pm-seg" id="pm-zoom">
         <button onclick="pmZoom(-1)" title="Oddálit — na plátno se vejde delší období">−</button>
         <button onclick="pmZoomReset()" id="pm-zoomlbl" title="Zpět na výchozí měřítko">100 %</button>
@@ -2038,7 +2045,51 @@ let processes=[
   start:'2026-09-01',end:'2027-02-26',lane:0,links:[{from:'P-11',type:'',lag:0}],msStart:[],msEnd:['M5'],collapsed:false}
 ];
 
-const PM={mode:'concept',conceptId:'K-01',unit:'month',sel:null,splitMode:false,tab:'zaklad',panelLock:false,zoom:1};
+const PM={mode:'concept',conceptId:'K-01',unit:'month',sel:[],splitMode:false,tab:'zaklad',panelLock:false,zoom:1,snapX:null};
+/* Výběr je pole; poslední vybraný je „primární“ a zobrazí se v pásu karet. */
+const pmSelHas=id=>PM.sel.indexOf(id)>-1;
+const pmPrimary=()=>PM.sel.length?PM.sel[PM.sel.length-1]:null;
+const pmSelProcs=()=>PM.sel.map(pmById).filter(Boolean);
+function pmSelToggle(id,add){
+  if(!add){PM.sel=[id];return}
+  const i=PM.sel.indexOf(id);
+  if(i>-1)PM.sel.splice(i,1); else PM.sel.push(id);
+}
+
+/* ================= HISTORIE (Zpět / Znovu) =================
+   Snímek se pořizuje před každou změnou; drží procesy i milníky, protože
+   posun procesu přesouvá i milníky na jeho hranicích. */
+const HIST={un:[],re:[],max:50};
+const histState=()=>({p:JSON.stringify(processes),m:JSON.stringify(milestones)});
+function histPush(){
+  HIST.un.push(histState());
+  if(HIST.un.length>HIST.max)HIST.un.shift();
+  HIST.re.length=0; pmSyncHist();
+}
+function histRestore(st){
+  const before=processes.map(x=>x.id);
+  processes=JSON.parse(st.p); milestones=JSON.parse(st.m);
+  pmNormalize(); computePositions();
+  const now=new Set(processes.map(x=>x.id));
+  before.forEach(id=>{if(!now.has(id))persistDelete('process',{id})});
+  processes.forEach((x,i)=>persist('process',x,i));
+  milestones.forEach((m,i)=>persist('milestone',m,i));
+  PM.sel=PM.sel.filter(id=>now.has(id));
+  renderAll();
+}
+function histUndo(){
+  if(!HIST.un.length){toast('Není co vrátit');return}
+  HIST.re.push(histState()); histRestore(HIST.un.pop()); pmSyncHist(); toast('Vráceno zpět');
+}
+function histRedo(){
+  if(!HIST.re.length){toast('Není co obnovit');return}
+  HIST.un.push(histState()); histRestore(HIST.re.pop()); pmSyncHist(); toast('Obnoveno');
+}
+function pmSyncHist(){
+  const u=$('#pm-undo'), r=$('#pm-redo');
+  if(u)u.disabled=!HIST.un.length;
+  if(r)r.disabled=!HIST.re.length;
+}
 const PM_STATE={koncept:'koncept',odvozeny:'odvozený',potvrzeny:'potvrzený'};
 const PM_LANE=50, PM_PAD=26;
 const PMDAY=86400000;
@@ -2220,8 +2271,10 @@ function renderPMap(){
     if(p.state==='odvozeny')fill='url(#pmHatch)';
     else if(p.state==='potvrzeny')fill='rgba(61,130,196,.15)';
     else dash='stroke-dasharray="5 3"';
-    s+=`<g class="pmb${PM.sel===p.id?' sel':''}" data-id="${p.id}">
-      <path d="${pmRailPath(g.x,g.y,g.w,g.h)}" fill="${fill}" stroke="${stroke}" stroke-width="${PM.sel===p.id?2.4:1.6}" ${dash}/>`;
+    const on=pmSelHas(p.id);
+    s+=`<g class="pmb${on?' sel':''}" data-id="${p.id}">
+      ${on?`<path d="${pmRailPath(g.x-3,g.y-3,g.w+6,g.h+6)}" fill="none" stroke="var(--accent)" stroke-width="1.2" opacity=".8"/>`:''}
+      <path d="${pmRailPath(g.x,g.y,g.w,g.h)}" fill="${fill}" stroke="${stroke}" stroke-width="${on?2.4:1.6}" ${dash}/>`;
     if(p.state==='potvrzeny'){
       s+=`<line x1="${g.x+4}" y1="${g.y+3}" x2="${g.x+4}" y2="${g.y+g.h-3}" stroke="${stroke}" stroke-width="1.6"/>
           <line x1="${g.x+g.w-4}" y1="${g.y+3}" x2="${g.x+g.w-4}" y2="${g.y+g.h-3}" stroke="${stroke}" stroke-width="1.6"/>`;
@@ -2244,6 +2297,13 @@ function renderPMap(){
     (p.msEnd||[]).forEach((id,i)=>{s+=pmSignalSVG(id,g.x+g.w,g.y,g.h,i,p,true)});
   });
 
+  /* vodítko přichycení a gumička */
+  if(PM.snapX!=null)s+=`<line x1="${PM.snapX}" y1="${head}" x2="${PM.snapX}" y2="${H}" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="3 3"/>`;
+  if(pmMarq){
+    const x=Math.min(pmMarq.x0,pmMarq.x1), y=Math.min(pmMarq.y0,pmMarq.y1);
+    s+=`<rect x="${x}" y="${y}" width="${Math.abs(pmMarq.x1-pmMarq.x0)}" height="${Math.abs(pmMarq.y1-pmMarq.y0)}"
+          fill="rgba(255,82,0,.09)" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3"/>`;
+  }
   s+=`</svg>`;
   host.innerHTML=s;
   pmSyncSticky();
@@ -2349,6 +2409,7 @@ function pmSyncControls(){
   $('#pm-recalc').classList.toggle('pm-hide',!isMap);
   $('#pm-splitbtn').classList.toggle('on',PM.splitMode);
   $('#pm-zoomlbl').textContent=Math.round(PM.zoom*100)+' %';
+  pmSyncHist();
   $('#pm-canvas').classList.toggle('pm-splitting',PM.splitMode&&!isMap);
   const c=pmConcept();
   $('#pm-title').textContent=isMap?'Procesní mapa':'Koncept';
@@ -2357,8 +2418,8 @@ function pmSyncControls(){
     : (c&&c.src?'zdrojová varianta — jen tuto lze zpevnit do mapy':'varianta k porovnání — zpevnit lze pouze zdrojový koncept');
   const nb=$('#nav-pm'); if(nb)nb.textContent=processes.filter(p=>p.scope==='map').length||pmAll().length;
 }
-function pmSetMode(m){PM.mode=m;PM.sel=null;if(m==='map')pmSetSplit(false);renderPMap()}
-function pmPickConcept(id){PM.conceptId=id;PM.sel=null;renderPMap()}
+function pmSetMode(m){PM.mode=m;PM.sel=[];if(m==='map')pmSetSplit(false);renderPMap()}
+function pmPickConcept(id){PM.conceptId=id;PM.sel=[];renderPMap()}
 function pmSetUnit(u){PM.unit=u;renderPMap()}
 /* zoom mění měřítko osy tlačítky — bez tažítka */
 function pmZoom(d){
@@ -2538,7 +2599,7 @@ function pmFitHeight(){
 function pmRenderInspector(){
   if(PM.panelLock)return;                       // neruší rozepsané pole v pásu karet
   const host=$('#pm-inspector'); if(!host)return;
-  const p=PM.sel?pmById(PM.sel):null;
+  const p=pmById(pmPrimary());
   if(document.body.classList.contains('editing')){pmRenderRibbon(host,p);return}
   if(!p){host.innerHTML='';return}
   const co=(p.cogestors||[]).map(r=>`${escXml(actorName(r.who))}${r.resp?' — '+escXml(r.resp):''}`).join('<br>')||'—';
@@ -2598,6 +2659,16 @@ function pmRibbonField(p,k){
   return `<div class="${cls}"><label>${f.l}</label>${input}</div>`;
 }
 function pmRenderRibbon(host,p){
+  if(PM.sel.length>1){
+    host.innerHTML=`<div class="pm-rib"><div class="pm-rib-head">
+      <b>${PM.sel.length} vybraných procesů</b>
+      <span class="pm-hint">šipkami posunete o den (se Shiftem o týden), Delete smaže</span>
+      <div style="flex:1"></div>
+      <button class="btn ghost sm" title="Smazat všechny vybrané" onclick="pmDeleteSelected()">Smazat vybrané</button>
+      <button class="btn ghost sm" title="Zrušit výběr" onclick="PM.sel=[];renderPMap()">✕</button>
+    </div></div>`;
+    pmFitHeight(); return;
+  }
   if(!p){
     host.innerHTML=`<div class="pm-rib"><div class="pm-rib-empty">Vyberte proces kliknutím na plátně — jeho parametry se objeví zde.</div></div>`;
     pmFitHeight(); return;
@@ -2613,13 +2684,14 @@ function pmRenderRibbon(host,p){
       ${p.parent?'':`<button class="btn ghost sm" title="Založit podproces pod tímto procesem" onclick="pmNewSub('${p.id}')">＋ Podproces</button>`}
       ${PM.mode==='map'&&p.state!=='potvrzeny'?`<button class="btn primary sm" title="Označit termíny a vazby za potvrzené" onclick="pmConfirm('${p.id}')">Potvrdit</button>`:''}
       <button class="btn ghost sm" title="Smazat proces" onclick="pmDeleteProcess('${p.id}')">Smazat</button>
-      <button class="btn ghost sm" title="Zavřít panel a zrušit výběr" onclick="PM.sel=null;renderPMap()">✕</button>
+      <button class="btn ghost sm" title="Zavřít panel a zrušit výběr" onclick="PM.sel=[];renderPMap()">✕</button>
     </div>
     <div class="pm-tabs">${PM_TABS.map(t=>`<button class="${t.id===PM.tab?'on':''}" onclick="PM.tab='${t.id}';renderPMap()">${t.l}</button>`).join('')}</div>
     <div class="pm-rib-body">${tab.keys.map(k=>pmRibbonField(p,k)).join('')}</div>
   </div>`;
   /* dílčí editory zapisují rovnou do procesu a překreslí plátno */
   subCtx.onChange=()=>{
+    histPush();
     if(p.scope==='map')p.mapEdited=true;
     pmQueue(p); PM.panelLock=true; renderPMap(); PM.panelLock=false;
   };
@@ -2630,7 +2702,8 @@ function pmRenderRibbon(host,p){
   pmFitHeight();
 }
 function pmRibSet(k,v){
-  const p=PM.sel&&pmById(PM.sel); if(!p)return;
+  const p=pmById(pmPrimary()); if(!p)return;
+  histPush();
   if(k==='lane')v=Math.max(0,+v||0);
   p[k]=v;
   if(k==='start'&&pmD(p.end)<pmD(p.start))p.end=p.start;
@@ -2653,13 +2726,14 @@ function pmNewSub(id){
   const p=pmById(id); if(!p)return;
   if(p.parent){toast('Zanoření je omezené na dvě úrovně — podproces už potomky mít nemůže');return}
   const list=pmAll();
+  histPush();
   const lane=(list.length?Math.max(...list.map(x=>x.lane||0)):0)+1;
   const o={id:nextId('process'),scope:p.scope,name:p.name+' — dílčí krok',desc:'',
     gestor:p.gestor,cogestors:[],affected:[],parent:p.id,state:p.state,status:'idle',
     start:p.start,end:p.end,lane,links:[],msStart:[],msEnd:[],collapsed:false};
   processes.push(o);
   p.collapsed=false; pmQueue(p);
-  PM.sel=o.id; PM.tab='zaklad';
+  PM.sel=[o.id]; PM.tab='zaklad';
   persist('process',o,processes.length-1);
   renderPMap(); toast('Podproces přidán — upravte mu název a termíny');
 }
@@ -2667,6 +2741,7 @@ function pmDeleteProcess(id){
   const p=pmById(id); if(!p)return;
   const kids=processes.filter(x=>x.parent===id).length;
   if(!confirm(`Smazat proces „${p.name}"?`+(kids?`\n${kids} podprocesů se přesune na kořenovou úroveň.`:'')))return;
+  histPush();
   processes.filter(x=>x.parent===id).forEach(x=>{x.parent='';pmQueue(x)});
   processes.forEach(q=>{
     const before=(q.links||[]).length;
@@ -2675,7 +2750,7 @@ function pmDeleteProcess(id){
   });
   processes.splice(processes.indexOf(p),1);
   persistDelete('process',p);
-  PM.sel=null; pmFlush(); renderPMap();
+  PM.sel=[]; pmFlush(); renderPMap();
   toast('Proces smazán');
 }
 
@@ -2697,11 +2772,38 @@ function pmSyncMilestones(p){
   });
   move(p.msStart,p.start); move(p.msEnd,p.end);
 }
+let pmPan=null, pmMarq=null, pmSpace=false;
+/* klientské souřadnice → souřadnice plátna */
+function pmLocal(cx,cy){
+  const svg=document.querySelector('#pm-canvas svg'); if(!svg)return {x:0,y:0};
+  const r=svg.getBoundingClientRect();
+  return {x:cx-r.left,y:cy-r.top};
+}
 function pmPointerDown(e){
   const host=$('#pm-canvas');
   const tog=e.target.closest('.pmtog');
   if(tog){const p=pmById(tog.dataset.tog);if(p){p.collapsed=!p.collapsed;pmQueue(p);renderPMap()}return}
-  const g=e.target.closest('.pmb'); if(!g)return;
+  const g=e.target.closest('.pmb');
+  const edit=document.body.classList.contains('editing');
+
+  /* posun plátna: prostřední tlačítko, mezerník, nebo tažení plochou mimo editaci */
+  if(e.button===1||pmSpace||(!g&&!edit)){
+    pmPan={x:e.clientX,y:e.clientY,sl:host.scrollLeft,st:host.scrollTop};
+    host.classList.add('panning');
+    e.preventDefault(); return;
+  }
+
+  /* gumička na prázdné ploše */
+  if(!g){
+    if(edit&&!PM.splitMode){
+      const r=pmLocal(e.clientX,e.clientY);
+      pmMarq={x0:r.x,y0:r.y,x1:r.x,y1:r.y,add:e.shiftKey,base:e.shiftKey?PM.sel.slice():[]};
+      if(!e.shiftKey&&PM.sel.length){PM.sel=[];renderPMap()}
+      e.preventDefault();
+    }
+    return;
+  }
+
   const p=pmById(g.dataset.id); if(!p)return;
   if(PM.splitMode){
     e.preventDefault();
@@ -2710,47 +2812,177 @@ function pmPointerDown(e){
     pmSplitProcess(p.id,pmISO(day));
     return;
   }
-  PM.sel=p.id;
-  if(!document.body.classList.contains('editing')){renderPMap();return}
+
+  if(e.shiftKey){pmSelToggle(p.id,true);renderPMap();return}
+  /* klik na už vybraný proces výběr nezruší — umožní táhnout celou skupinu */
+  if(!pmSelHas(p.id))PM.sel=[p.id];
+  else PM.sel=PM.sel.filter(x=>x!==p.id).concat(p.id);
+
+  if(!edit){renderPMap();return}
   const resize=!!e.target.closest('.pmgrip');
-  pmDrag={p,resize,x:e.clientX,y:e.clientY,start:p.start,end:p.end,lane:p.lane||0,moved:false};
+  const group=resize?[p]:pmSelProcs();
+  pmDrag={p,resize,x:e.clientX,y:e.clientY,moved:false,
+          orig:group.map(q=>({q,start:q.start,end:q.end,lane:q.lane||0}))};
   g.classList.add('dragging');
   host.setPointerCapture&&host.setPointerCapture(e.pointerId);
+  renderPMap();
   e.preventDefault();
 }
+
+/* Přichytávání: hrana taženého procesu skočí na hranu sousedního (nebo na
+   dnešek), pokud je blíž než 8 px. Právě z takové shody pak zpevnění
+   odvozuje vazbu FS/SS/FF. */
+function pmSnap(dr,dd,px){
+  const b=pmBounds(pmVisible());
+  const ids=new Set(dr.orig.map(o=>o.q.id));
+  const edges=[];
+  pmVisible().forEach(q=>{if(!ids.has(q.id)){edges.push(pmD(q.start));edges.push(pmD(q.end))}});
+  edges.push(pmD(TODAY));
+  if(!edges.length)return null;
+  const X=t=>PM_PAD+(t-b.t0)/PMDAY*px;
+  const cand=[];
+  dr.orig.forEach(o=>{
+    if(!dr.resize)cand.push(pmD(pmAdd(o.start,dd)));
+    cand.push(pmD(pmAdd(o.end,dd)));
+  });
+  let best=null;
+  cand.forEach(c=>edges.forEach(t=>{
+    const d=Math.abs(X(c)-X(t));
+    if(d<=8&&(!best||d<best.d))best={d,delta:Math.round((t-c)/PMDAY),x:X(t)};
+  }));
+  return best?{dd:dd+best.delta,x:best.x}:null;
+}
+
 function pmPointerMove(e){
+  const host=$('#pm-canvas');
+  if(pmPan){
+    host.scrollLeft=pmPan.sl-(e.clientX-pmPan.x);
+    host.scrollTop=pmPan.st-(e.clientY-pmPan.y);
+    return;
+  }
+  if(pmMarq){
+    const r=pmLocal(e.clientX,e.clientY);
+    pmMarq.x1=r.x; pmMarq.y1=r.y;
+    const b=pmBounds(pmVisible());
+    const x0=Math.min(pmMarq.x0,pmMarq.x1), x1=Math.max(pmMarq.x0,pmMarq.x1);
+    const y0=Math.min(pmMarq.y0,pmMarq.y1), y1=Math.max(pmMarq.y0,pmMarq.y1);
+    const hit=pmVisible().filter(q=>{
+      const g=pmGeom(q,b);
+      return g.x<x1&&g.x+g.w>x0&&g.y<y1&&g.y+g.h>y0;
+    }).map(q=>q.id);
+    PM.sel=pmMarq.add?[...new Set(pmMarq.base.concat(hit))]:hit;
+    if(!pmMarq.raf)pmMarq.raf=requestAnimationFrame(()=>{pmMarq&&(pmMarq.raf=0);PM.panelLock=true;renderPMap();PM.panelLock=false});
+    return;
+  }
   if(!pmDrag)return;
   const px=pmPx();
-  const dd=Math.round((e.clientX-pmDrag.x)/px);
+  let dd=Math.round((e.clientX-pmDrag.x)/px);
   const dl=Math.round((e.clientY-pmDrag.y)/PM_LANE);
-  if(Math.abs(e.clientX-pmDrag.x)>3||Math.abs(e.clientY-pmDrag.y)>3)pmDrag.moved=true;
-  const p=pmDrag.p;
-  if(pmDrag.resize){
-    const dur=pmDays(pmDrag.start,pmDrag.end);
-    p.end=pmAdd(pmDrag.end,Math.max(dd,1-dur));
-  } else {
-    p.start=pmAdd(pmDrag.start,dd);
-    p.end=pmAdd(pmDrag.end,dd);
-    p.lane=Math.max(0,pmDrag.lane+dl);
+  if(!pmDrag.moved&&(Math.abs(e.clientX-pmDrag.x)>3||Math.abs(e.clientY-pmDrag.y)>3)){
+    pmDrag.moved=true; histPush();
   }
-  if(!pmDrag.raf)pmDrag.raf=requestAnimationFrame(()=>{pmDrag&&(pmDrag.raf=0);renderPMap()});
+  if(!pmDrag.moved)return;
+
+  PM.snapX=null;
+  const sn=pmSnap(pmDrag,dd,px);
+  if(sn){dd=sn.dd; PM.snapX=sn.x}
+
+  if(pmDrag.resize){
+    const o=pmDrag.orig[0], dur=pmDays(o.start,o.end);
+    o.q.end=pmAdd(o.end,Math.max(dd,1-dur));
+  } else {
+    pmDrag.orig.forEach(o=>{
+      o.q.start=pmAdd(o.start,dd);
+      o.q.end=pmAdd(o.end,dd);
+      o.q.lane=Math.max(0,o.lane+dl);
+    });
+  }
+  if(!pmDrag.raf)pmDrag.raf=requestAnimationFrame(()=>{pmDrag&&(pmDrag.raf=0);PM.panelLock=true;renderPMap();PM.panelLock=false});
 }
+
 function pmPointerUp(){
+  const host=$('#pm-canvas');
+  if(pmPan){pmPan=null;host&&host.classList.remove('panning');return}
+  if(pmMarq){pmMarq=null;renderPMap();return}
   if(!pmDrag)return;
-  const p=pmDrag.p, moved=pmDrag.moved;
-  pmDrag=null;
+  const moved=pmDrag.moved, group=pmDrag.orig.map(o=>o.q);
+  pmDrag=null; PM.snapX=null;
   if(moved){
-    if(p.scope==='map')p.mapEdited=true;
-    pmSyncMilestones(p);
-    pmQueue(p);
+    group.forEach(q=>{
+      if(q.scope==='map')q.mapEdited=true;
+      pmSyncMilestones(q); pmQueue(q);
+    });
     computePositions();
     toast(ONLINE?'Uloženo · Supabase':'Změněno · DEMO (neuloží se)');
   }
   renderPMap();
 }
+
+/* ---- klávesy: Zpět/Znovu, mazání, posun šipkami, mezerník pro posun plátna ---- */
+function pmKeyDown(e){
+  const view=$('#view-pmap');
+  if(!view||!view.classList.contains('active'))return;
+  if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))return;
+  const mod=e.ctrlKey||e.metaKey;
+  if(mod&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?histRedo():histUndo();return}
+  if(mod&&e.key.toLowerCase()==='y'){e.preventDefault();histRedo();return}
+  if(e.code==='Space'&&!e.repeat){pmSpace=true;$('#pm-canvas').classList.add('panready');e.preventDefault();return}
+  if(mod&&e.key.toLowerCase()==='a'){
+    e.preventDefault(); PM.sel=pmVisible().map(p=>p.id); renderPMap(); return;
+  }
+  if(!document.body.classList.contains('editing'))return;
+  const sel=pmSelProcs(); if(!sel.length)return;
+  if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();pmDeleteSelected();return}
+  const step=e.shiftKey?7:1;
+  if(e.key==='ArrowLeft'||e.key==='ArrowRight'){
+    e.preventDefault(); histPush();
+    const d=e.key==='ArrowRight'?step:-step;
+    sel.forEach(p=>{p.start=pmAdd(p.start,d);p.end=pmAdd(p.end,d);pmSyncMilestones(p);pmQueue(p)});
+    computePositions(); renderPMap(); return;
+  }
+  if(e.key==='ArrowUp'||e.key==='ArrowDown'){
+    e.preventDefault(); histPush();
+    const d=e.key==='ArrowDown'?1:-1;
+    sel.forEach(p=>{p.lane=Math.max(0,(p.lane||0)+d);pmQueue(p)});
+    renderPMap(); return;
+  }
+}
+function pmKeyUp(e){
+  if(e.code==='Space'){pmSpace=false;const h=$('#pm-canvas');h&&h.classList.remove('panready')}
+}
+/* Ctrl+kolečko = zoom, s udržením data pod kurzorem */
+function pmWheel(e){
+  if(!(e.ctrlKey||e.metaKey))return;
+  e.preventDefault();
+  const host=$('#pm-canvas');
+  const day=pmDayAt(e.clientX);
+  const at=e.clientX-host.getBoundingClientRect().left;
+  PM.zoom=Math.min(4,Math.max(.35,PM.zoom*(e.deltaY<0?1.15:1/1.15)));
+  renderPMap();
+  if(day!=null){
+    const b=pmBounds(pmVisible());
+    host.scrollLeft=PM_PAD+(day-b.t0)/PMDAY*pmPx()-at;
+  }
+}
+function pmDeleteSelected(){
+  const sel=pmSelProcs(); if(!sel.length)return;
+  const names=sel.map(p=>p.name).join(', ');
+  if(!confirm(sel.length===1?`Smazat proces „${names}"?`:`Smazat ${sel.length} vybraných procesů?\n${names}`))return;
+  histPush();
+  const ids=new Set(sel.map(p=>p.id));
+  processes.forEach(q=>{
+    if(ids.has(q.parent)){q.parent='';pmQueue(q)}
+    const before=(q.links||[]).length;
+    q.links=(q.links||[]).filter(l=>!ids.has(l.from));
+    if(q.links.length!==before)pmQueue(q);
+  });
+  sel.forEach(p=>{processes.splice(processes.indexOf(p),1);persistDelete('process',p)});
+  PM.sel=[]; pmFlush(); renderPMap();
+  toast(sel.length===1?'Proces smazán':`Smazáno ${sel.length} procesů`);
+}
 function pmDblClick(e){
   const g=e.target.closest('.pmb'); if(!g)return;
-  PM.sel=g.dataset.id; PM.tab='zaklad'; renderPMap();   // editorem je pás karet pod plátnem
+  PM.sel=[g.dataset.id]; PM.tab='zaklad'; renderPMap();   // editorem je pás karet pod plátnem
 }
 
 /* ================= RYCHLÉ DĚLENÍ PROCESU (jen koncept) =================
@@ -2792,6 +3024,7 @@ function pmSplitPreview(e){
 function pmSplitProcess(id,dateStr){
   const p=pmById(id); if(!p)return;
   if(pmDays(p.start,dateStr)<1||pmDays(dateStr,p.end)<1){toast('Bod dělení je moc blízko okraje procesu');return}
+  histPush();
   const second=Object.assign({},p,{
     id:nextId('process'),
     name:p.name.replace(/\s*\(pokr\.\)$/,'')+' (pokr.)',
@@ -2809,7 +3042,7 @@ function pmSplitProcess(id,dateStr){
   });
   processes.splice(processes.indexOf(p)+1,0,second);
   pmSyncMilestones(p); pmSyncMilestones(second);
-  PM.sel=second.id;
+  PM.sel=[second.id];
   pmQueue(p); pmQueue(second);
   renderPMap();
   toast(`Rozděleno — „${p.name}“ a „${second.name}“`);
@@ -2829,6 +3062,7 @@ function pmRecalc(){
     out[id].forEach(n=>{if(--indeg[n]===0)q.push(n)});
   }
   if(order.length<list.length){toast('V mapě je cyklus — přepočet nelze provést');return}
+  histPush();
   let moved=0;
   order.forEach(id=>{
     const p=idx[id]; if(!(p.links||[]).length)return;
@@ -2874,10 +3108,11 @@ function pmNewProcess(){
   const list=pmAll();
   const lane=list.length?Math.max(...list.map(p=>p.lane||0))+1:0;
   const start=list.length?list[list.length-1].end:(pmConcept()?pmConcept().t0:project.start);
+  histPush();
   const o={id:nextId('process'),scope:pmScope(),name:'Nový proces',desc:'',gestor:'',cogestors:[],affected:[],
     parent:'',state:PM.mode==='map'?'potvrzeny':'koncept',status:'idle',
     start,end:pmAdd(start,60),lane,links:[],msStart:[],msEnd:[],collapsed:false};
-  processes.push(o); PM.sel=o.id;
+  processes.push(o); PM.sel=[o.id];
   persist('process',o,processes.length-1);
   PM.tab='zaklad'; renderPMap();
 }
@@ -3138,7 +3373,7 @@ function pmApplyPromotion(){
   processes.filter(p=>p.scope==='map').forEach(p=>pmQueue(p));
   pmFlush();
   computePositions();
-  PM.mode='map'; PM.sel=null;
+  PM.mode='map'; PM.sel=[];
   pmCloseWizard(); renderAll();
   toast(`Zpevněno — ${created} nových, ${updated} aktualizovaných${removed?', '+removed+' odebráno':''}`);
 }
@@ -3263,6 +3498,9 @@ function pmNormalize(){
   host.addEventListener('dblclick',pmDblClick);
   host.addEventListener('scroll',pmSyncSticky);
   host.addEventListener('mousemove',pmSplitPreview);
+  host.addEventListener('wheel',pmWheel,{passive:false});
+  window.addEventListener('keydown',pmKeyDown);
+  window.addEventListener('keyup',pmKeyUp);
   host.addEventListener('mouseleave',()=>{const gd=document.getElementById('pm-splitguide');if(gd)gd.style.display='none'});
   window.addEventListener('pointermove',pmPointerMove);
   window.addEventListener('pointerup',pmPointerUp);
@@ -3274,6 +3512,7 @@ function pmNormalize(){
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){
   closeDrawer();closeModal();closeEditor();closeLogin();closeNewPassword();closePeople();
   if(PM.splitMode)pmSetSplit(false);
+  else if(PM.sel.length){PM.sel=[];renderPMap()}
   if(document.body.classList.contains('pm-full'))pmToggleFull();
 }});
 const mq=matchMedia('(max-width:1000px)');const fix=()=>{document.querySelectorAll('.two-col').forEach(n=>n.style.gridTemplateColumns=mq.matches?'1fr':'')};mq.addEventListener('change',fix);fix();
