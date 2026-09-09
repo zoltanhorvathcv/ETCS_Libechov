@@ -927,7 +927,8 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       </div>
       <button class="btn ghost sm" id="pm-fullbtn" onclick="pmToggleFull()" title="Celá obrazovka (ukončíte klávesou Esc)">⛶ Celá obrazovka</button>
       <button class="btn ghost sm ed-only" onclick="openPeople()" title="Spravovat osoby a útvary — přejmenování, odebrání, zařazení">👤 Osoby</button>
-      <button class="btn ghost sm ed-only" id="pm-newvar" onclick="pmNewConcept()" title="Založit novou variantu konceptu">＋ Varianta</button>
+      <button class="btn ghost sm ed-only" id="pm-newvar" onclick="pmNewConcept()" title="Založit novou prázdnou variantu konceptu">＋ Varianta</button>
+      <button class="btn ghost sm ed-only" id="pm-tplvar" onclick="pmTemplateConcept()" title="Založit variantu z připravené šablony — přezkoušení a uvádění ETCS L1 LS do provozu podle T200">＋ Ze šablony</button>
       <button class="btn ghost sm ed-only" id="pm-editvar" onclick="pmEditConcept()" title="Upravit název, osu a T0 této varianty">✎ Varianta</button>
       <button class="btn ghost sm ed-only" onclick="pmNewProcess()" title="Přidat nový proces na volný pruh">＋ Proces</button>
       <button class="btn ghost sm ed-only" id="pm-splitbtn" onclick="pmToggleSplit()" title="Zapněte a klikejte na procesy v místě, kde je chcete rozdělit">✂ Rozdělit</button>
@@ -2464,7 +2465,7 @@ function pmSyncControls(){
   v.innerHTML=concepts.map(c=>`<option value="${c.id}" ${c.id===PM.conceptId?'selected':''}>${escXml(c.name)}${c.src?' · zdroj mapy':''}</option>`).join('');
   ax.style.display=isMap?'none':'';
   ax.value=pmAxisMode();
-  ['pm-promote','pm-newvar','pm-editvar','pm-splitbtn'].forEach(id=>$('#'+id).classList.toggle('pm-hide',isMap));
+  ['pm-promote','pm-newvar','pm-tplvar','pm-editvar','pm-splitbtn'].forEach(id=>$('#'+id).classList.toggle('pm-hide',isMap));
   $('#pm-recalc').classList.toggle('pm-hide',!isMap);
   $('#pm-splitbtn').classList.toggle('on',PM.splitMode);
   $('#pm-zoomlbl').textContent=Math.round(PM.zoom*100)+' %';
@@ -3478,6 +3479,110 @@ SCHEMAS.concept={title:'Varianta konceptu',entity:'concept',arr:()=>concepts,idf
   {k:'src',l:'Zdroj mapy — jen tuto variantu lze zpevnit',t:'check',full:1}
 ]};
 NEW_DEFAULT.concept={axis:'rel',src:false};
+
+
+/* ================= ŠABLONA KONCEPTU =================
+   Předpřipravený proces převzatý z diagramu „Přezkoušení a uvádění
+   ETCS L1 LS do provozu“ (T200, T200/MP2). Kořenové procesy jsou fáze
+   diagramu, podprocesy jednotlivé kroky. Osa je relativní — diagram
+   termíny neuvádí, nese jen pořadí a souběh. */
+const PM_TPL_ETCS={
+  name:'Přezkoušení a uvádění ETCS L1 LS do provozu',
+  units:{
+    PROJ:{name:'Projektant',kind:'Externí'},
+    CTD:{name:'Centrum telematiky a diagnostiky (CTD)',kind:'Útvar'},
+    ORU:{name:'OŘ Ústí nad Labem',kind:'Útvar'},
+    O14:{name:'Odbor O14',kind:'Odbor'},
+    PO:{name:'Právnická osoba pro UTZ',kind:'Externí'},
+    DU:{name:'Drážní úřad',kind:'Externí'},
+    ZHO:{name:'Zhotovitel',kind:'Externí'},
+    OK:{name:'Odborná komise',kind:'Útvar'},
+    SSZT:{name:'Správa sdělovací a zabezpečovací techniky',kind:'Útvar'}
+  },
+  /* k = klíč v šabloně, p = rodič, o = začátek ve dnech od T0, d = trvání,
+     g = gestor, dep = neutrální vazby na předchůdce */
+  procs:[
+    {k:'A',n:'A. Příprava a schválení dokumentace',g:'@O14',o:0,d:120,lane:0,
+     desc:'Zpracování, přezkoušení, posouzení a schválení dokumentace. Schválená dokumentace je podkladem pro realizaci, přezkoušení i provoz zařízení.'},
+    {k:'1',p:'A',n:'1 · Zpracování návrhu ETCS L1 LS',g:'@PROJ',o:0,d:45,lane:1,
+     desc:'Zpracování projektové dokumentace včetně návrhu ETCS L1 LS. Požadavky na ETCS L1 LS dle ZTP a specifikací 3.6.0.'},
+    {k:'2',p:'A',n:'2 · Odborné přezkoušení dokumentace — CTD („laborka“)',g:'@CTD',o:45,d:30,lane:1,dep:['1'],
+     desc:'CTD přezkouší návrh dokumentace ETCS. Posuzuje více nezávislých odborníků.'},
+    {k:'3',p:'A',n:'3 · Dopravní posouzení — OŘ Ústí nad Labem',g:'@ORU',o:75,d:20,lane:1,dep:['2'],
+     desc:'Posouzení z pohledu dopravního. Razítko a stanovisko.'},
+    {k:'4',p:'A',n:'4 · Schválení a evidence — O14',g:'@O14',o:95,d:25,lane:1,dep:['3'],
+     desc:'Schválení dokumentace a její zaevidování.'},
+
+    {k:'U',n:'Paralelní proces — UTZ',g:'@PO',o:60,d:150,lane:2,
+     desc:'Technická prohlídka a zkouška určeného technického zařízení (UTZ). Běží souběžně s přípravou dokumentace a realizací; časové pořadí vůči TBZ není v T200 pevně dáno.'},
+    {k:'A1',p:'U',n:'A1 · Technická prohlídka a zkouška UTZ právnickou osobou',g:'@PO',o:60,d:60,lane:3,dep:['1'],
+     desc:'CTD určeno Ministerstvem dopravy. Nezávislý tým — nesmí se podílet na projektování, přezkoušení ani aktivaci zařízení. Pro potřeby Drážního úřadu.'},
+    {k:'A2',p:'U',n:'A2 · Protokol o technické prohlídce a zkoušce UTZ',g:'@PO',o:120,d:20,lane:3,dep:['A1','4'],
+     desc:'Výstupní protokol z technické prohlídky a zkoušky UTZ.'},
+    {k:'A3',p:'U',n:'A3 · Průkaz způsobilosti (Drážní úřad)',g:'@DU',o:140,d:70,lane:3,dep:['A2'],
+     desc:'Vydání nebo změna průkazu způsobilosti zabezpečovacího zařízení. Podmínka pro uvedení do provozu.'},
+
+    {k:'B',n:'B. Realizace a příprava zařízení',g:'@ZHO',o:120,d:140,lane:4,
+     desc:'Montáž, oživení a příprava zařízení k přezkoušení odbornou komisí.'},
+    {k:'5',p:'B',n:'5 · Realizace zařízení',g:'@ZHO',o:120,d:90,lane:5,dep:['4'],
+     desc:'Montáž dle schválené dokumentace.'},
+    {k:'6',p:'B',n:'6 · Oživení, seřízení a vlastní zkoušky zhotovitele',g:'@ZHO',o:210,d:35,lane:5,dep:['5'],
+     desc:'Příprava zařízení k vyzkoušení.'},
+    {k:'7',p:'B',n:'7 · Oznámení připravenosti k zahájení prací odborné komise',g:'@ZHO',o:245,d:15,lane:5,dep:['6'],
+     desc:'Předání požadovaných podkladů. Jmenování odborné komise (O14 na návrh investora).'},
+
+    {k:'C',n:'C. Technickobezpečnostní zkouška (TBZ) podle T200',g:'@OK',o:260,d:90,lane:6,
+     desc:'Technické prohlídky, komplexní vyzkoušení, odstranění závad a protokol o provedení TBZ.'},
+    {k:'8',p:'C',n:'8 · Technické prohlídky — odborná komise',g:'@OK',o:260,d:15,lane:7,dep:['7'],
+     desc:'Ověření správnosti a úplnosti montáže. Ověření souladu se schválenou dokumentací.'},
+    {k:'9',p:'C',n:'9 · Komplexní vyzkoušení zhotovitelem',g:'@ZHO',o:275,d:50,lane:7,dep:['8'],
+     desc:'Provádí zhotovitel za účasti příslušných členů odborné komise. Ověření kvality, funkčnosti a provozuschopnosti zařízení.'},
+    {k:'9a',p:'C',n:'9a · Přezkoušení traťové části ETCS L1 LS podle T200/MP2',g:'@CTD',o:285,d:35,lane:8,
+     desc:'Součást komplexního vyzkoušení — funkční zkoušky: zkoušky vozidlem vybaveným OBU; vstup a výstup z oblasti ETCS L1 LS; zkoušky v dopravně s kolejovým rozvětvením; zkoušky v mezistaničním úseku; ostatní zkoušky ověřující správnou funkci systému; záznam z OBU a záznamy o testování dle přílohy A T200/MP2.'},
+    {k:'10',p:'C',n:'10 · Odstranění závad',g:'@ZHO',o:320,d:20,lane:7,dep:['9'],
+     desc:'Odstranění zjištěných závad. Opakované přezkoušení dotčených částí.'},
+    {k:'11',p:'C',n:'11 · Protokol o provedení TBZ',g:'@OK',o:340,d:10,lane:7,dep:['10'],
+     desc:'Zpracuje předseda odborné komise. Závěrečné stanovisko k uvedení zařízení do provozu.'},
+
+    {k:'D',n:'D. Aktivace a uvedení do provozu',g:'@SSZT',o:350,d:30,lane:9,
+     desc:'Aktivace zařízení a jeho uvedení do provozu po splnění všech podmínek.'},
+    {k:'12',p:'D',n:'12 · Aktivace zařízení',g:'@ZHO',o:350,d:15,lane:10,dep:['11'],
+     desc:'Zapnutí a oživení zařízení do provozního stavu. Ověření návazností a přepojení.'},
+    {k:'13',p:'D',n:'13 · Uvedení zařízení do provozu',g:'@SSZT',o:365,d:15,lane:10,dep:['12','A3'],
+     desc:'Provede přednosta SSZT nebo jím pověřený zaměstnanec, po splnění všech podmínek dle T200. Podmínkou je platný průkaz způsobilosti.'}
+  ]
+};
+function pmTemplateConcept(){
+  const tpl=PM_TPL_ETCS;
+  histPush();
+  /* útvary ze šablony doplníme, existující nepřepisujeme */
+  let added=0;
+  Object.keys(tpl.units).forEach(u=>{if(!orgUnits[u]){orgUnits[u]=tpl.units[u];added++}});
+  const t0=project.start||pmISO(Date.now());
+  const c=Object.assign({},NEW_DEFAULT.concept,{id:nextId('concept'),name:tpl.name,t0,axis:'rel',src:false});
+  concepts.push(c);
+  persist('concept',c,concepts.length-1);
+
+  const idMap={};
+  tpl.procs.forEach(t=>{
+    const o={id:nextId('process'),scope:'concept:'+c.id,name:t.n,desc:t.desc||'',
+      gestor:t.g||'',cogestors:[],affected:[],parent:'',state:'koncept',status:'idle',
+      start:pmAdd(t0,t.o),end:pmAdd(t0,t.o+t.d),lane:t.lane,links:[],msStart:[],msEnd:[],collapsed:false};
+    processes.push(o); idMap[t.k]=o.id;
+  });
+  /* druhý průchod — rodiče a neutrální vazby v id aplikace */
+  tpl.procs.forEach(t=>{
+    const o=pmById(idMap[t.k]);
+    if(t.p)o.parent=idMap[t.p];
+    (t.dep||[]).forEach(d=>{if(idMap[d])o.links.push({from:idMap[d],type:'',lag:0})});
+  });
+  processes.filter(x=>x.scope==='concept:'+c.id).forEach(x=>pmQueue(x));
+  if(added)persistMeta();
+  pmFlush();
+  PM.mode='concept'; PM.conceptId=c.id; PM.sel=[]; PM.unit='month';
+  renderPMap();
+  toast(`Šablona načtena — ${tpl.procs.length} procesů${added?', '+added+' nových útvarů':''}`);
+}
 
 function pmNewConcept(){
   const o=Object.assign({},NEW_DEFAULT.concept,{id:nextId('concept'),name:'Nová varianta',t0:project.start});
