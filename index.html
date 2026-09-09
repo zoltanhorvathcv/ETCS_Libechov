@@ -385,12 +385,13 @@ textarea::placeholder{color:var(--text3)}
 .toast .ti{color:var(--ok)}
 .modal-veil{position:fixed;inset:0;background:rgba(4,5,8,.6);backdrop-filter:blur(4px);display:none;place-items:center;z-index:80}
 .modal-veil.open{display:grid}
-.modal{width:520px;max-width:92vw;background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:24px;animation:viewIn .3s}
+.modal{width:520px;max-width:92vw;max-height:88vh;overflow-y:auto;overscroll-behavior:contain;background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:24px;animation:viewIn .3s}
 .modal h3{font-size:16px;font-weight:700;margin-bottom:16px}
 .modal label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin:12px 0 5px}
 .modal input,.modal select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:inherit;font-size:13px;padding:10px 12px}
 .modal input:focus,.modal select:focus{outline:none;border-color:rgba(255,82,0,.5)}
-.modal .m-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.modal .m-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;position:sticky;bottom:0;background:var(--bg2);padding:14px 0 2px;box-shadow:0 -14px 18px -10px var(--bg2)}
+.person-new{margin-top:6px;border-color:rgba(255,82,0,.5)!important}
 .modal textarea{min-height:0}
 .modal .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .modal .full{grid-column:1/-1}
@@ -1675,6 +1676,57 @@ function openEditor(key,id){
   sc.fields.forEach(f=>{if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs'||f.t==='peoplerefs')pmSubRender(f.k)});
   $('#editor').classList.add('open');
 }
+/* ---- Zakládání osob do sdíleného seznamu `people` ----------------------
+   Osoby jsou jeden společný zdroj pro celou aplikaci (vlastníci milníků,
+   úkolů, rizik i gestoři procesů). Nová osoba přidaná z kteréhokoli výběru
+   se uloží do `people` a je hned k dispozici všude jinde. */
+const NEW_PERSON='__new__';
+const PERSON_OPT=`<option value="${NEW_PERSON}">＋ Nová osoba…</option>`;
+function newPersonCode(name){
+  const base=name.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .split(/\s+/).filter(Boolean).map(w=>w[0]).join('').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3)||'X';
+  let code=base,n=1;
+  while(people[code])code=base+(++n);
+  return code;
+}
+function addPersonInline(sel,apply){
+  const prev=sel.dataset.prev||'';
+  const inp=document.createElement('input');
+  inp.className='person-new';
+  inp.placeholder='Jméno a příjmení — potvrďte Enter';
+  sel.style.display='none';
+  sel.parentElement.insertBefore(inp,sel.nextSibling);
+  inp.focus();
+  let done=false;
+  const finish=commit=>{
+    if(done)return; done=true;
+    const name=inp.value.trim();
+    inp.remove(); sel.style.display='';
+    if(commit&&name){
+      const code=newPersonCode(name);
+      people[code]=name; persistMeta();
+      sel.add(new Option(name,code),sel.querySelector(`option[value="${NEW_PERSON}"]`));
+      sel.value=code;
+      toast('Osoba přidána do sdíleného seznamu — je k dispozici i v ostatních formulářích');
+    } else sel.value=prev;
+    sel.dataset.prev=sel.value;
+    apply&&apply(sel.value);
+  };
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();e.stopPropagation();finish(true)}
+    else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();finish(false)}
+  });
+  inp.addEventListener('blur',()=>finish(true));
+}
+function edPersonPick(sel){
+  if(sel.value===NEW_PERSON)addPersonInline(sel);
+  else sel.dataset.prev=sel.value;
+}
+function pmPersonPick(sel,key,i){
+  const write=v=>{if(key==='cogestors')edCtx.obj.cogestors[i].who=v;else edCtx.obj[key][i]=v};
+  if(sel.value===NEW_PERSON){addPersonInline(sel,write);return}
+  sel.dataset.prev=sel.value; write(sel.value);
+}
 function fieldHTML(f,o){
   let v=o[f.k]; if(v===undefined||v===null)v='';
   const id='edf-'+f.k, cls=f.full?'full':'';
@@ -1684,7 +1736,12 @@ function fieldHTML(f,o){
   if(f.t==='textarea')input=`<textarea id="${id}" style="min-height:70px">${esc(v)}</textarea>`;
   else if(f.t==='lines')input=`<textarea id="${id}" style="min-height:70px">${esc(Array.isArray(v)?v.join('\n'):v)}</textarea>`;
   else if(f.t==='csv')input=`<input id="${id}" value="${esc(Array.isArray(v)?v.join(','):v)}">`;
-  else if(f.t==='select'){const opts=typeof f.opts==='function'?f.opts():f.opts;input=`<select id="${id}">${opts.map(([val,lab])=>`<option value="${esc(val)}" ${String(val)===String(v)?'selected':''}>${esc(lab)}</option>`).join('')}</select>`;}
+  else if(f.t==='select'){
+    const opts=typeof f.opts==='function'?f.opts():f.opts;
+    const extra=f.people?`<option value="${NEW_PERSON}">＋ Nová osoba…</option>`:'';
+    const attrs=f.people?` data-prev="${esc(v)}" onchange="edPersonPick(this)"`:'';
+    input=`<select id="${id}"${attrs}>${opts.map(([val,lab])=>`<option value="${esc(val)}" ${String(val)===String(v)?'selected':''}>${esc(lab)}</option>`).join('')}${extra}</select>`;
+  }
   else input=`<input id="${id}" type="${f.t==='number'?'number':f.t==='date'?'date':'text'}" value="${esc(v)}">`;
   return `<div class="${cls}"><label>${f.l}</label>${input}</div>`;
 }
@@ -2744,11 +2801,11 @@ function pmEditConcept(){const c=pmConcept();if(c)openEditor('concept',c.id)}
 function pmSubRender(k){
   const host=document.getElementById('edf-'+k); if(!host||!edCtx)return;
   const o=edCtx.obj; if(!Array.isArray(o[k]))o[k]=[];
-  const who=v=>[['','—']].concat(OWNER_OPTS()).map(([a,l])=>`<option value="${a}" ${a===v?'selected':''}>${esc(l)}</option>`).join('');
+  const who=v=>[['','—']].concat(OWNER_OPTS()).map(([a,l])=>`<option value="${a}" ${a===v?'selected':''}>${esc(l)}</option>`).join('')+PERSON_OPT;
   let h='';
   if(k==='cogestors'){
     h=o[k].map((r,i)=>`<div class="pm-subrow">
-        <select onchange="edCtx.obj.cogestors[${i}].who=this.value">${who(r.who)}</select>
+        <select data-prev="${esc(r.who||'')}" onchange="pmPersonPick(this,'cogestors',${i})">${who(r.who)}</select>
         <input value="${esc(r.resp||'')}" placeholder="za co odpovídá" oninput="edCtx.obj.cogestors[${i}].resp=this.value">
         <button type="button" class="x" onclick="edCtx.obj.cogestors.splice(${i},1);pmSubRender('cogestors')">✕</button></div>`).join('');
     h+=`<button type="button" class="pm-addbtn" onclick="edCtx.obj.cogestors.push({who:'',resp:''});pmSubRender('cogestors')">＋ Spolugestor</button>`;
@@ -2768,7 +2825,7 @@ function pmSubRender(k){
   }
   else if(k==='affected'){
     h=o[k].map((id,i)=>`<div class="pm-subrow">
-        <select onchange="edCtx.obj.affected[${i}]=this.value">${who(id)}</select>
+        <select data-prev="${esc(id||'')}" onchange="pmPersonPick(this,'affected',${i})">${who(id)}</select>
         <button type="button" class="x" onclick="edCtx.obj.affected.splice(${i},1);pmSubRender('affected')">✕</button></div>`).join('');
     h+=`<button type="button" class="pm-addbtn" onclick="edCtx.obj.affected.push('');pmSubRender('affected')">＋ Osoba</button>`;
   }
@@ -2781,6 +2838,11 @@ function pmSubRender(k){
   }
   host.innerHTML=h;
 }
+/* každý výběr osoby v aplikaci umí založit novou osobu do sdíleného seznamu */
+Object.keys(SCHEMAS).forEach(k=>{
+  (SCHEMAS[k].fields||[]).forEach(f=>{if(f.k==='owner'||f.k==='gestor')f.people=1});
+});
+
 function pmLinkFrom(i,v){
   const o=edCtx.obj;
   if(v&&o.id&&pmWouldCycle(v,o.id)){toast('Tato vazba by uzavřela kruh — odmítnuto');pmSubRender('links');return}
