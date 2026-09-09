@@ -923,6 +923,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       <span><i class="o"></i>odvozený — šrafovaný</span>
       <span><i class="p"></i>potvrzený — plný</span>
       <span>Barva obrysu = stav plnění · červená vazba = porušená</span>
+      <span class="ed-only">Tažením plochy posunete plátno · Shift+tažení vybere víc procesů · Ctrl+kolečko přiblíží</span>
     </div>
 
     <div id="pm-inspector"></div>
@@ -2786,22 +2787,24 @@ function pmPointerDown(e){
   const g=e.target.closest('.pmb');
   const edit=document.body.classList.contains('editing');
 
-  /* posun plátna: prostřední tlačítko, mezerník, nebo tažení plochou mimo editaci */
-  if(e.button===1||pmSpace||(!g&&!edit)){
+  /* Prázdná plocha: tažení posouvá plátno (nejčekanější chování),
+     gumička na výběr je pod Shiftem. Posun jde i prostředním tlačítkem
+     a mezerníkem odkudkoli, tedy i nad procesem. */
+  if(e.button===1||pmSpace){
     pmPan={x:e.clientX,y:e.clientY,sl:host.scrollLeft,st:host.scrollTop};
     host.classList.add('panning');
     e.preventDefault(); return;
   }
-
-  /* gumička na prázdné ploše */
   if(!g){
-    if(edit&&!PM.splitMode){
+    if(edit&&e.shiftKey&&!PM.splitMode){
       const r=pmLocal(e.clientX,e.clientY);
-      pmMarq={x0:r.x,y0:r.y,x1:r.x,y1:r.y,add:e.shiftKey,base:e.shiftKey?PM.sel.slice():[]};
-      if(!e.shiftKey&&PM.sel.length){PM.sel=[];renderPMap()}
-      e.preventDefault();
+      pmMarq={x0:r.x,y0:r.y,x1:r.x,y1:r.y,add:true,base:PM.sel.slice()};
+    } else {
+      if(PM.sel.length){PM.sel=[];renderPMap()}
+      pmPan={x:e.clientX,y:e.clientY,sl:host.scrollLeft,st:host.scrollTop};
+      host.classList.add('panning');
     }
-    return;
+    e.preventDefault(); return;
   }
 
   const p=pmById(g.dataset.id); if(!p)return;
