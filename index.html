@@ -1999,6 +1999,7 @@ let AUTH=false;
 async function refreshAuth(){
   if(sb){try{const {data}=await sb.auth.getSession();AUTH=!!(data&&data.session)}catch(e){AUTH=false}}else AUTH=false;
   applyAuthUI();
+  if(AUTH&&typeof pmSeedTemplate==='function')pmSeedTemplate();
 }
 function applyAuthUI(){
   document.body.classList.toggle('authed',AUTH);
@@ -3552,9 +3553,18 @@ const PM_TPL_ETCS={
      desc:'Provede přednosta SSZT nebo jím pověřený zaměstnanec, po splnění všech podmínek dle T200. Podmínkou je platný průkaz způsobilosti.'}
   ]
 };
-function pmTemplateConcept(){
+function pmTemplateConcept(){histPush();pmBuildTemplate(false)}
+/* Jednorázové založení šablony do dat. Spouští se i samo po přihlášení,
+   aby koncept existoval bez nutnosti klikat — zápis do Supabase je
+   povolen jen přihlášenému správci (RLS), proto až v té chvíli. */
+function pmSeedTemplate(){
+  if(!ONLINE||!AUTH)return;
+  if(concepts.some(c=>c.name===PM_TPL_ETCS.name))return;
+  const c=pmBuildTemplate(true);
+  if(c)toast('Přidán koncept „'+PM_TPL_ETCS.name+'“ — najdete jej ve výběru variant');
+}
+function pmBuildTemplate(silent){
   const tpl=PM_TPL_ETCS;
-  histPush();
   /* útvary ze šablony doplníme, existující nepřepisujeme */
   let added=0;
   Object.keys(tpl.units).forEach(u=>{if(!orgUnits[u]){orgUnits[u]=tpl.units[u];added++}});
@@ -3579,9 +3589,12 @@ function pmTemplateConcept(){
   processes.filter(x=>x.scope==='concept:'+c.id).forEach(x=>pmQueue(x));
   if(added)persistMeta();
   pmFlush();
-  PM.mode='concept'; PM.conceptId=c.id; PM.sel=[]; PM.unit='month';
+  if(!silent){
+    PM.mode='concept'; PM.conceptId=c.id; PM.sel=[]; PM.unit='month';
+    toast(`Šablona načtena — ${tpl.procs.length} procesů${added?', '+added+' nových útvarů':''}`);
+  }
   renderPMap();
-  toast(`Šablona načtena — ${tpl.procs.length} procesů${added?', '+added+' nových útvarů':''}`);
+  return c;
 }
 
 function pmNewConcept(){
