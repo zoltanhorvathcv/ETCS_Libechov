@@ -461,6 +461,18 @@ body.editing .ed-only{display:inline-flex!important}
 .pm-spacer{flex:1}
 .pm-hint{font-size:11.5px;color:var(--text3);font-family:var(--mono)}
 .pm-stage{position:relative}
+.pm-leg{position:absolute;left:14px;bottom:14px;z-index:6;max-width:min(560px,calc(100% - 28px));
+  background:rgba(14,17,25,.82);backdrop-filter:blur(12px);border:1px solid var(--border2);
+  border-radius:11px;padding:8px 11px;font-size:11px;color:var(--text2);cursor:pointer;transition:.18s}
+.pm-leg:hover{border-color:var(--border2)}
+.pm-leg .row{display:flex;flex-wrap:wrap;gap:5px 14px;align-items:center}
+.pm-leg .row+.row{margin-top:7px}
+.pm-leg .grp{font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--text3);margin-right:2px}
+.pm-leg .it{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.pm-leg .it.off{opacity:.42}
+.pm-leg .sw{width:15px;height:11px;border-radius:3px;border:1.4px solid;flex:none}
+.pm-leg .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.pm-leg .hint{color:var(--text3);font-size:10px;margin-top:6px;display:block}
 .pm-help{position:absolute;top:10px;right:16px;z-index:7;width:30px;height:30px;border-radius:50%;
   display:none;place-items:center;cursor:pointer;opacity:.5;transition:.18s;
   background:rgba(21,25,38,.75);backdrop-filter:blur(6px);
@@ -939,6 +951,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
     <div class="pm-stage">
       <div class="pm-canvas" id="pm-canvas"></div>
       <button class="pm-help" id="pm-help" onclick="pmToggleHelp()" title="Ovládání plátna">?</button>
+      <div class="pm-leg" id="pm-leg"></div>
       <div class="pm-helpbox" id="pm-helpbox">
         <div class="pm-helpgrid">
           <section>
@@ -978,12 +991,6 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       </div>
     </div>
 
-    <div class="pm-legend">
-      <span><i class="k"></i>koncept — jen obrys</span>
-      <span><i class="o"></i>odvozený — šrafovaný</span>
-      <span><i class="p"></i>potvrzený — plný</span>
-      <span>Obrys a výplň = fáze · proužek vlevo = stav plnění · červená = rozpor nebo porušená vazba</span>
-    </div>
 
     <div id="pm-inspector"></div>
   </section>
@@ -2229,10 +2236,13 @@ function pmGeom(p,b){
 }
 const pmHeadH=()=>pmAxisMode()==='off'?10:36;
 function pmRailPath(x,y,w,h){
-  const c=Math.min(8,h/3);
+  const c=Math.min(5,h/3);   // menší zkosení = delší svislá hrana pro proužek stavu
   return `M ${x+c} ${y} H ${x+w-c} L ${x+w} ${y+c} V ${y+h-c} L ${x+w-c} ${y+h} H ${x+c} L ${x} ${y+h-c} V ${y+c} Z`;
 }
-const PM_STATUSCOL={done:'var(--ok)',track:'var(--track)',risk:'var(--risk)',blocked:'var(--blocked)',replanned:'var(--replanned)',idle:'var(--idle)'};
+/* Odstíny pro proužek stavu — „nezahájeno“ musí být na tmavém plátně vidět,
+   proto světlejší než --idle použité jinde v aplikaci. */
+const PM_STATUSCOL={done:'#3ddc97',track:'#6d8dff',risk:'#ffb020',blocked:'#ff5c6a',replanned:'#b78cff',idle:'#8b97b1'};
+const PM_STATUSLBL={done:'Dokončeno',track:'Podle plánu',risk:'Ohroženo',blocked:'Blokováno',replanned:'Přeplánováno',idle:'Nezahájeno'};
 /* Barva odlišuje fázi či skupinu, ne stav plnění — ten nese barva obrysu.
    Podproces barvu dědí po rodiči, pokud vlastní nemá. */
 const PM_COLORS=[['blue','#3D82C4','Modrá'],['green','#3ddc97','Zelená'],['orange','#FF5200','Oranžová'],
@@ -2286,6 +2296,7 @@ function renderPMap(){
         ? 'Vznikne zpevněním zdrojového konceptu — tlačítko <b>Zpevnit do mapy</b> v editačním režimu.'
         : 'V editačním režimu přidejte první proces tlačítkem <b>＋ Proces</b>.'}</div>`;
     $('#pm-count').textContent='';
+    pmRenderLegend();
     return;
   }
 
@@ -2365,6 +2376,34 @@ function renderPMap(){
     });
   });
 
+  /* Rozmístění názvů se plánuje předem, aby se popisky nepřekrývaly:
+     dovnitř procesu → vpravo vedle něj → nad ním → pod ním → zkrácený.
+     Celý název je vždy dostupný i jako popisek pod kurzorem. */
+  const laneNext={};
+  list.forEach(p=>{const g=pmGeom(p,b);(laneNext[p.lane||0]=laneNext[p.lane||0]||[]).push({x:g.x})});
+  Object.keys(laneNext).forEach(k=>laneNext[k].sort((a,c)=>a.x-c.x));
+  const plan={}, occ={};
+  list.slice().sort((a,c)=>(a.lane||0)-(c.lane||0)||pmGeom(a,b).x-pmGeom(c,b).x).forEach(p=>{
+    const g=pmGeom(p,b), fs=p.parent?11:12;
+    const hasKids=pmAll().some(x=>x.parent===p.id);
+    const tx0=g.x+(hasKids?22:10), tw=p.name.length*fs*0.53;
+    const inside=g.w-(tx0-g.x)-8;
+    if(tw<=inside){plan[p.id]={x:tx0,y:g.y+g.h/2+4,fs,fill:'var(--text)'};return}
+    const nxt=(laneNext[p.lane||0]||[]).find(o=>o.x>g.x+g.w-1);
+    if(tw<=(nxt?nxt.x:W)-(g.x+g.w)-14){plan[p.id]={x:g.x+g.w+8,y:g.y+g.h/2+4,fs,fill:'var(--text)'};return}
+    const rows=[['a',g.y-4],['b',g.y+g.h+11]];
+    for(let i=0;i<rows.length;i++){
+      const key=(p.lane||0)+rows[i][0], arr=occ[key]=occ[key]||[];
+      if(!arr.some(iv=>g.x<iv[1]+8&&g.x+tw>iv[0]-8)){
+        arr.push([g.x,g.x+tw]);
+        plan[p.id]={x:g.x+1,y:rows[i][1],fs:fs-0.5,fill:'var(--text2)'};
+        return;
+      }
+    }
+    const max=Math.max(1,Math.floor(inside/(fs*0.53)));
+    plan[p.id]={x:tx0,y:g.y+g.h/2+4,fs,fill:'var(--text)',cut:max};
+  });
+
   /* procesy */
   list.forEach(p=>{
     const g=pmGeom(p,b), col=PM_STATUSCOL[p.status]||'var(--idle)';
@@ -2386,17 +2425,19 @@ function renderPMap(){
       s+=`<line x1="${g.x+4}" y1="${g.y+3}" x2="${g.x+4}" y2="${g.y+g.h-3}" stroke="${stroke}" stroke-width="1.6"/>
           <line x1="${g.x+g.w-4}" y1="${g.y+3}" x2="${g.x+g.w-4}" y2="${g.y+g.h-3}" stroke="${stroke}" stroke-width="1.6"/>`;
     }
-    s+=`<path d="M ${g.x+2} ${g.y+4} V ${g.y+g.h-4}" stroke="${over?'#ff5c6a':col}" stroke-width="3.2" stroke-linecap="round"/>`;
+    /* proužek leží přesně na svislé hraně segmentu, aby netrčel do zkosení */
+    const cc=Math.min(5,g.h/3);
+    s+=`<path d="M ${g.x+2.6} ${g.y+cc} V ${g.y+g.h-cc}" stroke="${over?'#ff5c6a':col}" stroke-width="3.4" stroke-linecap="round"/>`;
     const kids=pmAll().filter(x=>x.parent===p.id).length;
     let tx0=g.x+10;
     if(kids){
       s+=`<text class="pmtog" data-tog="${p.id}" x="${g.x+9}" y="${g.y+g.h/2+4}" font-size="11" fill="var(--text2)" style="cursor:pointer">${p.collapsed?'▸':'▾'}</text>`;
       tx0=g.x+22;
     }
-    const maxc=Math.max(0,Math.floor((g.w-(tx0-g.x)-8)/6.4));
-    const label=p.name.length>maxc?p.name.slice(0,Math.max(1,maxc-1))+'…':p.name;
-    if(maxc>2) s+=`<text x="${tx0}" y="${g.y+g.h/2+4}" font-size="${p.parent?11:12}" fill="var(--text)" font-family="Inter,sans-serif">${escXml(label)}</text>`;
-    else s+=`<text x="${g.x+g.w+8}" y="${g.y+g.h/2+4}" font-size="11.5" fill="var(--text2)" font-family="Inter,sans-serif">${escXml(p.name)}</text>`;
+    const pl=plan[p.id]||{x:tx0,y:g.y+g.h/2+4,fs:12,fill:'var(--text)'};
+    const lab=pl.cut?p.name.slice(0,Math.max(1,pl.cut-1))+'…':p.name;
+    s+=`<text x="${pl.x}" y="${pl.y}" font-size="${pl.fs}" fill="${pl.fill}" font-family="Inter,sans-serif">${escXml(lab)}</text>`;
+    s+=`<title>${escXml(p.id+' · '+p.name)}</title>`;
     s+=`<rect class="pmgrip" data-grip="${p.id}" x="${g.x+g.w-7}" y="${g.y}" width="9" height="${g.h}" fill="transparent" style="cursor:ew-resize"/>`;
     s+=`</g>`;
 
@@ -2414,7 +2455,7 @@ function renderPMap(){
   }
   s+=`</svg>`;
   host.innerHTML=s;
-  pmSyncSticky();
+  pmSyncSticky(); pmRenderLegend();
   $('#pm-count').textContent=`${pmAll().length} procesů`;
   pmRenderInspector();
 }
@@ -2684,6 +2725,47 @@ function pplSave(){
 }
 
 /* ================= CELÁ OBRAZOVKA ================= */
+/* Legenda čte, co je na plátně, a po rozkliknutí ukáže i nevyužité možnosti. */
+function pmToggleLegend(){PM.legOpen=!PM.legOpen;pmRenderLegend()}
+function pmRenderLegend(){
+  const host=$('#pm-leg'); if(!host)return;
+  const list=pmVisible(), open=!!PM.legOpen;
+  if(!list.length){host.innerHTML='<span class="grp">Legenda</span> plátno je prázdné';return}
+  const it=(sw,lab,off)=>`<span class="it${off?' off':''}">${sw}<span>${escXml(lab)}</span></span>`;
+  const swBox=c=>`<span class="sw" style="border-color:${c};background:${c}26"></span>`;
+  const swDot=c=>`<span class="dot" style="background:${c}"></span>`;
+
+  /* fáze podle kořenových procesů, které barvu opravdu používají */
+  const roots=list.filter(p=>!p.parent&&pmColorOf(p));
+  const seen={}, faze=[];
+  roots.forEach(r=>{const c=pmColorOf(r); if(!seen[c]){seen[c]=1;faze.push(it(swBox(c),r.name.replace(/^([A-D]\.|Paralelní)\s*/,'').slice(0,30)))}});
+  const volne=PM_COLORS.filter(c=>!seen[c[1]]).map(c=>it(swBox(c[1]),c[2],true));
+
+  /* stavy a zralost, které se na plátně vyskytují */
+  const stavy=[...new Set(list.map(p=>p.status))];
+  const zral=[...new Set(list.map(p=>p.state))];
+  const zlbl={koncept:'koncept — obrys',odvozeny:'odvozený — šrafa',potvrzeny:'potvrzený — plný'};
+  const zsw={koncept:'<span class="sw" style="border-color:var(--text3);border-style:dashed"></span>',
+             odvozeny:'<span class="sw" style="border-color:var(--text3);background:repeating-linear-gradient(45deg,rgba(154,161,181,.5) 0 2px,transparent 2px 5px)"></span>',
+             potvrzeny:'<span class="sw" style="border-color:var(--text3);background:rgba(154,161,181,.35)"></span>'};
+
+  const grps=pmGroupsIn();
+  let h=`<div class="row"><span class="grp">Fáze</span>${faze.join('')||'<span class="it off">zatím bez barvy</span>'}</div>`;
+  h+=`<div class="row"><span class="grp">Stav</span>${stavy.map(k=>it(swDot(PM_STATUSCOL[k]||'#8b97b1'),PM_STATUSLBL[k]||k)).join('')}</div>`;
+  h+=`<div class="row"><span class="grp">Zralost</span>${zral.map(k=>it(zsw[k]||'',zlbl[k]||k)).join('')}</div>`;
+  if(grps.length)h+=`<div class="row"><span class="grp">Rámečky</span>${grps.map(g=>it(swBox(pmHex(g.color)||'#8b97b1'),g.name)).join('')}</div>`;
+  if(open){
+    if(volne.length)h+=`<div class="row"><span class="grp">Volné barvy</span>${volne.join('')}</div>`;
+    const zbyleSt=Object.keys(PM_STATUSLBL).filter(k=>stavy.indexOf(k)<0);
+    if(zbyleSt.length)h+=`<div class="row"><span class="grp">Další stavy</span>${zbyleSt.map(k=>it(swDot(PM_STATUSCOL[k]),PM_STATUSLBL[k],true)).join('')}</div>`;
+    const zbyleZr=Object.keys(zlbl).filter(k=>zral.indexOf(k)<0);
+    if(zbyleZr.length)h+=`<div class="row"><span class="grp">Další zralost</span>${zbyleZr.map(k=>it(zsw[k],zlbl[k],true)).join('')}</div>`;
+    h+=`<span class="hint">Obrys a výplň nesou fázi, proužek u levé hrany stav plnění, vzor výplně zralost. Červená značí rozpor se zamčeným milníkem nebo porušenou vazbu.</span>`;
+  } else h+=`<span class="hint">Kliknutím zobrazíte i nevyužité možnosti</span>`;
+  host.innerHTML=h;
+  host.onclick=pmToggleLegend;
+}
+
 /* Nápověda k ovládání — kroužek nad plátnem, panel s průhledným pozadím. */
 function pmToggleHelp(force){
   const on=force===undefined?!$('#pm-helpbox').classList.contains('on'):!!force;
