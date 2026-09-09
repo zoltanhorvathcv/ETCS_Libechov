@@ -982,7 +982,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       <span><i class="k"></i>koncept — jen obrys</span>
       <span><i class="o"></i>odvozený — šrafovaný</span>
       <span><i class="p"></i>potvrzený — plný</span>
-      <span>Barva obrysu = stav plnění · červená vazba = porušená</span>
+      <span>Obrys a výplň = fáze · proužek vlevo = stav plnění · červená = rozpor nebo porušená vazba</span>
     </div>
 
     <div id="pm-inspector"></div>
@@ -1972,6 +1972,7 @@ function hydrate(rows){
   if(by.task)tasks=by.task; if(by.risk)risks=by.risk; if(by.evidence)evidence=by.evidence;
   if(by.change)changes=by.change;
   if(by.concept)concepts=by.concept; if(by.process)processes=by.process;
+  if(by.pmgroup)pmgroups=by.pmgroup;
 }
 function rowFor(entity,o,i){return {project_id:SUPA.projectId,entity,id:idOf(entity,o),sort:i,data:o}}
 async function persistAll(){
@@ -1979,7 +1980,7 @@ async function persistAll(){
   const rows=[rowFor('project',project,0),rowFor('people',people,0),
     {project_id:SUPA.projectId,entity:'units',id:'meta',sort:0,data:orgUnits},
     {project_id:SUPA.projectId,entity:'staff',id:'meta',sort:0,data:staff}];
-  [['milestone',milestones],['meeting',meetings],['question',questions],['decision',decisions],['task',tasks],['risk',risks],['evidence',evidence],['concept',concepts],['process',processes]]
+  [['milestone',milestones],['meeting',meetings],['question',questions],['decision',decisions],['task',tasks],['risk',risks],['evidence',evidence],['concept',concepts],['process',processes],['pmgroup',pmgroups]]
     .forEach(([e,arr])=>arr.forEach((o,i)=>rows.push(rowFor(e,o,i))));
   // people uložíme jako celý objekt pod jedním id
   rows[1].id='meta';
@@ -2232,6 +2233,23 @@ function pmRailPath(x,y,w,h){
   return `M ${x+c} ${y} H ${x+w-c} L ${x+w} ${y+c} V ${y+h-c} L ${x+w-c} ${y+h} H ${x+c} L ${x} ${y+h-c} V ${y+c} Z`;
 }
 const PM_STATUSCOL={done:'var(--ok)',track:'var(--track)',risk:'var(--risk)',blocked:'var(--blocked)',replanned:'var(--replanned)',idle:'var(--idle)'};
+/* Barva odlišuje fázi či skupinu, ne stav plnění — ten nese barva obrysu.
+   Podproces barvu dědí po rodiči, pokud vlastní nemá. */
+const PM_COLORS=[['blue','#3D82C4','Modrá'],['green','#3ddc97','Zelená'],['orange','#FF5200','Oranžová'],
+  ['purple','#b78cff','Fialová'],['gold','#ffb020','Zlatá'],['teal','#2fbfc7','Tyrkysová'],
+  ['pink','#ff6fa5','Růžová'],['slate','#8b97b1','Šedomodrá']];
+const PM_COLOR_OPTS=[['','— bez barvy']].concat(PM_COLORS.map(([k,,l])=>[k,l]));
+function pmHex(key){const f=PM_COLORS.find(c=>c[0]===key);return f?f[1]:(key&&key[0]==='#'?key:null)}
+function pmColorOf(p){
+  if(!p)return null;
+  let k=p.color;
+  if(!k&&p.parent){const par=pmById(p.parent); if(par)k=par.color}
+  return pmHex(k);
+}
+/* Rámečky — volné seskupení libovolných procesů; obdélník se sám
+   přizpůsobuje poloze svých členů. */
+let pmgroups=[];
+const pmGroupsIn=()=>pmgroups.filter(g=>g.scope===pmScope());
 
 /* ---- kontrola porušených vazeb ---- */
 function pmViolated(l,target){
@@ -2297,6 +2315,31 @@ function renderPMap(){
   if(tx>0&&tx<W) s+=`<line x1="${tx}" y1="${head}" x2="${tx}" y2="${H}" stroke="rgba(255,82,0,.5)" stroke-width="1.4" stroke-dasharray="4 4"/>
     <text x="${tx+6}" y="${head+13}" fill="var(--accent)" font-family="var(--mono)" font-size="10">DNES</text>`;
 
+  /* rámečky se kreslí vespod, aby nepřekrývaly procesy */
+  pmGroupsIn().forEach(gr=>{
+    const mem=list.filter(x=>(gr.members||[]).indexOf(x.id)>-1);
+    if(!mem.length)return;
+    let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+    mem.forEach(x=>{const g=pmGeom(x,b);x0=Math.min(x0,g.x);x1=Math.max(x1,g.x+g.w);y0=Math.min(y0,g.y);y1=Math.max(y1,g.y+g.h)});
+    const col=pmHex(gr.color)||'#8b97b1', pad=11, top=y0-pad-17;
+    s+=`<g class="pmgrp" data-gid="${gr.id}">
+      <rect x="${x0-pad}" y="${top}" width="${x1-x0+pad*2}" height="${y1-top+pad}" rx="11"
+        fill="${col}12" stroke="${col}" stroke-width="1.2" stroke-dasharray="7 5" pointer-events="none"/>
+      <text x="${x0-pad+11}" y="${top+13}" font-size="10.5" font-weight="600"
+        fill="${col}" font-family="Inter,sans-serif" style="cursor:pointer">${escXml(gr.name||'Rámeček')}</text></g>`;
+  });
+
+  /* spojnice rodič → podprocesy */
+  list.filter(x=>!x.parent).forEach(par=>{
+    const kids=list.filter(k=>k.parent===par.id);
+    if(!kids.length)return;
+    const gp=pmGeom(par,b), col=pmColorOf(par)||'#5d6478';
+    const x=gp.x+10, last=pmGeom(kids[kids.length-1],b);
+    s+=`<path d="M ${x} ${gp.y+gp.h} V ${last.y+last.h/2}" fill="none" stroke="${col}" stroke-width="1.1" opacity=".45"/>`;
+    kids.forEach(k=>{const g=pmGeom(k,b);
+      s+=`<path d="M ${x} ${g.y+g.h/2} H ${g.x-1}" fill="none" stroke="${col}" stroke-width="1.1" opacity=".45"/>`});
+  });
+
   /* vazby — oblouk výhybky */
   list.forEach(p=>{
     (p.links||[]).forEach(l=>{
@@ -2326,11 +2369,14 @@ function renderPMap(){
   list.forEach(p=>{
     const g=pmGeom(p,b), col=PM_STATUSCOL[p.status]||'var(--idle)';
     const over=pmMsOverrun(p);
-    const stroke=over?'#ff5c6a':col;
-    /* transparent, ne none — "none" nepřijímá kliknutí, celá plocha musí zůstat úchopná */
-    let fill='transparent', dash='';
+    const tint=pmColorOf(p);
+    /* Obrys a výplň nesou fázi, proužek vlevo stav plnění, vzor výplně
+       zralost. Rozpor s zamčeným milníkem přebíjí vše červenou.
+       transparent, ne none — "none" nepřijímá kliknutí. */
+    const stroke=over?'#ff5c6a':(tint||col);
+    let fill=tint?tint+'26':'transparent', dash='';
     if(p.state==='odvozeny')fill='url(#pmHatch)';
-    else if(p.state==='potvrzeny')fill='rgba(61,130,196,.15)';
+    else if(p.state==='potvrzeny')fill=tint?tint+'45':'rgba(61,130,196,.15)';
     else dash='stroke-dasharray="5 3"';
     const on=pmSelHas(p.id);
     s+=`<g class="pmb${on?' sel':''}" data-id="${p.id}">
@@ -2340,6 +2386,7 @@ function renderPMap(){
       s+=`<line x1="${g.x+4}" y1="${g.y+3}" x2="${g.x+4}" y2="${g.y+g.h-3}" stroke="${stroke}" stroke-width="1.6"/>
           <line x1="${g.x+g.w-4}" y1="${g.y+3}" x2="${g.x+g.w-4}" y2="${g.y+g.h-3}" stroke="${stroke}" stroke-width="1.6"/>`;
     }
+    s+=`<path d="M ${g.x+2} ${g.y+4} V ${g.y+g.h-4}" stroke="${over?'#ff5c6a':col}" stroke-width="3.2" stroke-linecap="round"/>`;
     const kids=pmAll().filter(x=>x.parent===p.id).length;
     let tx0=g.x+10;
     if(kids){
@@ -2708,7 +2755,7 @@ function pmConfirm(id){
    Změny se zapisují průběžně (bez tlačítka Uložit) a plátno se hned
    překresluje — proto se panel při psaní nesmí přestavovat (PM.panelLock). */
 const PM_TABS=[
-  {id:'zaklad',l:'Základ',keys:['name','desc','status','state']},
+  {id:'zaklad',l:'Základ',keys:['name','desc','status','state','color']},
   {id:'cas',l:'Termíny a poloha',keys:['start','end','lane','parent']},
   {id:'lide',l:'Odpovědnost',keys:['gestor','cogestors','affected']},
   {id:'vazby',l:'Vazby',keys:['links']},
@@ -2738,6 +2785,8 @@ function pmRenderRibbon(host,p){
       <b>${PM.sel.length} vybraných procesů</b>
       <span class="pm-hint">šipkami posunete o den (se Shiftem o týden), Delete smaže</span>
       <div style="flex:1"></div>
+      <button class="btn ghost sm" title="Orámovat vybrané procesy jako skupinu" onclick="pmGroupSelected()">▣ Seskupit</button>
+      ${pmGroupsIn().map(g=>`<button class="btn ghost sm" title="Přidat vybrané do rámečku, nebo je z něj odebrat" onclick="pmGroupAddSel('${g.id}')">± ${escXml(g.name)}</button>`).join('')}
       <button class="btn ghost sm" title="Smazat všechny vybrané" onclick="pmDeleteSelected()">Smazat vybrané</button>
       <button class="btn ghost sm" title="Zrušit výběr" onclick="PM.sel=[];renderPMap()">✕</button>
     </div></div>`;
@@ -2857,6 +2906,10 @@ function pmPointerDown(e){
   const host=$('#pm-canvas');
   const tog=e.target.closest('.pmtog');
   if(tog){const p=pmById(tog.dataset.tog);if(p){p.collapsed=!p.collapsed;pmQueue(p);renderPMap()}return}
+  const grp=e.target.closest('.pmgrp');
+  if(grp&&document.body.classList.contains('editing')){
+    e.preventDefault(); pmEditGroup(grp.dataset.gid); return;
+  }
   const g=e.target.closest('.pmb');
   const edit=document.body.classList.contains('editing');
 
@@ -3051,6 +3104,11 @@ function pmDeleteSelected(){
     const before=(q.links||[]).length;
     q.links=(q.links||[]).filter(l=>!ids.has(l.from));
     if(q.links.length!==before)pmQueue(q);
+  });
+  pmgroups.forEach((g,i)=>{
+    const before=g.members.length;
+    g.members=g.members.filter(m=>!ids.has(m));
+    if(g.members.length!==before)persist('pmgroup',g,i);
   });
   sel.forEach(p=>{processes.splice(processes.indexOf(p),1);persistDelete('process',p)});
   PM.sel=[]; pmFlush(); renderPMap();
@@ -3461,6 +3519,7 @@ SCHEMAS.process={title:'Proces',entity:'process',arr:()=>processes,idf:'id',pref
   {k:'gestor',l:'Gestor (osoba nebo útvar)',t:'actor'},
   {k:'status',l:'Stav plnění',t:'select',opts:ST_OPTS},
   {k:'state',l:'Zralost',t:'select',opts:[['koncept','koncept'],['odvozeny','odvozený'],['potvrzeny','potvrzený']]},
+  {k:'color',l:'Barva fáze (podprocesy ji dědí)',t:'select',opts:()=>PM_COLOR_OPTS},
   {k:'start',l:'Začátek',t:'date'},{k:'end',l:'Konec',t:'date'},
   {k:'lane',l:'Pruh (souběh)',t:'number'},
   {k:'parent',l:'Nadřazený proces',t:'select',opts:()=>[['','— kořenová úroveň']].concat(
@@ -3472,6 +3531,38 @@ SCHEMAS.process={title:'Proces',entity:'process',arr:()=>processes,idf:'id',pref
   {k:'msStart',l:'Milníky na začátku procesu',t:'msrefs',full:1}
 ]};
 NEW_DEFAULT.process={scope:'concept:K-01',state:'koncept',status:'idle',lane:0,cogestors:[],affected:[],links:[],msStart:[],msEnd:[],collapsed:false};
+
+SCHEMAS.pmgroup={title:'Rámeček',entity:'pmgroup',arr:()=>pmgroups,idf:'id',prefix:'G-',fields:[
+  {k:'name',l:'Název rámečku',t:'text',full:1},
+  {k:'color',l:'Barva',t:'select',opts:()=>PM_COLOR_OPTS}
+]};
+NEW_DEFAULT.pmgroup={color:'slate',members:[]};
+
+/* Seskupí vybrané procesy do rámečku. */
+function pmGroupSelected(){
+  const sel=pmSelProcs();
+  if(sel.length<2){toast('Vyberte alespoň dva procesy — Shift+klik nebo gumička');return}
+  const name=(prompt('Název rámečku','Skupina')||'').trim();
+  if(!name)return;
+  histPush();
+  const used=pmGroupsIn().length;
+  const o={id:nextId('pmgroup'),scope:pmScope(),name,
+    color:PM_COLORS[used%PM_COLORS.length][0],members:sel.map(x=>x.id)};
+  pmgroups.push(o);
+  persist('pmgroup',o,pmgroups.length-1);
+  renderPMap(); toast(`Rámeček „${name}“ — ${sel.length} procesů`);
+}
+function pmEditGroup(id){openEditor('pmgroup',id)}
+/* Přidá vybrané procesy do existujícího rámečku, nebo je z něj odebere. */
+function pmGroupAddSel(id){
+  const gr=pmgroups.find(g=>g.id===id), sel=PM.sel.slice();
+  if(!gr||!sel.length)return;
+  histPush();
+  const inside=sel.every(x=>gr.members.indexOf(x)>-1);
+  gr.members=inside?gr.members.filter(x=>sel.indexOf(x)<0):[...new Set(gr.members.concat(sel))];
+  persist('pmgroup',gr,pmgroups.indexOf(gr));
+  renderPMap(); toast(inside?'Odebráno z rámečku':'Přidáno do rámečku');
+}
 
 SCHEMAS.concept={title:'Varianta konceptu',entity:'concept',arr:()=>concepts,idf:'id',prefix:'K-',fields:[
   {k:'name',l:'Název varianty',t:'text',full:1},
@@ -3503,7 +3594,7 @@ const PM_TPL_ETCS={
   /* k = klíč v šabloně, p = rodič, o = začátek ve dnech od T0, d = trvání,
      g = gestor, dep = neutrální vazby na předchůdce */
   procs:[
-    {k:'A',n:'A. Příprava a schválení dokumentace',g:'@O14',o:0,d:120,lane:0,
+    {k:'A',n:'A. Příprava a schválení dokumentace',g:'@O14',color:'blue',o:0,d:120,lane:0,
      desc:'Zpracování, přezkoušení, posouzení a schválení dokumentace. Schválená dokumentace je podkladem pro realizaci, přezkoušení i provoz zařízení.'},
     {k:'1',p:'A',n:'1 · Zpracování návrhu ETCS L1 LS',g:'@PROJ',o:0,d:45,lane:1,
      desc:'Zpracování projektové dokumentace včetně návrhu ETCS L1 LS. Požadavky na ETCS L1 LS dle ZTP a specifikací 3.6.0.'},
@@ -3514,7 +3605,7 @@ const PM_TPL_ETCS={
     {k:'4',p:'A',n:'4 · Schválení a evidence — O14',g:'@O14',o:95,d:25,lane:1,dep:['3'],
      desc:'Schválení dokumentace a její zaevidování.'},
 
-    {k:'U',n:'Paralelní proces — UTZ',g:'@PO',o:60,d:150,lane:2,
+    {k:'U',n:'Paralelní proces — UTZ',g:'@PO',color:'gold',o:60,d:150,lane:2,
      desc:'Technická prohlídka a zkouška určeného technického zařízení (UTZ). Běží souběžně s přípravou dokumentace a realizací; časové pořadí vůči TBZ není v T200 pevně dáno.'},
     {k:'A1',p:'U',n:'A1 · Technická prohlídka a zkouška UTZ právnickou osobou',g:'@PO',o:60,d:60,lane:3,dep:['1'],
      desc:'CTD určeno Ministerstvem dopravy. Nezávislý tým — nesmí se podílet na projektování, přezkoušení ani aktivaci zařízení. Pro potřeby Drážního úřadu.'},
@@ -3523,7 +3614,7 @@ const PM_TPL_ETCS={
     {k:'A3',p:'U',n:'A3 · Průkaz způsobilosti (Drážní úřad)',g:'@DU',o:140,d:70,lane:3,dep:['A2'],
      desc:'Vydání nebo změna průkazu způsobilosti zabezpečovacího zařízení. Podmínka pro uvedení do provozu.'},
 
-    {k:'B',n:'B. Realizace a příprava zařízení',g:'@ZHO',o:120,d:140,lane:4,
+    {k:'B',n:'B. Realizace a příprava zařízení',g:'@ZHO',color:'green',o:120,d:140,lane:4,
      desc:'Montáž, oživení a příprava zařízení k přezkoušení odbornou komisí.'},
     {k:'5',p:'B',n:'5 · Realizace zařízení',g:'@ZHO',o:120,d:90,lane:5,dep:['4'],
      desc:'Montáž dle schválené dokumentace.'},
@@ -3532,7 +3623,7 @@ const PM_TPL_ETCS={
     {k:'7',p:'B',n:'7 · Oznámení připravenosti k zahájení prací odborné komise',g:'@ZHO',o:245,d:15,lane:5,dep:['6'],
      desc:'Předání požadovaných podkladů. Jmenování odborné komise (O14 na návrh investora).'},
 
-    {k:'C',n:'C. Technickobezpečnostní zkouška (TBZ) podle T200',g:'@OK',o:260,d:90,lane:6,
+    {k:'C',n:'C. Technickobezpečnostní zkouška (TBZ) podle T200',g:'@OK',color:'orange',o:260,d:90,lane:6,
      desc:'Technické prohlídky, komplexní vyzkoušení, odstranění závad a protokol o provedení TBZ.'},
     {k:'8',p:'C',n:'8 · Technické prohlídky — odborná komise',g:'@OK',o:260,d:15,lane:7,dep:['7'],
      desc:'Ověření správnosti a úplnosti montáže. Ověření souladu se schválenou dokumentací.'},
@@ -3545,7 +3636,7 @@ const PM_TPL_ETCS={
     {k:'11',p:'C',n:'11 · Protokol o provedení TBZ',g:'@OK',o:340,d:10,lane:7,dep:['10'],
      desc:'Zpracuje předseda odborné komise. Závěrečné stanovisko k uvedení zařízení do provozu.'},
 
-    {k:'D',n:'D. Aktivace a uvedení do provozu',g:'@SSZT',o:350,d:30,lane:9,
+    {k:'D',n:'D. Aktivace a uvedení do provozu',g:'@SSZT',color:'purple',o:350,d:30,lane:9,
      desc:'Aktivace zařízení a jeho uvedení do provozu po splnění všech podmínek.'},
     {k:'12',p:'D',n:'12 · Aktivace zařízení',g:'@ZHO',o:350,d:15,lane:10,dep:['11'],
      desc:'Zapnutí a oživení zařízení do provozního stavu. Ověření návazností a přepojení.'},
@@ -3576,7 +3667,7 @@ function pmBuildTemplate(silent){
   const idMap={};
   tpl.procs.forEach(t=>{
     const o={id:nextId('process'),scope:'concept:'+c.id,name:t.n,desc:t.desc||'',
-      gestor:t.g||'',cogestors:[],affected:[],parent:'',state:'koncept',status:'idle',
+      gestor:t.g||'',color:t.color||'',cogestors:[],affected:[],parent:'',state:'koncept',status:'idle',
       start:pmAdd(t0,t.o),end:pmAdd(t0,t.o+t.d),lane:t.lane,links:[],msStart:[],msEnd:[],collapsed:false};
     processes.push(o); idMap[t.k]=o.id;
   });
@@ -3675,6 +3766,8 @@ function pmNormalize(){
   concepts.forEach(c=>{if(!c.axis)c.axis='cal';if(!c.t0)c.t0=project.start});
   if(!concepts.some(c=>c.src)&&concepts[0])concepts[0].src=true;
   if(!concepts.some(c=>c.id===PM.conceptId)&&concepts[0])PM.conceptId=concepts[0].id;
+  if(!Array.isArray(pmgroups))pmgroups=[];
+  pmgroups.forEach(g=>{if(!Array.isArray(g.members))g.members=[]});
   processes.forEach(p=>{
     ['cogestors','affected','links','msStart','msEnd'].forEach(k=>{if(!Array.isArray(p[k]))p[k]=[]});
     if(!p.scope)p.scope='concept:'+(concepts[0]?concepts[0].id:'K-01');
