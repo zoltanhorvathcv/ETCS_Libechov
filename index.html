@@ -460,11 +460,11 @@ body.editing .ed-only{display:inline-flex!important}
 .pm-sel{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:7px 10px;font:500 12.5px 'Inter',sans-serif;cursor:pointer;max-width:280px}
 .pm-spacer{flex:1}
 .pm-hint{font-size:11.5px;color:var(--text3);font-family:var(--mono)}
-.pm-canvas{position:relative;overflow:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--panel)}
+.pm-canvas{position:relative;overflow:auto;border:1px solid var(--border2);border-radius:var(--r);background:#181d2a;height:60vh;min-height:360px}
 .pm-canvas svg{display:block}
 .pm-empty{padding:56px 30px;text-align:center;color:var(--text3)}
 .pm-empty b{display:block;color:var(--text);font-size:15px;margin-bottom:6px}
-.pm-legend{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:12px;font-size:11.5px;color:var(--text3)}
+.pm-legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:8px;font-size:11px;color:var(--text3)}
 .pm-legend span{display:inline-flex;align-items:center;gap:7px}
 .pm-legend i{width:24px;height:12px;border:1.4px solid var(--accent2);display:inline-block}
 .pm-legend i.k{background:none;border-style:dashed}
@@ -519,27 +519,29 @@ body.pm-full .pm-canvas{height:var(--pm-h,60vh)}
 
 /* --- pás karet (ribbon) --- */
 .pm-rib{border:1px solid var(--border2);border-radius:var(--r);background:var(--panel);margin-top:12px;overflow:hidden}
-.pm-rib-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:11px 16px;background:var(--panel2);border-bottom:1px solid var(--border)}
+.pm-rib-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:8px 14px;background:var(--panel2);border-bottom:1px solid var(--border)}
 .pm-rib-head .code{font-family:var(--mono);font-size:11px;color:var(--accent)}
 .pm-rib-head b{font-size:14.5px}
 .pm-tabs{display:flex;gap:2px;padding:0 10px;background:var(--panel2);border-bottom:1px solid var(--border);overflow-x:auto}
-.pm-tabs button{background:none;border:0;border-bottom:2px solid transparent;color:var(--text3);font:600 12.5px 'Inter',sans-serif;padding:9px 14px;cursor:pointer;white-space:nowrap;transition:.15s}
+.pm-tabs button{background:none;border:0;border-bottom:2px solid transparent;color:var(--text3);font:600 12px 'Inter',sans-serif;padding:7px 13px;cursor:pointer;white-space:nowrap;transition:.15s}
 .pm-tabs button:hover{color:var(--text)}
 .pm-tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
-.pm-rib-body{padding:16px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px 18px;align-items:start}
+.pm-rib-body{padding:12px 14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:10px 14px;align-items:start}
 .pm-rib-body .full{grid-column:1/-1}
 .pm-rib-body label{display:block;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);margin-bottom:5px}
-.pm-rib-body input,.pm-rib-body select,.pm-rib-body textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:inherit;font-size:13px;padding:9px 11px}
-.pm-rib-body textarea{min-height:62px;resize:vertical}
+.pm-rib-body input,.pm-rib-body select,.pm-rib-body textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:12.5px;padding:7px 10px}
+.pm-rib-body textarea{min-height:52px;resize:vertical}
 .pm-rib-body input:focus,.pm-rib-body select:focus,.pm-rib-body textarea:focus{outline:none;border-color:rgba(255,82,0,.5)}
 .pm-rib-empty{padding:22px 18px;color:var(--text3);font-size:13px;text-align:center}
 
 /* --- správa osob --- */
-.ppl-row{display:grid;grid-template-columns:52px 1fr auto auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--border)}
-.ppl-row:first-child{border-top:0}
+.ppl-row{display:grid;grid-template-columns:46px minmax(120px,1.4fr) minmax(100px,1fr) minmax(110px,1fr) 34px 30px;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--border)}
+.ppl-row.unit{grid-template-columns:46px minmax(120px,2fr) minmax(110px,1fr) 34px 30px}
+.ppl-head{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:4px 0 2px;font-weight:600}
+.ppl-row select,.ppl-row input{font-size:12px;padding:6px 8px}
 .ppl-row .code{font-family:var(--mono);font-size:11px;color:var(--accent)}
 .ppl-row input{margin:0}
-.ppl-row .uses{font-size:11px;color:var(--text3);font-family:var(--mono);white-space:nowrap}
+.ppl-row .uses{font-size:11px;color:var(--text3);font-family:var(--mono);white-space:nowrap;text-align:right}
 .ppl-row .x{width:30px;height:30px;flex:none;border-radius:7px;border:1px solid var(--border2);background:var(--panel2);color:var(--text3);cursor:pointer}
 .ppl-row .x:hover{color:var(--blocked);border-color:var(--blocked)}
 .pm-insp{border:1px solid var(--border);border-radius:var(--r);background:var(--panel);padding:16px 18px;margin-top:14px}
@@ -876,8 +878,8 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
 
     <div class="pm-bar">
       <div class="pm-seg" id="pm-mode">
-        <button data-m="concept" class="on" onclick="pmSetMode('concept')">Koncept</button>
-        <button data-m="map" onclick="pmSetMode('map')">Procesní mapa</button>
+        <button data-m="concept" class="on" onclick="pmSetMode('concept')" title="Koncept — volná plocha pro objevování procesů">Koncept</button>
+        <button data-m="map" onclick="pmSetMode('map')" title="Procesní mapa — plán s typovanými vazbami">Procesní mapa</button>
       </div>
       <select class="pm-sel" id="pm-variant" onchange="pmPickConcept(this.value)"></select>
       <select class="pm-sel" id="pm-axis" onchange="pmSetAxis(this.value)" title="Režim časové osy">
@@ -886,20 +888,25 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
         <option value="cal">Osa kalendářní</option>
       </select>
       <div class="pm-seg" id="pm-unit">
-        <button data-u="week" onclick="pmSetUnit('week')">Týden</button>
-        <button data-u="month" class="on" onclick="pmSetUnit('month')">Měsíc</button>
-        <button data-u="quarter" onclick="pmSetUnit('quarter')">Kvartál</button>
+        <button data-u="week" onclick="pmSetUnit('week')" title="Dělení osy po týdnech (ISO), nad nimi měsíc a rok">Týden</button>
+        <button data-u="month" class="on" onclick="pmSetUnit('month')" title="Dělení osy po měsících, nad nimi rok">Měsíc</button>
+        <button data-u="quarter" onclick="pmSetUnit('quarter')" title="Dělení osy po kvartálech, nad nimi rok">Kvartál</button>
       </div>
       <div class="pm-spacer"></div>
       <span class="pm-hint" id="pm-count"></span>
-      <button class="btn ghost sm" id="pm-fullbtn" onclick="pmToggleFull()" title="Celá obrazovka (Esc ukončí)">⛶ Celá obrazovka</button>
-      <button class="btn ghost sm ed-only" onclick="openPeople()">👤 Osoby</button>
-      <button class="btn ghost sm ed-only" id="pm-newvar" onclick="pmNewConcept()">＋ Varianta</button>
-      <button class="btn ghost sm ed-only" id="pm-editvar" onclick="pmEditConcept()">✎ Varianta</button>
-      <button class="btn ghost sm ed-only" onclick="pmNewProcess()">＋ Proces</button>
+      <div class="pm-seg" id="pm-zoom">
+        <button onclick="pmZoom(-1)" title="Oddálit — na plátno se vejde delší období">−</button>
+        <button onclick="pmZoomReset()" id="pm-zoomlbl" title="Zpět na výchozí měřítko">100 %</button>
+        <button onclick="pmZoom(1)" title="Přiblížit — období se roztáhne do šířky">＋</button>
+      </div>
+      <button class="btn ghost sm" id="pm-fullbtn" onclick="pmToggleFull()" title="Celá obrazovka (ukončíte klávesou Esc)">⛶ Celá obrazovka</button>
+      <button class="btn ghost sm ed-only" onclick="openPeople()" title="Spravovat osoby a útvary — přejmenování, odebrání, zařazení">👤 Osoby</button>
+      <button class="btn ghost sm ed-only" id="pm-newvar" onclick="pmNewConcept()" title="Založit novou variantu konceptu">＋ Varianta</button>
+      <button class="btn ghost sm ed-only" id="pm-editvar" onclick="pmEditConcept()" title="Upravit název, osu a T0 této varianty">✎ Varianta</button>
+      <button class="btn ghost sm ed-only" onclick="pmNewProcess()" title="Přidat nový proces na volný pruh">＋ Proces</button>
       <button class="btn ghost sm ed-only" id="pm-splitbtn" onclick="pmToggleSplit()" title="Zapněte a klikejte na procesy v místě, kde je chcete rozdělit">✂ Rozdělit</button>
-      <button class="btn ghost sm ed-only" id="pm-recalc" onclick="pmRecalc()">↻ Přepočítat návaznosti</button>
-      <button class="btn primary sm ed-only" id="pm-promote" onclick="pmOpenWizard()">Zpevnit do mapy</button>
+      <button class="btn ghost sm ed-only" id="pm-recalc" onclick="pmRecalc()" title="Posunout procesy tak, aby seděly na typované vazby">↻ Přepočítat návaznosti</button>
+      <button class="btn primary sm ed-only" id="pm-promote" onclick="pmOpenWizard()" title="Převést zdrojový koncept do procesní mapy">Zpevnit do mapy</button>
     </div>
 
     <div class="pm-canvas" id="pm-canvas"></div>
@@ -983,11 +990,10 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
 
 <!-- Správa osob -->
 <div class="modal-veil" id="people-modal">
-  <div class="modal" style="width:560px">
-    <h3>Osoby</h3>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Společný seznam pro celou aplikaci — vlastníci milníků, otázek, rozhodnutí, úkolů a rizik i gestoři procesů. Zkratka je klíč, kterým se osoba odkazuje v datech, a proto ji nelze měnit.</div>
+  <div class="modal" style="width:780px">
+    <h3>Osoby a útvary</h3>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Společný seznam pro celou aplikaci. Role a útvar jsou nepovinné. Zkratka je klíč, kterým se odkazuje v datech, a proto ji nelze měnit. Číslo vpravo říká, na kolika místech je záznam použitý.</div>
     <div id="ppl-list"></div>
-    <button type="button" class="pm-addbtn" style="margin-top:12px" onclick="pplAdd()">＋ Přidat osobu</button>
     <div class="m-actions">
       <button class="btn ghost" onclick="closePeople()">Zavřít</button>
       <button class="btn primary" onclick="pplSave()">Uložit</button>
@@ -1026,6 +1032,15 @@ const SUPA = {
 
 /* ================= DATA (výchozí / DEMO) ================= */
 let people = {ZH:'Zoltán Horváth',MK:'Marie Klimešová',PN:'Petr Novotný',JS:'Jana Svobodová',TB:'Tomáš Beneš',LEG:'Právní tým (ext.)'};
+/* Útvary — gestorem procesu nemusí být osoba, ale i organizační jednotka. */
+let orgUnits = {O12:{name:'Odbor přípravy staveb',kind:'Odbor'},O31:{name:'Oddělení zabezpečovací techniky',kind:'Oddělení'}};
+/* Zařazení osob — nepovinné doplňkové údaje ke jménu. */
+let staff = {ZH:{role:'Vedoucí projektu',unit:'O12'},MK:{role:'Analytička',unit:'O31'},PN:{role:'Projektant',unit:'O12'}};
+const UNIT_PREFIX='@';
+const ORG_KINDS=['Odbor','Oddělení','Útvar','Sekce','Externí'];
+/* jméno gestora — osoba i útvar, podle prefixu kódu */
+const actorName=c=>!c?'':(String(c)[0]===UNIT_PREFIX?((orgUnits[String(c).slice(1)]||{}).name||String(c).slice(1)):(people[c]||c));
+const isUnit=c=>String(c||'')[0]===UNIT_PREFIX;
 const STATUS = {done:['Dokončeno','ok'],track:['Podle plánu','track'],risk:['Ohroženo','risk'],blocked:['Blokováno','blocked'],replanned:['Přeplánováno','replanned'],idle:['Nezahájeno','idle']};
 let TODAY='2026-07-06';
 
@@ -1733,6 +1748,17 @@ function openEditor(key,id){
    úkolů, rizik i gestoři procesů). Nová osoba přidaná z kteréhokoli výběru
    se uloží do `people` a je hned k dispozici všude jinde. */
 const NEW_PERSON='__new__';
+/* Volby pro pole „kdo“ — osoby i útvary, aby gestorem mohl být i útvar. */
+function actorOptionsHTML(sel){
+  sel=sel==null?'':String(sel);
+  const ppl=Object.keys(people).map(k=>`<option value="${esc(k)}" ${k===sel?'selected':''}>${esc(people[k])}</option>`).join('');
+  const un=Object.keys(orgUnits).map(k=>{const v=UNIT_PREFIX+k;
+    return `<option value="${esc(v)}" ${v===sel?'selected':''}>${esc(orgUnits[k].name)}</option>`}).join('');
+  return `<option value="" ${sel?'':'selected'}>—</option>`
+    +(ppl?`<optgroup label="Osoby">${ppl}</optgroup>`:'')
+    +(un?`<optgroup label="Útvary">${un}</optgroup>`:'')
+    +PERSON_OPT;
+}
 const PERSON_OPT=`<option value="${NEW_PERSON}">＋ Nová osoba…</option>`;
 function newPersonCode(name){
   const base=name.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
@@ -1784,6 +1810,7 @@ function fieldHTML(f,o){
   const id='edf-'+f.k, cls=f.full?'full':'';
   if(f.t==='check')return `<div class="${cls}" style="display:flex;align-items:center;gap:9px;margin-top:8px"><input type="checkbox" id="${id}" ${v?'checked':''} style="width:auto"><label style="margin:0;text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--text2)">${f.l}</label></div>`;
   if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs'||f.t==='peoplerefs')return `<div class="${cls}"><label>${f.l}</label><div class="pm-sub" id="${id}"></div></div>`;
+  if(f.t==='actor')return `<div class="${cls}"><label>${f.l}</label><select id="${id}" data-prev="${esc(v)}" onchange="edPersonPick(this)">${actorOptionsHTML(v)}</select></div>`;
   let input;
   if(f.t==='textarea')input=`<textarea id="${id}" style="min-height:70px">${esc(v)}</textarea>`;
   else if(f.t==='lines')input=`<textarea id="${id}" style="min-height:70px">${esc(Array.isArray(v)?v.join('\n'):v)}</textarea>`;
@@ -1871,6 +1898,8 @@ function hydrate(rows){
   const by={}; rows.forEach(r=>{(by[r.entity]=by[r.entity]||[]).push(r.data)});
   if(by.project&&by.project[0])project=Object.assign({},project,by.project[0]);
   if(by.people&&by.people[0])people=by.people[0];
+  if(by.units&&by.units[0])orgUnits=by.units[0];
+  if(by.staff&&by.staff[0])staff=by.staff[0];
   if(by.milestone)milestones=by.milestone; if(by.meeting)meetings=by.meeting;
   if(by.question)questions=by.question; if(by.decision)decisions=by.decision;
   if(by.task)tasks=by.task; if(by.risk)risks=by.risk; if(by.evidence)evidence=by.evidence;
@@ -1880,7 +1909,9 @@ function hydrate(rows){
 function rowFor(entity,o,i){return {project_id:SUPA.projectId,entity,id:idOf(entity,o),sort:i,data:o}}
 async function persistAll(){
   if(!ONLINE)return;
-  const rows=[rowFor('project',project,0),rowFor('people',people,0)];
+  const rows=[rowFor('project',project,0),rowFor('people',people,0),
+    {project_id:SUPA.projectId,entity:'units',id:'meta',sort:0,data:orgUnits},
+    {project_id:SUPA.projectId,entity:'staff',id:'meta',sort:0,data:staff}];
   [['milestone',milestones],['meeting',meetings],['question',questions],['decision',decisions],['task',tasks],['risk',risks],['evidence',evidence],['concept',concepts],['process',processes]]
     .forEach(([e,arr])=>arr.forEach((o,i)=>rows.push(rowFor(e,o,i))));
   // people uložíme jako celý objekt pod jedním id
@@ -1889,7 +1920,12 @@ async function persistAll(){
 }
 async function persist(entity,o,i){ if(ONLINE)try{await sb.from('pi_entities').upsert(rowFor(entity,o,i||0))}catch(e){console.warn(e)} }
 async function persistDelete(entity,o){ if(ONLINE)try{await sb.from('pi_entities').delete().match({project_id:SUPA.projectId,entity,id:idOf(entity,o)})}catch(e){console.warn(e)} }
-async function persistMeta(){ if(ONLINE)try{await sb.from('pi_entities').upsert([rowFor('project',project,0),{project_id:SUPA.projectId,entity:'people',id:'meta',sort:0,data:people}])}catch(e){console.warn(e)} }
+async function persistMeta(){ if(ONLINE)try{await sb.from('pi_entities').upsert([
+  rowFor('project',project,0),
+  {project_id:SUPA.projectId,entity:'people',id:'meta',sort:0,data:people},
+  {project_id:SUPA.projectId,entity:'units',id:'meta',sort:0,data:orgUnits},
+  {project_id:SUPA.projectId,entity:'staff',id:'meta',sort:0,data:staff}
+])}catch(e){console.warn(e)} }
 
 /* ================= AUTH (veřejné čtení / zápis jen správce) ================= */
 let AUTH=false;
@@ -2002,11 +2038,12 @@ let processes=[
   start:'2026-09-01',end:'2027-02-26',lane:0,links:[{from:'P-11',type:'',lag:0}],msStart:[],msEnd:['M5'],collapsed:false}
 ];
 
-const PM={mode:'concept',conceptId:'K-01',unit:'month',sel:null,splitMode:false,tab:'zaklad',panelLock:false};
+const PM={mode:'concept',conceptId:'K-01',unit:'month',sel:null,splitMode:false,tab:'zaklad',panelLock:false,zoom:1};
 const PM_STATE={koncept:'koncept',odvozeny:'odvozený',potvrzeny:'potvrzený'};
-const PM_LANE=62, PM_PAD=26;
+const PM_LANE=50, PM_PAD=26;
 const PMDAY=86400000;
 const PM_PXD={week:13,month:4.6,quarter:1.7};
+const pmPx=()=>PM_PXD[PM.unit]*PM.zoom;   // měřítko = jednotka × zoom
 
 const pmD=s=>Date.UTC(+String(s).slice(0,4),+String(s).slice(5,7)-1,+String(s).slice(8,10));
 const pmISO=t=>new Date(t).toISOString().slice(0,10);
@@ -2017,8 +2054,6 @@ const pmConcept=()=>concepts.find(c=>c.id===PM.conceptId)||concepts[0];
 const pmAxisMode=()=>PM.mode==='map'?'cal':(pmConcept()?pmConcept().axis:'cal');
 const pmAll=()=>processes.filter(p=>p.scope===pmScope());
 const pmById=id=>processes.find(p=>p.id===id);
-const PM_MON=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
-const PM_MONFULL=['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
 
 function pmIsoWeek(t){
   const d=new Date(t), dn=(d.getUTCDay()+6)%7;
@@ -2058,25 +2093,28 @@ function pmBounds(list){
   /* u relativní osy nezačínáme před T0 — záporné odstupy nedávají smysl */
   const rel=pmAxisMode()==='rel', c0=pmConcept();
   if(rel&&c0)a=Math.min(a,pmD(c0.t0));
-  const backPad=rel?0:1;
-  if(u==='week'){a=pmWeekStart(a)-backPad*7*PMDAY;b=pmWeekStart(b)+21*PMDAY}
-  else{const A=new Date(a),B=new Date(b);
+  /* okraj = alespoň dvě jednotky, u delších projektů čtvrtina rozsahu */
+  const unitMs={week:7,month:30.44,quarter:91.3}[u]*PMDAY;
+  const pad=Math.max(unitMs*2,(b-a)*0.25);
+  const backPad=rel?0:pad;
+  if(u==='week'){a=pmWeekStart(a-backPad);b=pmWeekStart(b+pad)+7*PMDAY}
+  else{const A=new Date(a-backPad),B=new Date(b+pad);
     const m0=u==='quarter'?Math.floor(A.getUTCMonth()/3)*3:A.getUTCMonth();
-    a=Date.UTC(A.getUTCFullYear(),m0-backPad*(u==='quarter'?3:1),1);
+    a=Date.UTC(A.getUTCFullYear(),m0,1);
     const m1=u==='quarter'?Math.floor(B.getUTCMonth()/3)*3+3:B.getUTCMonth()+1;
-    b=Date.UTC(B.getUTCFullYear(),m1+1,1);
+    b=Date.UTC(B.getUTCFullYear(),m1,1);
   }
   return {t0:a,t1:b};
 }
 function pmGeom(p,b){
-  const px=PM_PXD[PM.unit];
+  const px=pmPx();
   const x=PM_PAD+(pmD(p.start)-b.t0)/PMDAY*px;
   const w=Math.max(16,(pmD(p.end)-pmD(p.start))/PMDAY*px);
-  const h=p.parent?22:30, head=pmHeadH();
+  const h=p.parent?19:26, head=pmHeadH();
   const y=head+(p.lane||0)*PM_LANE+(PM_LANE-h)/2;
   return {x,y,w,h};
 }
-const pmHeadH=()=>pmAxisMode()==='off'?14:52;
+const pmHeadH=()=>pmAxisMode()==='off'?10:36;
 function pmRailPath(x,y,w,h){
   const c=Math.min(8,h/3);
   return `M ${x+c} ${y} H ${x+w-c} L ${x+w} ${y+c} V ${y+h-c} L ${x+w-c} ${y+h} H ${x+c} L ${x} ${y+h-c} V ${y+c} Z`;
@@ -2104,10 +2142,13 @@ function pmMsOverrun(p){
 function renderPMap(){
   const host=$('#pm-canvas'); if(!host)return;
   pmSyncControls();
-  const list=pmVisible(), b=pmBounds(list), px=PM_PXD[PM.unit], head=pmHeadH();
-  const lanes=Math.max(3,(list.length?Math.max(...list.map(p=>p.lane||0)):0)+2);
+  const list=pmVisible(), b=pmBounds(list), px=pmPx(), head=pmHeadH();
+  /* pruhy i mřížka vyplní celou viditelnou plochu, ne jen výšku obsahu */
+  const need=Math.max(3,(list.length?Math.max(...list.map(p=>p.lane||0)):0)+2);
+  const avail=Math.max(260,(host.clientHeight||420)-2);
+  const lanes=Math.max(need,Math.floor((avail-head)/PM_LANE));
   const W=Math.max(PM_PAD*2+(b.t1-b.t0)/PMDAY*px, host.clientWidth-2);
-  const H=head+lanes*PM_LANE+20;
+  const H=Math.max(head+lanes*PM_LANE, avail);
 
   if(!list.length){
     host.innerHTML=`<div class="pm-empty"><b>${PM.mode==='map'?'Procesní mapa je zatím prázdná':'Tento koncept nemá žádné procesy'}</b>
@@ -2123,23 +2164,21 @@ function renderPMap(){
     <pattern id="pmHatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
       <line x1="0" y1="0" x2="0" y2="7" stroke="rgba(154,161,181,.42)" stroke-width="2.4"/>
     </pattern>
-    <pattern id="pmSleep" width="15" height="10" patternUnits="userSpaceOnUse">
-      <line x1="0" y1="0" x2="0" y2="10" stroke="rgba(255,255,255,.028)" stroke-width="1"/>
-    </pattern>
     <marker id="pmArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M0 0L10 5L0 10z" fill="rgba(154,161,181,.75)"/></marker>
     <marker id="pmArrBad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M0 0L10 5L0 10z" fill="#ff5c6a"/></marker>
   </defs>`;
 
-  /* pruhy = souběžné koleje */
+  /* pruhy = souběžné koleje, střídavě jemně podbarvené */
   for(let i=0;i<lanes;i++){
-    s+=`<rect x="0" y="${head+i*PM_LANE}" width="${W}" height="${PM_LANE}" fill="url(#pmSleep)"/>
-        <line x1="0" y1="${head+i*PM_LANE}" x2="${W}" y2="${head+i*PM_LANE}" stroke="rgba(255,255,255,.045)"/>`;
+    if(i%2)s+=`<rect x="0" y="${head+i*PM_LANE}" width="${W}" height="${PM_LANE}" fill="rgba(255,255,255,.015)"/>`;
+    s+=`<line x1="0" y1="${head+i*PM_LANE}" x2="${W}" y2="${head+i*PM_LANE}" stroke="rgba(255,255,255,.05)"/>`;
   }
 
-  /* časová osa */
-  if(pmAxisMode()!=='off') s+=pmAxisSVG(b,W,head);
+  /* časová osa a mřížka z jednoho modelu, aby seděly na sebe */
+  const mo=pmAxisMode()!=='off'?pmAxisModel(b):null;
+  if(mo){s+=pmGridSVG(mo,head,H); s+=pmAxisSVG(mo,W,head);}
 
   /* dnešek */
   const tx=PM_PAD+(pmD(TODAY)-b.t0)/PMDAY*px;
@@ -2226,35 +2265,32 @@ function pmSignalSVG(id,x,y,h,i,p,isEnd){
     <title>${escXml(m.id+' · '+m.name+(m.locked?' · zamčený termín '+m.date:''))}</title></g>`;
 }
 
-/* ---- záhlaví osy: jednotky + kontextový pruh ---- */
-function pmAxisSVG(b,W,head){
-  const px=PM_PXD[PM.unit], rel=pmAxisMode()==='rel', c=pmConcept();
+/* ---- model osy: buňky jednotek + nadřazený kontextový pruh ----
+   Model se použije dvakrát: pro záhlaví a pro svislou mřížku, aby byla
+   mřížka vždy přesně srovnaná s dělením osy. */
+function pmAxisModel(b){
+  const px=pmPx(), rel=pmAxisMode()==='rel', c=pmConcept();
   const t0c=rel&&c?c.t0:null;
-  let cells=[], ctx=[];
+  const cells=[], ctx=[];
   const X=t=>PM_PAD+(t-b.t0)/PMDAY*px;
-
   if(PM.unit==='week'){
-    for(let t=pmWeekStart(b.t0);t<b.t1;t+=7*PMDAY){
-      cells.push({x0:X(t),x1:X(t+7*PMDAY),lab:rel?'+'+Math.round((t-pmD(t0c))/(7*PMDAY))+' T':String(pmIsoWeek(t))});
-    }
-    /* kontext: měsíc + rok podle čtvrtka týdne */
     let cur=null;
     for(let t=pmWeekStart(b.t0);t<b.t1;t+=7*PMDAY){
+      cells.push({x0:X(t),x1:X(t+7*PMDAY),lab:rel?'+'+Math.round((t-pmD(t0c))/(7*PMDAY))+' T':String(pmIsoWeek(t))});
       const th=new Date(t+3*PMDAY), key=th.getUTCFullYear()+'-'+th.getUTCMonth();
-      const lab=rel?(Math.floor(pmMonthsBetween(t0c,pmISO(t))/12)+1)+'. rok':PM_MONFULL[th.getUTCMonth()]+' '+th.getUTCFullYear();
+      const lab=rel?(Math.floor(pmMonthsBetween(t0c,pmISO(t))/12)+1)+'. rok':monCz[th.getUTCMonth()]+' '+th.getUTCFullYear();
       if(cur&&cur.key===key)cur.x1=X(t+7*PMDAY);
       else{cur={key,lab,x0:X(t),x1:X(t+7*PMDAY)};ctx.push(cur)}
     }
   } else {
     const step=PM.unit==='quarter'?3:1;
     const A=new Date(b.t0);
-    let y=A.getUTCFullYear(), m=PM.unit==='quarter'?Math.floor(A.getUTCMonth()/3)*3:A.getUTCMonth();
-    let cur=null;
+    let y=A.getUTCFullYear(), m=PM.unit==='quarter'?Math.floor(A.getUTCMonth()/3)*3:A.getUTCMonth(), cur=null;
     while(Date.UTC(y,m,1)<b.t1){
       const t=Date.UTC(y,m,1), tn=Date.UTC(y,m+step,1);
       const lab=rel
         ? (PM.unit==='quarter'?'+'+Math.round(pmMonthsBetween(t0c,pmISO(t))/3)+' Q':'+'+pmMonthsBetween(t0c,pmISO(t))+' M')
-        : (PM.unit==='quarter'?'Q'+(Math.floor(m/3)+1):PM_MON[m]);
+        : (PM.unit==='quarter'?'Q'+(Math.floor(m/3)+1):monCz[m]);
       cells.push({x0:X(t),x1:X(tn),lab});
       const clab=rel?(Math.floor(pmMonthsBetween(t0c,pmISO(t))/12)+1+'. rok'):String(y);
       if(cur&&cur.key===clab)cur.x1=X(tn);
@@ -2262,20 +2298,30 @@ function pmAxisSVG(b,W,head){
       m+=step; if(m>11){m-=12;y++}
     }
   }
-
+  return {cells,ctx};
+}
+/* svislá mřížka srovnaná s osou — kreslí se pod procesy */
+function pmGridSVG(mo,head,H){
+  let s='';
+  mo.cells.forEach(c=>{s+=`<line x1="${c.x0}" y1="${head}" x2="${c.x0}" y2="${H}" stroke="rgba(255,255,255,.055)"/>`});
+  mo.ctx.forEach(c=>{s+=`<line x1="${c.x0}" y1="${head}" x2="${c.x0}" y2="${H}" stroke="rgba(255,255,255,.14)"/>`});
+  return s;
+}
+function pmAxisSVG(mo,W,head){
+  const uy=head-14;
   let s=`<rect x="0" y="0" width="${W}" height="${head}" fill="var(--panel2)"/>`;
-  ctx.forEach(c2=>{
-    s+=`<line x1="${c2.x0}" y1="0" x2="${c2.x0}" y2="${head}" stroke="rgba(255,255,255,.1)"/>
-      <text class="pmctx" data-x0="${c2.x0}" data-x1="${c2.x1}" x="${c2.x0+10}" y="16"
-        font-size="11" font-weight="600" fill="var(--text)" font-family="Inter,sans-serif">${escXml(c2.lab)}</text>`;
+  mo.ctx.forEach(c=>{
+    s+=`<line x1="${c.x0}" y1="0" x2="${c.x0}" y2="${head}" stroke="rgba(255,255,255,.14)"/>
+      <text class="pmctx" data-x0="${c.x0}" data-x1="${c.x1}" x="${c.x0+9}" y="13"
+        font-size="10.5" font-weight="600" fill="var(--text)" font-family="Inter,sans-serif">${escXml(c.lab)}</text>`;
   });
-  s+=`<line x1="0" y1="24" x2="${W}" y2="24" stroke="rgba(255,255,255,.08)"/>`;
-  cells.forEach(c2=>{
-    s+=`<line x1="${c2.x0}" y1="24" x2="${c2.x0}" y2="${head}" stroke="rgba(255,255,255,.05)"/>
-      <text x="${(c2.x0+c2.x1)/2}" y="42" text-anchor="middle" font-size="10"
-        fill="var(--text3)" font-family="var(--mono)">${escXml(c2.lab)}</text>`;
+  s+=`<line x1="0" y1="${uy}" x2="${W}" y2="${uy}" stroke="rgba(255,255,255,.09)"/>`;
+  mo.cells.forEach(c=>{
+    s+=`<line x1="${c.x0}" y1="${uy}" x2="${c.x0}" y2="${head}" stroke="rgba(255,255,255,.06)"/>
+      <text x="${(c.x0+c.x1)/2}" y="${head-3}" text-anchor="middle" font-size="9.5"
+        fill="var(--text3)" font-family="var(--mono)">${escXml(c.lab)}</text>`;
   });
-  s+=`<line x1="0" y1="${head}" x2="${W}" y2="${head}" stroke="rgba(255,255,255,.12)"/>`;
+  s+=`<line x1="0" y1="${head}" x2="${W}" y2="${head}" stroke="rgba(255,255,255,.16)"/>`;
   return s;
 }
 
@@ -2302,6 +2348,7 @@ function pmSyncControls(){
   ['pm-promote','pm-newvar','pm-editvar','pm-splitbtn'].forEach(id=>$('#'+id).classList.toggle('pm-hide',isMap));
   $('#pm-recalc').classList.toggle('pm-hide',!isMap);
   $('#pm-splitbtn').classList.toggle('on',PM.splitMode);
+  $('#pm-zoomlbl').textContent=Math.round(PM.zoom*100)+' %';
   $('#pm-canvas').classList.toggle('pm-splitting',PM.splitMode&&!isMap);
   const c=pmConcept();
   $('#pm-title').textContent=isMap?'Procesní mapa':'Koncept';
@@ -2313,6 +2360,12 @@ function pmSyncControls(){
 function pmSetMode(m){PM.mode=m;PM.sel=null;if(m==='map')pmSetSplit(false);renderPMap()}
 function pmPickConcept(id){PM.conceptId=id;PM.sel=null;renderPMap()}
 function pmSetUnit(u){PM.unit=u;renderPMap()}
+/* zoom mění měřítko osy tlačítky — bez tažítka */
+function pmZoom(d){
+  PM.zoom=Math.min(4,Math.max(.35,PM.zoom*(d>0?1.25:0.8)));
+  renderPMap();
+}
+function pmZoomReset(){PM.zoom=1;renderPMap()}
 function pmSetAxis(a){
   const c=pmConcept(); if(!c)return;
   c.axis=a; persist('concept',c,concepts.indexOf(c)); renderPMap();
@@ -2323,7 +2376,8 @@ function pmSetAxis(a){
    nemění — přejmenování se dotkne jen zobrazovaného jména. Odebrání se
    nabídne s počtem míst, kde je osoba použitá, a s převodem na jinou. */
 let PPL=null;
-function personUses(code){
+/* Kolik míst v datech odkazuje na tuto osobu nebo útvar. */
+function actorUses(code){
   let n=0;
   if(project.owner===code)n++;
   [milestones,questions,decisions,tasks,risks].forEach(arr=>arr.forEach(o=>{if(o.owner===code)n++}));
@@ -2359,22 +2413,45 @@ function personReplace(code,to){
   });
 }
 function openPeople(){
-  PPL={names:Object.assign({},people),removed:[]};
+  PPL={names:Object.assign({},people),meta:JSON.parse(JSON.stringify(staff)),units:JSON.parse(JSON.stringify(orgUnits))};
   $('#people-modal').classList.add('open');
   pplRender();
 }
 function closePeople(){$('#people-modal').classList.remove('open');PPL=null}
 function pplRender(){
+  const unitOpts=sel=>['<option value="">—</option>'].concat(
+    Object.keys(PPL.units).map(u=>`<option value="${esc(u)}" ${u===sel?'selected':''}>${esc(PPL.units[u].name)}</option>`)).join('');
   const codes=Object.keys(PPL.names);
-  $('#ppl-list').innerHTML=codes.length?codes.map(c=>{
-    const n=personUses(c);
+  const rows=codes.map(c=>{
+    const m=PPL.meta[c]||{};
     return `<div class="ppl-row">
       <span class="code">${c}</span>
-      <input value="${esc(PPL.names[c])}" oninput="PPL.names['${c}']=this.value">
-      <span class="uses">${n?n+'×':'nepoužito'}</span>
+      <input value="${esc(PPL.names[c])}" title="Jméno a příjmení" oninput="PPL.names['${c}']=this.value">
+      <input value="${esc(m.role||'')}" placeholder="role / pozice" title="Role nebo pracovní pozice — nepovinné" oninput="pplMeta('${c}','role',this.value)">
+      <select title="Zařazení do útvaru — nepovinné" onchange="pplMeta('${c}','unit',this.value)">${unitOpts(m.unit||'')}</select>
+      <span class="uses" title="Na kolika místech je odkazován">${actorUses(c)||'—'}</span>
       <button type="button" class="x" title="Odebrat osobu" onclick="pplRemove('${c}')">✕</button>
     </div>`;
-  }).join(''):'<div class="pm-hint">Seznam je prázdný.</div>';
+  }).join('')||'<div class="pm-hint">Zatím žádné osoby.</div>';
+
+  const urows=Object.keys(PPL.units).map(u=>`<div class="ppl-row unit">
+      <span class="code">${u}</span>
+      <input value="${esc(PPL.units[u].name)}" title="Název útvaru" oninput="PPL.units['${u}'].name=this.value">
+      <select title="Typ organizační jednotky" onchange="PPL.units['${u}'].kind=this.value">
+        ${ORG_KINDS.map(k=>`<option ${k===PPL.units[u].kind?'selected':''}>${k}</option>`).join('')}</select>
+      <span class="uses" title="Na kolika místech je odkazován">${actorUses(UNIT_PREFIX+u)||'—'}</span>
+      <button type="button" class="x" title="Odebrat útvar" onclick="pplRemoveUnit('${u}')">✕</button>
+    </div>`).join('')||'<div class="pm-hint">Zatím žádné útvary.</div>';
+
+  $('#ppl-list').innerHTML=`
+    <div class="ppl-head">Osoby</div>${rows}
+    <button type="button" class="pm-addbtn" style="margin:10px 0 4px" title="Přidat další osobu" onclick="pplAdd()">＋ Přidat osobu</button>
+    <div class="ppl-head" style="margin-top:16px">Útvary — mohou být gestorem i spolugestorem</div>${urows}
+    <button type="button" class="pm-addbtn" style="margin-top:10px" title="Přidat organizační jednotku" onclick="pplAddUnit()">＋ Přidat útvar</button>`;
+}
+function pplMeta(code,key,val){
+  if(!PPL.meta[code])PPL.meta[code]={};
+  PPL.meta[code][key]=val;
 }
 function pplAdd(){
   const name=(prompt('Jméno a příjmení nové osoby')||'').trim();
@@ -2383,34 +2460,58 @@ function pplAdd(){
   PPL.names[code]=name; people[code]=name;
   pplRender();
 }
-function pplRemove(code){
-  const n=personUses(code);
+function pplAddUnit(){
+  const name=(prompt('Název útvaru (např. Odbor přípravy staveb)')||'').trim();
+  if(!name)return;
+  let base=name.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .split(/\s+/).filter(Boolean).map(w=>w[0]).join('').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3)||'U';
+  let code=base,i=1; while(PPL.units[code])code=base+(++i);
+  PPL.units[code]={name,kind:'Odbor'};
+  orgUnits[code]={name,kind:'Odbor'};
+  pplRender();
+}
+/* Odebrání s převodem odpovědnosti — společné pro osoby i útvary. */
+function pplDrop(code,label){
+  const n=actorUses(code);
   let to='';
   if(n){
-    const others=Object.keys(PPL.names).filter(c=>c!==code);
-    const list=others.map((c,i)=>`${i+1}) ${PPL.names[c]}`).join('\n');
+    const others=Object.keys(PPL.names).filter(c=>c!==code)
+      .concat(Object.keys(PPL.units).filter(u=>UNIT_PREFIX+u!==code).map(u=>UNIT_PREFIX+u));
+    const list=others.map((c,i)=>`${i+1}) ${actorName(c)}`).join('\n');
     const ans=(prompt(
-      `${PPL.names[code]} je použit(a) na ${n} místech.\n\n`+
-      `Zadejte číslo osoby, na kterou se má odpovědnost převést,\n`+
+      `${label} je odkazován na ${n} místech.\n\n`+
+      `Zadejte číslo, na koho odpovědnost převést,\n`+
       `nebo nechte prázdné a pole se vyprázdní:\n\n${list}`,'')||'').trim();
     if(ans){
       const idx=parseInt(ans,10)-1;
-      if(!(idx>=0&&idx<others.length)){toast('Neplatná volba — osoba nebyla odebrána');return}
+      if(!(idx>=0&&idx<others.length)){toast('Neplatná volba — nic se neodebralo');return false}
       to=others[idx];
-    } else if(!confirm(`Opravdu odebrat? Na ${n} místech zůstane pole prázdné.`))return;
+    } else if(!confirm(`Opravdu odebrat? Na ${n} místech zůstane pole prázdné.`))return false;
   }
   personReplace(code,to);
+  return true;
+}
+function pplRemove(code){
+  if(!pplDrop(code,PPL.names[code]))return;
   delete PPL.names[code]; delete people[code];
-  persistMeta(); pplRender(); renderAll();
-  toast(to?`Převedeno na ${people[to]} a odebráno`:'Osoba odebrána');
+  delete PPL.meta[code]; delete staff[code];
+  persistMeta(); pplRender(); renderAll(); toast('Osoba odebrána');
+}
+function pplRemoveUnit(u){
+  if(!pplDrop(UNIT_PREFIX+u,PPL.units[u].name))return;
+  Object.keys(PPL.meta).forEach(c=>{if(PPL.meta[c].unit===u)PPL.meta[c].unit=''});
+  delete PPL.units[u]; delete orgUnits[u];
+  persistMeta(); pplRender(); renderAll(); toast('Útvar odebrán');
 }
 function pplSave(){
-  Object.keys(PPL.names).forEach(c=>{
-    const nm=(PPL.names[c]||'').trim();
-    if(nm)people[c]=nm;
+  Object.keys(PPL.names).forEach(c=>{const nm=(PPL.names[c]||'').trim(); if(nm)people[c]=nm});
+  staff=JSON.parse(JSON.stringify(PPL.meta));
+  Object.keys(PPL.units).forEach(u=>{
+    const nm=(PPL.units[u].name||'').trim();
+    if(nm)orgUnits[u]={name:nm,kind:PPL.units[u].kind||'Odbor'};
   });
   persistMeta(); closePeople(); renderAll();
-  toast('Osoby uloženy');
+  toast('Osoby a útvary uloženy');
 }
 
 /* ================= CELÁ OBRAZOVKA ================= */
@@ -2440,8 +2541,8 @@ function pmRenderInspector(){
   const p=PM.sel?pmById(PM.sel):null;
   if(document.body.classList.contains('editing')){pmRenderRibbon(host,p);return}
   if(!p){host.innerHTML='';return}
-  const co=(p.cogestors||[]).map(r=>`${people[r.who]||r.who}${r.resp?' — '+escXml(r.resp):''}`).join('<br>')||'—';
-  const aff=(p.affected||[]).map(a=>people[a]||a).join(', ')||'—';
+  const co=(p.cogestors||[]).map(r=>`${escXml(actorName(r.who))}${r.resp?' — '+escXml(r.resp):''}`).join('<br>')||'—';
+  const aff=(p.affected||[]).map(a=>actorName(a)).join(', ')||'—';
   const ms=[...(p.msStart||[]).map(i=>i+' (začátek)'),...(p.msEnd||[]).map(i=>i+' (konec)')].join(', ')||'—';
   const lk=(p.links||[]).map(l=>`${l.from} ${l.type||'neutrální'}${+l.lag?(l.lag>0?' +':' ')+l.lag+' d':''}${pmViolated(l,p)?' <span style="color:var(--blocked)">· porušená</span>':''}`).join('<br>')||'—';
   host.innerHTML=`<div class="pm-insp">
@@ -2453,7 +2554,7 @@ function pmRenderInspector(){
     </div>
     <div class="pm-igrid">
       <div><div class="l">Termín</div>${p.start} → ${p.end} <span style="color:var(--text3)">(${pmDays(p.start,p.end)} d)</span></div>
-      <div><div class="l">Gestor</div>${people[p.gestor]||p.gestor||'<span style="color:var(--blocked)">chybí</span>'}</div>
+      <div><div class="l">Gestor</div>${escXml(actorName(p.gestor))||'<span style="color:var(--blocked)">chybí</span>'}</div>
       <div><div class="l">Spolugestoři</div>${co}</div>
       <div><div class="l">Dotčení</div>${escXml(aff)}</div>
       <div><div class="l">Milníky</div>${ms}</div>
@@ -2485,7 +2586,8 @@ function pmRibbonField(p,k){
     return `<div class="full"><label>${f.l}</label><div class="pm-sub" data-sub="${f.k}"></div></div>`;
   const v=p[k]==null?'':p[k];
   let input;
-  if(f.t==='textarea')input=`<textarea onchange="pmRibSet('${k}',this.value)">${esc(v)}</textarea>`;
+  if(f.t==='actor')input=`<select data-prev="${esc(v)}" onchange="pmRibPerson(this,'${k}')">${actorOptionsHTML(v)}</select>`;
+  else if(f.t==='textarea')input=`<textarea onchange="pmRibSet('${k}',this.value)">${esc(v)}</textarea>`;
   else if(f.t==='select'){
     const opts=typeof f.opts==='function'?f.opts():f.opts;
     const extra=f.people?PERSON_OPT:'';
@@ -2508,9 +2610,10 @@ function pmRenderRibbon(host,p){
       <span class="code">${p.id}</span><b>${escXml(p.name)}</b>${chip(p.status)}
       <span class="tag">${PM_STATE[p.state]||p.state}</span>
       <div style="flex:1"></div>
-      ${PM.mode==='map'&&p.state!=='potvrzeny'?`<button class="btn primary sm" onclick="pmConfirm('${p.id}')">Potvrdit</button>`:''}
-      <button class="btn ghost sm" onclick="pmDeleteProcess('${p.id}')">Smazat</button>
-      <button class="btn ghost sm" onclick="PM.sel=null;renderPMap()">✕</button>
+      ${p.parent?'':`<button class="btn ghost sm" title="Založit podproces pod tímto procesem" onclick="pmNewSub('${p.id}')">＋ Podproces</button>`}
+      ${PM.mode==='map'&&p.state!=='potvrzeny'?`<button class="btn primary sm" title="Označit termíny a vazby za potvrzené" onclick="pmConfirm('${p.id}')">Potvrdit</button>`:''}
+      <button class="btn ghost sm" title="Smazat proces" onclick="pmDeleteProcess('${p.id}')">Smazat</button>
+      <button class="btn ghost sm" title="Zavřít panel a zrušit výběr" onclick="PM.sel=null;renderPMap()">✕</button>
     </div>
     <div class="pm-tabs">${PM_TABS.map(t=>`<button class="${t.id===PM.tab?'on':''}" onclick="PM.tab='${t.id}';renderPMap()">${t.l}</button>`).join('')}</div>
     <div class="pm-rib-body">${tab.keys.map(k=>pmRibbonField(p,k)).join('')}</div>
@@ -2544,6 +2647,21 @@ function pmRibSet(k,v){
 function pmRibPerson(sel,k){
   if(sel.value===NEW_PERSON){addPersonInline(sel,code=>pmRibSet(k,code));return}
   sel.dataset.prev=sel.value; pmRibSet(k,sel.value);
+}
+/* Podproces — druhá a poslední úroveň zanoření. */
+function pmNewSub(id){
+  const p=pmById(id); if(!p)return;
+  if(p.parent){toast('Zanoření je omezené na dvě úrovně — podproces už potomky mít nemůže');return}
+  const list=pmAll();
+  const lane=(list.length?Math.max(...list.map(x=>x.lane||0)):0)+1;
+  const o={id:nextId('process'),scope:p.scope,name:p.name+' — dílčí krok',desc:'',
+    gestor:p.gestor,cogestors:[],affected:[],parent:p.id,state:p.state,status:'idle',
+    start:p.start,end:p.end,lane,links:[],msStart:[],msEnd:[],collapsed:false};
+  processes.push(o);
+  p.collapsed=false; pmQueue(p);
+  PM.sel=o.id; PM.tab='zaklad';
+  persist('process',o,processes.length-1);
+  renderPMap(); toast('Podproces přidán — upravte mu název a termíny');
 }
 function pmDeleteProcess(id){
   const p=pmById(id); if(!p)return;
@@ -2602,7 +2720,7 @@ function pmPointerDown(e){
 }
 function pmPointerMove(e){
   if(!pmDrag)return;
-  const px=PM_PXD[PM.unit];
+  const px=pmPx();
   const dd=Math.round((e.clientX-pmDrag.x)/px);
   const dl=Math.round((e.clientY-pmDrag.y)/PM_LANE);
   if(Math.abs(e.clientX-pmDrag.x)>3||Math.abs(e.clientY-pmDrag.y)>3)pmDrag.moved=true;
@@ -2649,7 +2767,7 @@ function pmToggleSplit(){pmSetSplit(!PM.splitMode)}
 function pmDayAt(clientX){
   const host=$('#pm-canvas'), svg=host&&host.querySelector('svg'); if(!svg)return null;
   const rect=svg.getBoundingClientRect(), localX=clientX-rect.left;
-  const b=pmBounds(pmVisible()), px=PM_PXD[PM.unit];
+  const b=pmBounds(pmVisible()), px=pmPx();
   return Math.round((b.t0+(localX-PM_PAD)/px*PMDAY)/PMDAY)*PMDAY;
 }
 function pmSplitPreview(e){
@@ -2853,7 +2971,7 @@ function pmWizRender(){
   $('#pm-wback').style.display=PW.step>1?'':'none';
   $('#pm-wnext').textContent=PW.step===PW.steps.length?'Zpevnit':'Pokračovat';
   const body=$('#pm-wbody');
-  const opts=(sel)=>[['','—']].concat(OWNER_OPTS()).map(([v,l])=>`<option value="${v}" ${v===sel?'selected':''}>${escXml(l)}</option>`).join('');
+  const opts=(sel)=>actorOptionsHTML(sel);
 
   if(PW.step===1){
     body.innerHTML=`<div class="pm-note">Blokující údaje musí být vyplněny: <b>název, gestor, termíny</b>. Popis, spolugestoři a milníky blokující nejsou — doplníte je kdykoli později. Upravujte přímo v tabulce.</div>
@@ -2934,7 +3052,7 @@ function pmDiff(){
     if(!t){added.push({src:p,label:`${p.id} · ${p.name}`,detail:`${st} → ${en}`});return}
     const diffs=[];
     if(t.name!==p.name)diffs.push(`název: <span class="was">${escXml(t.name)}</span>${escXml(p.name)}`);
-    if(t.gestor!==p.gestor)diffs.push(`gestor: <span class="was">${people[t.gestor]||t.gestor||'—'}</span>${people[p.gestor]||p.gestor}`);
+    if(t.gestor!==p.gestor)diffs.push(`gestor: <span class="was">${escXml(actorName(t.gestor))||'—'}</span>${escXml(actorName(p.gestor))}`);
     if(t.start!==st)diffs.push(`začátek: <span class="was">${t.start}</span>${st}`);
     if(t.end!==en)diffs.push(`konec: <span class="was">${t.end}</span>${en}`);
     if(diffs.length)changed.push({src:p,target:t,label:`${t.id} · ${p.name}`,detail:diffs.join(' · '),conflict:!!t.mapEdited});
@@ -3029,15 +3147,15 @@ function pmApplyPromotion(){
 SCHEMAS.process={title:'Proces',entity:'process',arr:()=>processes,idf:'id',prefix:'P-',fields:[
   {k:'name',l:'Název procesu',t:'text',full:1},
   {k:'desc',l:'Popis — co se v něm děje a čím končí',t:'textarea',full:1},
-  {k:'gestor',l:'Gestor (odpovědná osoba)',t:'select',opts:()=>[['','—']].concat(OWNER_OPTS())},
+  {k:'gestor',l:'Gestor (osoba nebo útvar)',t:'actor'},
   {k:'status',l:'Stav plnění',t:'select',opts:ST_OPTS},
   {k:'state',l:'Zralost',t:'select',opts:[['koncept','koncept'],['odvozeny','odvozený'],['potvrzeny','potvrzený']]},
   {k:'start',l:'Začátek',t:'date'},{k:'end',l:'Konec',t:'date'},
   {k:'lane',l:'Pruh (souběh)',t:'number'},
   {k:'parent',l:'Nadřazený proces',t:'select',opts:()=>[['','— kořenová úroveň']].concat(
      processes.filter(p=>p.scope===pmScope()&&!p.parent&&p.id!==(subCtx&&subCtx.obj?subCtx.obj.id:'')).map(p=>[p.id,p.id+' · '+p.name]))},
-  {k:'cogestors',l:'Spolugestoři a jejich odpovědnost',t:'roles',full:1},
-  {k:'affected',l:'Dotčení / konzultovaní',t:'peoplerefs',full:1},
+  {k:'cogestors',l:'Spolugestoři (osoby i útvary) a jejich odpovědnost',t:'roles',full:1},
+  {k:'affected',l:'Dotčení / konzultovaní (osoby i útvary)',t:'peoplerefs',full:1},
   {k:'links',l:'Vazby na předchůdce',t:'plinks',full:1},
   {k:'msEnd',l:'Milníky na konci procesu',t:'msrefs',full:1},
   {k:'msStart',l:'Milníky na začátku procesu',t:'msrefs',full:1}
@@ -3073,7 +3191,7 @@ function pmSubHost(k){
 function pmSubRender(k){
   const host=pmSubHost(k); if(!host||!subCtx)return;
   const o=subCtx.obj; if(!Array.isArray(o[k]))o[k]=[];
-  const who=v=>[['','—']].concat(OWNER_OPTS()).map(([a,l])=>`<option value="${a}" ${a===v?'selected':''}>${esc(l)}</option>`).join('')+PERSON_OPT;
+  const who=v=>actorOptionsHTML(v);
   let h='';
   if(k==='cogestors'){
     h=o[k].map((r,i)=>`<div class="pm-subrow">
@@ -3124,6 +3242,9 @@ function pmLinkFrom(i,v){
 
 /* ================= NAPOJENÍ NA ZBYTEK APLIKACE ================= */
 function pmNormalize(){
+  if(!orgUnits||typeof orgUnits!=='object')orgUnits={};
+  if(!staff||typeof staff!=='object')staff={};
+  Object.keys(orgUnits).forEach(u=>{if(typeof orgUnits[u]==='string')orgUnits[u]={name:orgUnits[u],kind:'Odbor'}});
   concepts.forEach(c=>{if(!c.axis)c.axis='cal';if(!c.t0)c.t0=project.start});
   if(!concepts.some(c=>c.src)&&concepts[0])concepts[0].src=true;
   if(!concepts.some(c=>c.id===PM.conceptId)&&concepts[0])PM.conceptId=concepts[0].id;
