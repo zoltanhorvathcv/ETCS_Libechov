@@ -636,7 +636,7 @@ body.pm-full .pm-canvas{height:var(--pm-h,60vh)}
   <div class="nav-item" data-view="model"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8 7.5l2.5 8M16 7.5l-2.5 8M8.5 6h7"/></svg>Datový model</div>
   <div class="sidebar-foot">
     <span class="back-link" onclick="exitApp()">← Zpět na úvodní stránku</span>
-    Přihlášen jako<br><b>Z. Horváth</b> · vedoucí projektu<br><span style="font-family:var(--mono);font-size:10px">prototyp v0.9</span>
+    Přihlášen jako<br><b>Z. Horváth</b> · vedoucí projektu<br><span style="font-family:var(--mono);font-size:10px" id="app-build">prototyp v0.9</span>
   </div>
 </aside>
 
@@ -3994,6 +3994,14 @@ function pmNormalize(){
   window.addEventListener('pointerup',pmPointerUp);
   window.addEventListener('pointercancel',pmPointerUp);
   window.addEventListener('resize',()=>{if($('#view-pmap').classList.contains('active')){pmFitHeight();renderPMap()}});
+})();
+
+/* Rozsah šablony v patičce — podle něj poznáte, zda máte načtenou
+   aktuální verzi skriptu, nebo starou z mezipaměti prohlížeče. */
+(function(){
+  const el=$('#app-build');
+  if(el&&typeof PM_TPL_ETCS==='object')
+    el.textContent='prototyp v0.9 · šablona '+PM_TPL_ETCS.procs.length+' procesů';
 })();
 
 /* ================= INIT ================= */
