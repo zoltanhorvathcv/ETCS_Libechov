@@ -1935,6 +1935,7 @@ function saveEditor(){
 }
 function deleteEditor(){
   const sc=SCHEMAS[edCtx.key], arr=sc.arr(), i=arr.indexOf(edCtx.ref);
+  if(edCtx.key==='concept'&&!pmDropConcept(edCtx.ref))return;
   if(i>-1){arr.splice(i,1); persistDelete(sc.entity,edCtx.ref);}
   renderAll(); closeEditor(); toast('Smazáno');
 }
@@ -3761,10 +3762,12 @@ function pmTemplateConcept(){histPush();pmBuildTemplate(false)}
    aby koncept existoval bez nutnosti klikat — zápis do Supabase je
    povolen jen přihlášenému správci (RLS), proto až v té chvíli. */
 function pmSeedTemplate(){
-  if(!ONLINE||!AUTH)return;
-  if(concepts.some(c=>c.name===PM_TPL_ETCS.name))return;
+  if(!ONLINE||!AUTH||project.tplSeeded)return;
+  /* jen jednou za život projektu — smazaná varianta se sama nevrátí */
+  if(concepts.some(c=>c.name===PM_TPL_ETCS.name)){project.tplSeeded=true;persistMeta();return}
   const c=pmBuildTemplate(true);
-  if(c)toast('Přidán koncept „'+PM_TPL_ETCS.name+'“ — najdete jej ve výběru variant');
+  if(c){project.tplSeeded=true;persistMeta();
+    toast('Přidán koncept „'+PM_TPL_ETCS.name+'“ — najdete jej ve výběru variant');}
 }
 function pmBuildTemplate(silent){
   const tpl=PM_TPL_ETCS;
@@ -3807,6 +3810,22 @@ function pmNewConcept(){
   renderPMap(); openEditor('concept',o.id);
 }
 function pmEditConcept(){const c=pmConcept();if(c)openEditor('concept',c.id)}
+/* Smazání varianty musí odstranit i její procesy a rámečky — jinak by
+   v datech zůstaly neviditelné osiřelé záznamy. */
+function pmDropConcept(c){
+  if(!c)return false;
+  const scope='concept:'+c.id;
+  const procs=processes.filter(x=>x.scope===scope);
+  const grps=pmgroups.filter(g=>g.scope===scope);
+  const src=c.src?'\n\nTato varianta je zdrojem procesní mapy — zdrojem se stane jiná.':'';
+  if(!confirm(`Smazat variantu „${c.name}“?\n\nOdstraní se i ${procs.length} procesů a ${grps.length} rámečků, které do ní patří.`+src))return false;
+  histPush();
+  procs.forEach(x=>{processes.splice(processes.indexOf(x),1);persistDelete('process',x)});
+  grps.forEach(g=>{pmgroups.splice(pmgroups.indexOf(g),1);persistDelete('pmgroup',g)});
+  if(PM.conceptId===c.id){const other=concepts.find(x=>x.id!==c.id);if(other)PM.conceptId=other.id}
+  PM.sel=[];
+  return true;
+}
 
 /* Dílčí editory složených polí. Sdílený kontext `subCtx` umožňuje, aby tytéž
    editory obsluhoval jak modální formulář, tak pás karet pod konceptem —
