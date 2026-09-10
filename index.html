@@ -1116,7 +1116,7 @@ const ORG_KINDS=['Odbor','Oddělení','Útvar','Sekce','Externí'];
 const actorName=c=>!c?'':(String(c)[0]===UNIT_PREFIX?((orgUnits[String(c).slice(1)]||{}).name||String(c).slice(1)):(people[c]||c));
 const isUnit=c=>String(c||'')[0]===UNIT_PREFIX;
 const STATUS = {done:['Dokončeno','ok'],track:['Podle plánu','track'],risk:['Ohroženo','risk'],blocked:['Blokováno','blocked'],replanned:['Přeplánováno','replanned'],idle:['Nezahájeno','idle']};
-let TODAY='2026-07-06';
+let TODAY=new Date().toISOString().slice(0,10);   // skutečné dnešní datum, ne pevná hodnota z dema
 
 /* Editovatelné parametry projektu (název, kód, vlastník…) */
 let project={
@@ -2261,6 +2261,30 @@ function pmColorOf(p){
 let pmgroups=[];
 const pmGroupsIn=()=>pmgroups.filter(g=>g.scope===pmScope());
 
+/* Vedení vazby: místo diagonály přes celé plátno jde vazba vodorovně,
+   měkkým obloukem sestoupí ve volném koridoru těsně před cílem a teprve
+   pak vstoupí do procesu. Ostré pravé úhly se nepoužívají. */
+function pmLinkPath(x1,y1,x2,y2){
+  if(Math.abs(y2-y1)<2)return `M ${x1} ${y1} H ${x2}`;
+  const dir=y2>y1?1:-1, xa=x1+13, xb=x2-22;
+  if(xb-xa<28){                      // příliš těsné nebo zpětné — měkký oblouk
+    const dx=Math.max(26,Math.min(70,Math.abs(x2-x1)/2+18));
+    return `M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}`;
+  }
+  /* vodorovný úsek vede mezerou mezi pruhy, ne skrz řadu procesů */
+  const yc=Math.abs(y2-y1)<40?(y1+y2)/2:y1+19*dir;
+  const r1=Math.min(8,Math.abs(yc-y1)/2), r2=Math.min(8,Math.abs(y2-yc)/2);
+  return `M ${x1} ${y1} H ${xa-r1}`
+    +` Q ${xa} ${y1} ${xa} ${y1+r1*dir}`
+    +` V ${yc-r1*dir}`
+    +` Q ${xa} ${yc} ${xa+r1} ${yc}`
+    +` H ${xb-r2}`
+    +` Q ${xb} ${yc} ${xb} ${yc+r2*dir}`
+    +` V ${y2-r2*dir}`
+    +` Q ${xb} ${y2} ${xb+r2} ${y2}`
+    +` H ${x2}`;
+}
+
 /* ---- kontrola porušených vazeb ---- */
 function pmViolated(l,target){
   const a=pmById(l.from); if(!a||!l.type)return false;
@@ -2362,11 +2386,13 @@ function renderPMap(){
       else if(l.type==='FF'){x1=ga.x+ga.w;x2=gb.x+gb.w}
       else {x1=ga.x+ga.w;x2=gb.x}
       const y1=ga.y+ga.h/2, y2=gb.y+gb.h/2;
-      const dx=Math.max(26,Math.min(70,Math.abs(x2-x1)/2+18));
       const col=bad?'#ff5c6a':'rgba(154,161,181,.55)';
       const dash=l.type?'':'stroke-dasharray="5 4"';
-      s+=`<path d="M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}" fill="none"
-            stroke="${col}" stroke-width="${bad?2:1.5}" ${dash} marker-end="url(#${bad?'pmArrBad':'pmArr'})"/>`;
+      const d=pmLinkPath(x1,y1,x2,y2);
+      /* tmavý podklad odděluje vazbu od mřížky i od křížících se vazeb */
+      s+=`<path d="${d}" fill="none" stroke="#181d2a" stroke-width="${bad?5:4}" opacity=".85"/>`;
+      s+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="${bad?2:1.5}" ${dash}
+            marker-end="url(#${bad?'pmArrBad':'pmArr'})"/>`;
       /* popisek jen tam, kde nese informaci — FS bez prodlevy je výchozí stav */
       if(l.type&&(l.type!=='FS'||+l.lag||bad)){
         const mx=(x1+x2)/2, my=Math.min(y1,y2)-9;
@@ -2418,9 +2444,11 @@ function renderPMap(){
     else if(p.state==='potvrzeny')fill=tint?tint+'45':'rgba(61,130,196,.15)';
     else dash='stroke-dasharray="5 3"';
     const on=pmSelHas(p.id);
+    const shape=pmRailPath(g.x,g.y,g.w,g.h);
     s+=`<g class="pmb${on?' sel':''}" data-id="${p.id}">
       ${on?`<path d="${pmRailPath(g.x-3,g.y-3,g.w+6,g.h+6)}" fill="none" stroke="var(--accent)" stroke-width="1.2" opacity=".8"/>`:''}
-      <path d="${pmRailPath(g.x,g.y,g.w,g.h)}" fill="${fill}" stroke="${stroke}" stroke-width="${on?2.4:1.6}" ${dash}/>`;
+      <path d="${shape}" fill="#181d2a"/>
+      <path d="${shape}" fill="${fill}" stroke="${stroke}" stroke-width="${on?2.4:1.6}" ${dash}/>`;
     if(p.state==='potvrzeny'){
       s+=`<line x1="${g.x+4}" y1="${g.y+3}" x2="${g.x+4}" y2="${g.y+g.h-3}" stroke="${stroke}" stroke-width="1.6"/>
           <line x1="${g.x+g.w-4}" y1="${g.y+3}" x2="${g.x+g.w-4}" y2="${g.y+g.h-3}" stroke="${stroke}" stroke-width="1.6"/>`;
@@ -3687,14 +3715,16 @@ const PM_TPL_ETCS={
     {k:'4',p:'A',n:'4 · Schválení a evidence — O14',g:'@O14',o:95,d:25,lane:1,dep:['3'],
      desc:'Schválení dokumentace a její zaevidování.'},
 
-    {k:'U',n:'Paralelní proces — UTZ',g:'@PO',color:'gold',o:60,d:150,lane:2,
+    {k:'U',n:'Paralelní proces — UTZ a průkazy způsobilosti',g:'@PO',color:'gold',o:60,d:190,lane:2,
      desc:'Technická prohlídka a zkouška určeného technického zařízení (UTZ). Běží souběžně s přípravou dokumentace a realizací; časové pořadí vůči TBZ není v T200 pevně dáno.'},
     {k:'A1',p:'U',n:'A1 · Technická prohlídka a zkouška UTZ právnickou osobou',g:'@PO',o:60,d:60,lane:3,dep:['1'],
      desc:'CTD určeno Ministerstvem dopravy. Nezávislý tým — nesmí se podílet na projektování, přezkoušení ani aktivaci zařízení. Pro potřeby Drážního úřadu.'},
     {k:'A2',p:'U',n:'A2 · Protokol o technické prohlídce a zkoušce UTZ',g:'@PO',o:120,d:20,lane:3,dep:['A1','4'],
      desc:'Výstupní protokol z technické prohlídky a zkoušky UTZ.'},
-    {k:'A3',p:'U',n:'A3 · Průkaz způsobilosti (Drážní úřad)',g:'@DU',o:140,d:70,lane:3,dep:['A2'],
-     desc:'Vydání nebo změna průkazu způsobilosti zabezpečovacího zařízení. Podmínka pro uvedení do provozu.'},
+    {k:'A3',p:'U',n:'A3 · Rozhodnutí DÚ o potřebě nového PZD',g:'@DU',o:140,d:45,lane:3,dep:['A2'],
+     desc:'Žádost podle § 49f zákona o dráhách, aby Drážní úřad rozhodl, zda modernizace subsystému traťové řízení a zabezpečení vyžaduje vydání nového průkazu způsobilosti dráhy.'},
+    {k:'A4',p:'U',n:'A4 · PZD nebo samostatné UTZ',g:'@DU',o:185,d:65,lane:3,dep:['A3'],
+     desc:'Je-li nový PZD vyžadován, jeho vydání podle § 49f odst. 4 ve spojení s § 49d odst. 2. Samostatně prověřit potřebu vydání nebo změny průkazu způsobilosti jen u UTZ, která nejsou zahrnuta do subsystému s ES prohlášením o ověření ani nejsou prvkem interoperability s příslušným ES prohlášením (§ 47 odst. 3).'},
 
     {k:'B',n:'B. Realizace a příprava zařízení',g:'@ZHO',color:'green',o:120,d:140,lane:4,
      desc:'Montáž, oživení a příprava zařízení k přezkoušení odbornou komisí.'},
@@ -3722,8 +3752,8 @@ const PM_TPL_ETCS={
      desc:'Aktivace zařízení a jeho uvedení do provozu po splnění všech podmínek.'},
     {k:'12',p:'D',n:'12 · Aktivace zařízení',g:'@ZHO',o:350,d:15,lane:10,dep:['11'],
      desc:'Zapnutí a oživení zařízení do provozního stavu. Ověření návazností a přepojení.'},
-    {k:'13',p:'D',n:'13 · Uvedení zařízení do provozu',g:'@SSZT',o:365,d:15,lane:10,dep:['12','A3'],
-     desc:'Provede přednosta SSZT nebo jím pověřený zaměstnanec, po splnění všech podmínek dle T200. Podmínkou je platný průkaz způsobilosti.'}
+    {k:'13',p:'D',n:'13 · Uvedení zařízení do provozu',g:'@SSZT',o:365,d:15,lane:10,dep:['12','A4'],
+     desc:'Provede přednosta SSZT nebo jím pověřený zaměstnanec, po splnění všech podmínek dle T200. Podmínkou je vyřešený režim průkazu způsobilosti podle větve UTZ.'}
   ]
 };
 function pmTemplateConcept(){histPush();pmBuildTemplate(false)}
