@@ -512,14 +512,26 @@ body.pm-full #view-pmap.active{padding:10px 14px 12px}
    zvětšovat. Na obrazovce je schovaný, ukáže se jen při tisku. */
 #printdoc{display:none}
 @media print{
-  @page{size:A4 portrait;margin:14mm}
-  @page land{size:A4 landscape}
+  /* Jedna orientace pro celý dokument. Míchání @page portrait a landscape
+     Chrome počítá z rozměrů první stránky, takže se zbytek dokumentu
+     rozjede mimo tiskovou plochu. Na šířku, protože mapa i tabulka
+     procesů jsou široké. */
+  @page{size:A4 landscape;margin:10mm}
+  /* Rám aplikace nesmí do sazby zasahovat žádnou svojí šířkou ani výškou. */
+  html,body{width:auto!important;min-width:0!important;height:auto!important;
+    margin:0!important;padding:0!important;overflow:visible!important;
+    display:block!important;position:static!important;transform:none!important}
   body.printing>*{display:none!important}
-  body.printing #printdoc{display:block!important;background:#fff;color:#111}
+  /* pseudoprvek s podkladem aplikace není potomek, skrýt ho musíme zvlášť */
+  body.printing::before,body.printing::after{content:none!important;display:none!important}
   body.printing{background:#fff}
-  #printdoc .page{page-break-after:always;break-after:page;font:12px/1.5 'Inter',Arial,sans-serif;color:#111}
+  body.printing #printdoc{display:block!important;background:#fff;color:#111}
+  /* Šířka v milimetrech, ne v procentech — sazba pak nezávisí na tom,
+     jak široké okno prohlížeče v okamžiku tisku bylo. */
+  #printdoc,#printdoc .page{width:277mm;max-width:277mm;margin-left:0;margin-right:0}
+  #printdoc .page{page-break-after:always;break-after:page;overflow:hidden;
+    font:12px/1.5 'Inter',Arial,sans-serif;color:#111}
   #printdoc .page:last-child{page-break-after:auto;break-after:auto}
-  #printdoc .page.land{page:land}
 }
 #printdoc .doch{display:flex;align-items:flex-start;gap:16px;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:14px}
 #printdoc .dtit{font-size:19px;font-weight:700;line-height:1.25}
@@ -546,9 +558,15 @@ body.pm-full #view-pmap.active{padding:10px 14px 12px}
 #printdoc ul.tight li,#printdoc ul.issues li{margin-bottom:2px}
 #printdoc .ask{border-left:3px solid #111;padding:6px 0 6px 10px;background:#f4f4f4;font-weight:500}
 #printdoc .note{font-size:10px;color:#555;margin-top:6px}
-#printdoc .mapbox{border:1px solid #ccc;padding:4px;background:#181d2a;border-radius:4px}
-#printdoc .mapbox svg{width:100%;height:auto;display:block}
-#printdoc table.grid{width:100%;border-collapse:collapse;font-size:9.5px}
+#printdoc .mapbox{border:1px solid #ccc;padding:4px;background:#181d2a;border-radius:4px;
+  max-width:100%;overflow:hidden}
+#printdoc .mapbox svg{width:100%;max-width:100%;height:auto;display:block}
+#printdoc table.grid{width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;font-size:9.5px}
+#printdoc table.grid td,#printdoc table.grid th{word-wrap:break-word;overflow-wrap:anywhere}
+#printdoc table.grid col.c1{width:6%}#printdoc table.grid col.c2{width:24%}
+#printdoc table.grid col.c3{width:14%}#printdoc table.grid col.c4,#printdoc table.grid col.c5{width:8%}
+#printdoc table.grid col.c6{width:4%}#printdoc table.grid col.c7{width:15%}
+#printdoc table.grid col.c8,#printdoc table.grid col.c9{width:7%}#printdoc table.grid col.c10{width:7%}
 #printdoc table.grid th{background:#eee;text-align:left;padding:4px 5px;border:1px solid #ccc;font-size:9px;
   letter-spacing:.04em;text-transform:uppercase}
 #printdoc table.grid td{padding:3px 5px;border:1px solid #ddd;vertical-align:top}
@@ -4369,7 +4387,7 @@ function pmExport(id,full){
   </section>`;
 
   /* --- strana 2: mapa --- */
-  const p2=`<section class="page land">
+  const p2=`<section class="page">
     <h3>Procesní mapa varianty</h3>
     <div class="mapbox">${map.svg}</div>
     <p class="note">Dělení osy po ${map.unit}. ${map.collapsed
@@ -4387,9 +4405,11 @@ function pmExport(id,full){
     <td>${p.gestor?escXml(actorName(p.gestor)):'<span class="miss">chybí</span>'}</td>
     <td>${PM_STATUSLBL[p.status]||p.status}</td><td>${PM_STATE[p.state]||p.state}</td>
     <td class="mono">${[...(p.msStart||[]),...(p.msEnd||[])].join(', ')||'—'}</td></tr>`).join('');
-  const p3=`<section class="page land">
+  const p3=`<section class="page">
     <h3>Procesy varianty (${S.list.length})</h3>
-    <table class="grid"><thead><tr><th>Kód</th><th>Název</th><th>Fáze</th><th>Od</th><th>Do</th>
+    <table class="grid">
+      <colgroup>${[1,2,3,4,5,6,7,8,9,10].map(i=>`<col class="c${i}">`).join('')}</colgroup>
+      <thead><tr><th>Kód</th><th>Název</th><th>Fáze</th><th>Od</th><th>Do</th>
       <th>Dnů</th><th>Gestor</th><th>Stav</th><th>Zralost</th><th>Milníky</th></tr></thead>
       <tbody>${rows}</tbody></table>
   </section>`;
