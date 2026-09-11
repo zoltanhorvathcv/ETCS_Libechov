@@ -507,6 +507,56 @@ body.pm-full #view-pmap.active{padding:10px 14px 12px}
 #pm-inspector{flex:none;margin-bottom:9px}
 #pm-inspector .pm-rib,#pm-inspector .pm-insp{margin-top:0}
 .pm-rib.collapsed .pm-rib-body{display:none}
+/* ---- dokument pro tisk / uložení do PDF ----
+   Světlý, bez rámu aplikace; mapa zůstává vektorová, takže se v PDF dá
+   zvětšovat. Na obrazovce je schovaný, ukáže se jen při tisku. */
+#printdoc{display:none}
+@media print{
+  @page{size:A4 portrait;margin:14mm}
+  @page land{size:A4 landscape}
+  body.printing>*{display:none!important}
+  body.printing #printdoc{display:block!important;background:#fff;color:#111}
+  body.printing{background:#fff}
+  #printdoc .page{page-break-after:always;break-after:page;font:12px/1.5 'Inter',Arial,sans-serif;color:#111}
+  #printdoc .page:last-child{page-break-after:auto;break-after:auto}
+  #printdoc .page.land{page:land}
+}
+#printdoc .doch{display:flex;align-items:flex-start;gap:16px;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:14px}
+#printdoc .dtit{font-size:19px;font-weight:700;line-height:1.25}
+#printdoc .dsub{font-size:11px;color:#555;margin-top:3px}
+#printdoc .dstamp{margin-left:auto;font-size:10.5px;color:#555;white-space:nowrap}
+#printdoc h3{font-size:13px;margin:16px 0 6px;padding-bottom:3px;border-bottom:1px solid #bbb}
+#printdoc h4{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin:0 0 4px}
+#printdoc p{margin:0 0 6px}
+#printdoc .miss{color:#999;font-style:italic}
+#printdoc .ok{color:#1a7f4b}
+#printdoc table.meta{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px}
+#printdoc table.meta th{text-align:left;color:#666;font-weight:500;width:15%;padding:3px 8px 3px 0;
+  font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;vertical-align:top}
+#printdoc table.meta td{padding:3px 16px 3px 0;width:35%;vertical-align:top}
+#printdoc .kpis{display:flex;flex-wrap:wrap;gap:8px}
+#printdoc .kpi{border:1px solid #ccc;border-radius:5px;padding:7px 11px;min-width:92px}
+#printdoc .kpi b{display:block;font-size:19px;line-height:1.1}
+#printdoc .kpi span{font-size:9.5px;color:#666}
+#printdoc .kpi.warn{border-color:#c0392b}
+#printdoc .kpi.warn b{color:#c0392b}
+#printdoc .cols{display:flex;gap:22px;margin-top:8px}
+#printdoc .cols>div{flex:1}
+#printdoc ul.tight,#printdoc ul.issues{margin:0;padding-left:16px}
+#printdoc ul.tight li,#printdoc ul.issues li{margin-bottom:2px}
+#printdoc .ask{border-left:3px solid #111;padding:6px 0 6px 10px;background:#f4f4f4;font-weight:500}
+#printdoc .note{font-size:10px;color:#555;margin-top:6px}
+#printdoc .mapbox{border:1px solid #ccc;padding:4px;background:#181d2a;border-radius:4px}
+#printdoc .mapbox svg{width:100%;height:auto;display:block}
+#printdoc table.grid{width:100%;border-collapse:collapse;font-size:9.5px}
+#printdoc table.grid th{background:#eee;text-align:left;padding:4px 5px;border:1px solid #ccc;font-size:9px;
+  letter-spacing:.04em;text-transform:uppercase}
+#printdoc table.grid td{padding:3px 5px;border:1px solid #ddd;vertical-align:top}
+#printdoc table.grid tr{page-break-inside:avoid}
+#printdoc table.grid .mono{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
+#printdoc table.grid .num{text-align:right}
+#printdoc .sub{color:#777;font-size:8.5px}
+
 /* Rozcestník konceptů — první, co uvidíte po otevření procesní mapy. */
 #pm-gallery{display:none}
 #view-pmap.gal{overflow:auto}
@@ -520,7 +570,7 @@ body.pm-full #view-pmap.active{padding:10px 14px 12px}
 .gcard .gb{padding:9px 12px 11px;display:flex;flex-direction:column;gap:5px;flex:1}
 .gcard .gn{font-size:13px;font-weight:600;line-height:1.3}
 .gcard .gm{font-size:10.5px;color:var(--text3);font-family:var(--mono);display:flex;flex-wrap:wrap;gap:2px 10px}
-.gcard .ga{display:flex;gap:5px;margin-top:auto;padding-top:6px}
+.gcard .ga{display:flex;flex-wrap:wrap;gap:5px;margin-top:auto;padding-top:6px}
 .gcard .ga .btn{padding:3px 8px;font-size:11px}
 .gcard.src{border-color:rgba(255,82,0,.45)}
 .gcard .badge{align-self:flex-start;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
@@ -645,6 +695,8 @@ body.pm-full .pm-canvas{height:var(--pm-h,60vh)}
 <body>
 
 <!-- ============ LANDING ============ -->
+<div id="printdoc"></div>
+
 <section id="landing">
   <div class="tri t1"></div><div class="tri t2"></div><div class="tri t3"></div><div class="tri t4"></div>
   <div class="land-top">
@@ -2190,7 +2242,7 @@ let processes=[
 ];
 
 const PM={mode:'concept',conceptId:'K-01',unit:'month',sel:[],splitMode:false,tab:'zaklad',panelLock:false,zoom:1,snapX:null,
-  filter:[],legHidden:false,ribCollapsed:false,extra:0,gallery:true};
+  filter:[],legHidden:false,ribCollapsed:false,extra:0,gallery:true,print:false};
 /* Výběr je pole; poslední vybraný je „primární“ a zobrazí se v pásu karet. */
 const pmSelHas=id=>PM.sel.indexOf(id)>-1;
 const pmPrimary=()=>PM.sel.length?PM.sel[PM.sel.length-1]:null;
@@ -2291,7 +2343,7 @@ function pmBounds(list){
   if(rel&&c0)a=Math.min(a,pmD(c0.t0));
   /* okraj = alespoň dvě jednotky, u delších projektů čtvrtina rozsahu */
   const unitMs={week:7,month:30.44,quarter:91.3}[u]*PMDAY;
-  const pad=Math.max(unitMs*2,(b-a)*0.25);
+  const pad=PM.print?unitMs:Math.max(unitMs*2,(b-a)*0.25);
   const backPad=rel?0:pad;
   if(u==='week'){a=pmWeekStart(a-backPad);b=pmWeekStart(b+pad)+7*PMDAY}
   else{const A=new Date(a-backPad),B=new Date(b+pad);
@@ -2392,11 +2444,11 @@ function renderPMap(){
   const list=pmVisible(), b=pmBounds(list), px=pmPx(), head=pmHeadH();
   /* pruhy i mřížka vyplní celou viditelnou plochu, ne jen výšku obsahu */
   const need=Math.max(3,(list.length?Math.max(...list.map(p=>p.lane||0)):0)+2);
-  const avail=Math.max(260,(host.clientHeight||420)-2);
+  const avail=PM.print?0:Math.max(260,(host.clientHeight||420)-2);
   /* vždy zásoba prázdných pruhů pod obsahem, aby šlo rolovat a zakládat do volna;
      PM.extra přibývá, jakmile se doroluje ke spodní hraně — svisle tedy bez konce */
-  const lanes=Math.max(need,Math.floor((avail-head)/PM_LANE))+6+(PM.extra||0);
-  const W=Math.max(PM_PAD*2+(b.t1-b.t0)/PMDAY*px, host.clientWidth-2);
+  const lanes=PM.print?need:Math.max(need,Math.floor((avail-head)/PM_LANE))+6+(PM.extra||0);
+  const W=PM.print?PM_PAD*2+(b.t1-b.t0)/PMDAY*px:Math.max(PM_PAD*2+(b.t1-b.t0)/PMDAY*px, host.clientWidth-2);
   const H=Math.max(head+lanes*PM_LANE, avail);
 
   if(!list.length){
@@ -3901,9 +3953,20 @@ SCHEMAS.concept={title:'Varianta konceptu',entity:'concept',arr:()=>concepts,idf
   {k:'name',l:'Název varianty',t:'text',full:1},
   {k:'axis',l:'Časová osa',t:'select',opts:[['off','Vypnutá'],['rel','Relativní (T0 + odstupy)'],['cal','Kalendářní']]},
   {k:'t0',l:'T0 — zahájení (kotva relativní osy)',t:'date'},
-  {k:'src',l:'Zdroj mapy — jen tuto variantu lze zpevnit',t:'check',full:1}
+  {k:'src',l:'Zdroj mapy — jen tuto variantu lze zpevnit',t:'check',full:1},
+  /* Níže jen pro podklad pro vedení — na plátno nemají vliv. */
+  {k:'purpose',l:'Účel varianty — proč vznikla a co řeší',t:'textarea',full:1},
+  {k:'decision',l:'Požadované rozhodnutí — co se po vedení žádá',t:'textarea',full:1},
+  {k:'docState',l:'Stav dokumentu',t:'select',opts:[['prac','Pracovní'],['pripom','K připomínkám'],['schval','Schválený']]},
+  {k:'version',l:'Verze',t:'text'},
+  {k:'author',l:'Zpracoval',t:'text'},
+  {k:'approver',l:'Schvaluje',t:'text'},
+  {k:'assumptions',l:'Předpoklady a omezení',t:'textarea',full:1},
+  {k:'risks',l:'Klíčová rizika varianty',t:'textarea',full:1},
+  {k:'refs',l:'Odkazy na předpisy a normy',t:'textarea',full:1}
 ]};
-NEW_DEFAULT.concept={axis:'rel',src:false};
+NEW_DEFAULT.concept={axis:'rel',src:false,purpose:'',decision:'',docState:'prac',version:'v1',
+  author:'',approver:'',assumptions:'',risks:'',refs:''};
 
 
 /* ================= ŠABLONA KONCEPTU =================
@@ -4162,7 +4225,9 @@ function pmRenderGallery(){
         <div class="gm"><span>změněno ${pmStamp(c.touched)}</span></div>
         <div class="ga" onclick="event.stopPropagation()">
           <button class="btn ghost sm" onclick="pmOpenConcept('${c.id}')">Otevřít</button>
-          ${ed?`<button class="btn ghost sm" title="Upravit název, osu a T0" onclick="pmOpenConcept('${c.id}');pmEditConcept()">✎</button>
+          <button class="btn ghost sm" title="Přehled varianty — jen data z konceptu, do PDF přes tiskový dialog" onclick="pmExport('${c.id}',false)">⎙ Přehled</button>
+          <button class="btn ghost sm" title="Podklad pro vedení — přehled plus účel, rozhodnutí, předpoklady, rizika a předpisy" onclick="pmExport('${c.id}',true)">⎙ Pro vedení</button>
+          ${ed?`<button class="btn ghost sm" title="Upravit název, osu, T0 a údaje pro podklad vedení" onclick="pmOpenConcept('${c.id}');pmEditConcept()">✎</button>
                 <button class="btn ghost sm" title="Smazat variantu i s jejími procesy" onclick="pmGalDrop('${c.id}')">Smazat</button>`:''}
         </div>
       </div></div>`;
@@ -4179,6 +4244,193 @@ function pmRenderGallery(){
     <button class="gnew" onclick="pmTemplateConcept()" title="Založit variantu z připravené šablony"><span><b>⌗</b>Ze šablony</span></button>`:'';
   host.innerHTML=cards+mapCard+add;
 }
+/* ================= EXPORT DO PDF =================
+   Dvě podoby téhož dokumentu: „Přehled varianty“ staví jen na datech, která
+   už v konceptu jsou; „Podklad pro vedení“ přidává ručně vyplněný účel,
+   požadované rozhodnutí, předpoklady, rizika a odkazy na předpisy.
+   Tiskne se přes tiskový dialog prohlížeče — mapa tak zůstane vektorová
+   a diakritika sedí, což u PDF knihoven v JS spolehlivé není. */
+const PM_DOCSTATE={prac:'Pracovní',pripom:'K připomínkám',schval:'Schválený'};
+
+/* Čísla a nesrovnalosti, které se do dokumentu počítají z dat. */
+function pmStats(scope){
+  const list=processes.filter(p=>p.scope===scope);
+  const roots=list.filter(p=>!p.parent), subs=list.filter(p=>p.parent);
+  const st={}, zr={};
+  list.forEach(p=>{st[p.status]=(st[p.status]||0)+1; zr[p.state]=(zr[p.state]||0)+1});
+  const byId={}; list.forEach(p=>byId[p.id]=p);
+  const bezGestora=list.filter(p=>!p.gestor);
+  const poruseneVazby=[];
+  list.forEach(p=>(p.links||[]).forEach(l=>{if(byId[l.from]&&pmViolated(l,p))poruseneVazby.push({p,l})}));
+  const prejeteMilniky=list.filter(p=>pmMsOverrun(p));
+  const gestori={}, utvary={};
+  list.forEach(p=>{
+    if(p.gestor)(isUnit(p.gestor)?utvary:gestori)[p.gestor]=((isUnit(p.gestor)?utvary:gestori)[p.gestor]||0)+1;
+    (p.affected||[]).forEach(a=>{if(isUnit(a))utvary[a]=utvary[a]||0});
+  });
+  const ms=new Set(); list.forEach(p=>[...(p.msStart||[]),...(p.msEnd||[])].forEach(m=>ms.add(m)));
+  const dates=list.map(p=>pmD(p.start)).concat(list.map(p=>pmD(p.end)));
+  return {list,roots,subs,st,zr,bezGestora,poruseneVazby,prejeteMilniky,gestori,utvary,
+    milniky:[...ms],
+    od:dates.length?pmISO(Math.min(...dates)):'—',
+    do:dates.length?pmISO(Math.max(...dates)):'—',
+    dnu:dates.length?Math.round((Math.max(...dates)-Math.min(...dates))/PMDAY):0};
+}
+
+/* Mapa do dokumentu. Kreslí ji stejný kód jako plátno — jen se na okamžik
+   přepne kontext a výsledné SVG se vyzvedne. U rozsáhlých variant se
+   podprocesy sbalí, jinak by byla na stránce nečitelná. */
+function pmDocMap(id,forceAll){
+  const keep={g:PM.gallery,m:PM.mode,c:PM.conceptId,u:PM.unit,z:PM.zoom,s:PM.sel.slice(),e:PM.extra,f:PM.filter.slice(),lh:PM.legHidden};
+  const scope='concept:'+id;
+  const list=processes.filter(p=>p.scope===scope);
+  const collapsed=!forceAll&&list.length>20;
+  const keepCol=list.map(p=>p.collapsed), keepLane=list.map(p=>p.lane);
+  const dnu=(()=>{const d=list.map(p=>pmD(p.end)).concat(list.map(p=>pmD(p.start)));
+    return d.length?(Math.max(...d)-Math.min(...d))/PMDAY:0})();
+  const view=$('#view-pmap'), wasGal=view&&view.classList.contains('gal');
+  if(collapsed){
+    list.forEach(p=>{if(list.some(x=>x.parent===p.id))p.collapsed=true});
+    /* Sbalením se uvolní pruhy vyhrazené podprocesům — do dokumentu je
+       stáhneme k sobě, aby mapa nebyla ze tří čtvrtin prázdná. */
+    list.filter(p=>!p.parent).sort((a,b)=>(a.lane||0)-(b.lane||0)).forEach((p,i)=>p.lane=i);
+  }
+  if(wasGal)view.classList.remove('gal');
+  PM.gallery=false; PM.mode='concept'; PM.conceptId=id; PM.zoom=1; PM.sel=[]; PM.extra=0;
+  PM.filter=[]; PM.legHidden=true;
+  /* Šířka mapy musí zůstat blízko šířky stránky — po zmenšení na 27 %
+     by byly popisky nečitelné. Bereme největší dělení, které se ještě vejde. */
+  const TARGET=1250;
+  PM.unit=['week','month','quarter'].find(u=>PM_PAD*2+dnu*PM_PXD[u]<=TARGET)||'quarter';
+  PM.print=true;
+  renderPMap();
+  const svg=$('#pm-canvas svg'), out=svg?svg.outerHTML:'';
+  const unit={week:'týdnech',month:'měsících',quarter:'čtvrtletích'}[PM.unit]||'';
+  PM.print=false;
+  list.forEach((p,i)=>{p.collapsed=keepCol[i];p.lane=keepLane[i]});
+  Object.assign(PM,{gallery:keep.g,mode:keep.m,conceptId:keep.c,unit:keep.u,zoom:keep.z,
+    sel:keep.s,extra:keep.e,filter:keep.f,legHidden:keep.lh});
+  if(wasGal&&view)view.classList.add('gal');
+  renderPMap();
+  return {svg:out,collapsed,unit};
+}
+
+function pmExport(id,full){
+  const c=concepts.find(x=>x.id===id); if(!c){toast('Varianta nenalezena');return}
+  const scope='concept:'+c.id, S=pmStats(scope);
+  if(!S.list.length){toast('Varianta nemá žádné procesy — není co exportovat');return}
+  const map=pmDocMap(c.id,false);
+  const host=$('#printdoc'); if(!host)return;
+  const nl=t=>escXml(t||'').replace(/\n/g,'<br>');
+  const miss='<span class="miss">nevyplněno</span>';
+  const val=t=>(t&&String(t).trim())?nl(t):miss;
+  const axis={off:'vypnutá',rel:'relativní (T0 + odstupy)',cal:'kalendářní'}[c.axis]||c.axis;
+
+  /* --- strana 1: souhrnný list --- */
+  const meta=full
+    ? `<table class="meta">
+        <tr><th>Verze</th><td>${val(c.version)}</td><th>Stav dokumentu</th><td>${PM_DOCSTATE[c.docState]||miss}</td></tr>
+        <tr><th>Zpracoval</th><td>${val(c.author)}</td><th>Schvaluje</th><td>${val(c.approver)}</td></tr>
+        <tr><th>Založeno</th><td>${pmStamp(c.created)}</td><th>Poslední změna</th><td>${pmStamp(c.touched)}</td></tr>
+       </table>`
+    : `<table class="meta">
+        <tr><th>Založeno</th><td>${pmStamp(c.created)}</td><th>Poslední změna</th><td>${pmStamp(c.touched)}</td></tr>
+        <tr><th>Časová osa</th><td>${axis}</td><th>Zdroj procesní mapy</th><td>${c.src?'ano':'ne'}</td></tr>
+       </table>`;
+  const num=(l,v,warn)=>`<div class="kpi${warn?' warn':''}"><b>${v}</b><span>${l}</span></div>`;
+  const souhrn=`<div class="kpis">
+    ${num('procesů celkem',S.list.length)}
+    ${num('z toho fází',S.roots.length)}
+    ${num('podprocesů',S.subs.length)}
+    ${num('dnů rozsah',S.dnu)}
+    ${num('navázaných milníků',S.milniky.length)}
+    ${num('procesů bez gestora',S.bezGestora.length,S.bezGestora.length>0)}
+  </div>`;
+  const rozdel=(o,lbl)=>Object.keys(o).length
+    ? `<ul class="tight">${Object.keys(o).map(k=>`<li>${escXml(lbl[k]||k)} — ${o[k]}×</li>`).join('')}</ul>` : '<p class="miss">—</p>';
+
+  let p1=`<section class="page">
+    <div class="doch"><div>
+      <div class="dtit">${escXml(c.name)}</div>
+      <div class="dsub">${full?'Podklad pro vedení':'Přehled varianty'} · ${escXml(project.name||'')} ${project.code?'· '+escXml(project.code):''}</div>
+    </div><div class="dstamp">${new Date().toLocaleDateString('cs-CZ',{day:'numeric',month:'long',year:'numeric'})}</div></div>
+    ${meta}`;
+  if(full){
+    p1+=`<h3>Účel varianty</h3><p>${val(c.purpose)}</p>
+         <h3>Požadované rozhodnutí</h3><div class="ask">${val(c.decision)}</div>`;
+  }
+  p1+=`<h3>Souhrn</h3>${souhrn}
+    <div class="cols">
+      <div><h4>Termíny</h4><p>${S.od} → ${S.do} (${S.dnu} dnů)<br>osa: ${axis}${c.t0?', T0 '+c.t0:''}</p></div>
+      <div><h4>Stav plnění</h4>${rozdel(S.st,PM_STATUSLBL)}</div>
+      <div><h4>Zralost</h4>${rozdel(S.zr,PM_STATE)}</div>
+    </div>
+    <h3>Nesrovnalosti k dořešení</h3>${pmDocIssues(S)}
+  </section>`;
+
+  /* --- strana 2: mapa --- */
+  const p2=`<section class="page land">
+    <h3>Procesní mapa varianty</h3>
+    <div class="mapbox">${map.svg}</div>
+    <p class="note">Dělení osy po ${map.unit}. ${map.collapsed
+      ? 'Podprocesy jsou v mapě sbaleny kvůli čitelnosti — jejich úplný výčet je v tabulce procesů.'
+      : 'Mapa obsahuje všechny procesy i podprocesy.'}
+      Barva nese fázi, proužek u levé hrany stav plnění, vzor výplně zralost.</p>
+  </section>`;
+
+  /* --- strany 3+: tabulka procesů --- */
+  const fazeOf=p=>{const r=p.parent?pmById(p.parent):p;return r?r.name:'—'};
+  const rows=S.list.slice().sort((a,b)=>pmD(a.start)-pmD(b.start)||(a.lane||0)-(b.lane||0)).map(p=>`<tr>
+    <td class="mono">${p.id}</td><td>${escXml(p.name)}${p.parent?' <span class="sub">(podproces)</span>':''}</td>
+    <td>${escXml(fazeOf(p))}</td><td class="mono">${p.start}</td><td class="mono">${p.end}</td>
+    <td class="num">${pmDays(p.start,p.end)}</td>
+    <td>${p.gestor?escXml(actorName(p.gestor)):'<span class="miss">chybí</span>'}</td>
+    <td>${PM_STATUSLBL[p.status]||p.status}</td><td>${PM_STATE[p.state]||p.state}</td>
+    <td class="mono">${[...(p.msStart||[]),...(p.msEnd||[])].join(', ')||'—'}</td></tr>`).join('');
+  const p3=`<section class="page land">
+    <h3>Procesy varianty (${S.list.length})</h3>
+    <table class="grid"><thead><tr><th>Kód</th><th>Název</th><th>Fáze</th><th>Od</th><th>Do</th>
+      <th>Dnů</th><th>Gestor</th><th>Stav</th><th>Zralost</th><th>Milníky</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+  </section>`;
+
+  /* --- poslední strana: jen u podkladu pro vedení --- */
+  let p4='';
+  if(full){
+    p4=`<section class="page">
+      <h3>Předpoklady a omezení</h3><p>${val(c.assumptions)}</p>
+      <h3>Klíčová rizika varianty</h3><p>${val(c.risks)}</p>
+      <h3>Odkazy na předpisy a normy</h3><p>${val(c.refs)}</p>
+      <h3>Gestoři a útvary</h3>
+      <div class="cols">
+        <div><h4>Osoby</h4>${rozdel(S.gestori,Object.fromEntries(Object.keys(S.gestori).map(k=>[k,actorName(k)])))}</div>
+        <div><h4>Útvary</h4>${rozdel(S.utvary,Object.fromEntries(Object.keys(S.utvary).map(k=>[k,actorName(k)])))}</div>
+      </div>
+    </section>`;
+  }
+  host.innerHTML=p1+p2+p3+p4;
+  document.body.classList.add('printing');
+  setTimeout(()=>{window.print()},60);
+}
+/* Po zavření tiskového dialogu se dokument uklidí, ať nepřekáží v aplikaci. */
+window.addEventListener('afterprint',()=>{
+  document.body.classList.remove('printing');
+  const h=$('#printdoc'); if(h)h.innerHTML='';
+});
+function pmDocIssues(S){
+  const out=[];
+  if(S.bezGestora.length)out.push(`<li><b>${S.bezGestora.length} procesů bez gestora:</b> ${
+    S.bezGestora.slice(0,12).map(p=>escXml(p.id+' · '+p.name)).join('; ')}${S.bezGestora.length>12?' …':''}</li>`);
+  if(S.poruseneVazby.length)out.push(`<li><b>${S.poruseneVazby.length} porušených vazeb:</b> ${
+    S.poruseneVazby.slice(0,10).map(x=>escXml(x.l.from+' → '+x.p.id)).join('; ')}${S.poruseneVazby.length>10?' …':''}</li>`);
+  if(S.prejeteMilniky.length)out.push(`<li><b>${S.prejeteMilniky.length} procesů přejíždí zamčený milník:</b> ${
+    S.prejeteMilniky.map(p=>escXml(p.id)).join(', ')}</li>`);
+  const bezMs=S.roots.filter(p=>!(p.msEnd||[]).length).length;
+  if(bezMs)out.push(`<li>${bezMs} z ${S.roots.length} fází nemá na konci navázaný milník.</li>`);
+  return out.length?`<ul class="issues">${out.join('')}</ul>`
+    :'<p class="ok">Nenalezeny žádné nesrovnalosti — každý proces má gestora, vazby drží a žádný proces nepřejíždí zamčený milník.</p>';
+}
+
 function pmGalDrop(id){
   const c=concepts.find(x=>x.id===id);
   if(!pmDropConcept(c))return;
