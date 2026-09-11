@@ -507,6 +507,28 @@ body.pm-full #view-pmap.active{padding:10px 14px 12px}
 #pm-inspector{flex:none;margin-bottom:9px}
 #pm-inspector .pm-rib,#pm-inspector .pm-insp{margin-top:0}
 .pm-rib.collapsed .pm-rib-body{display:none}
+/* Rozcestník konceptů — první, co uvidíte po otevření procesní mapy. */
+#pm-gallery{display:none}
+#view-pmap.gal{overflow:auto}
+#view-pmap.gal .pm-bar,#view-pmap.gal #pm-inspector,#view-pmap.gal .pm-stage,#view-pmap.gal .pm-leg{display:none}
+#view-pmap.gal #pm-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:14px;align-content:start}
+.gcard{border:1px solid var(--border);border-radius:var(--r);background:var(--panel);overflow:hidden;
+  cursor:pointer;transition:.16s;display:flex;flex-direction:column}
+.gcard:hover{border-color:var(--accent);transform:translateY(-2px)}
+.gcard .th{background:#181d2a;border-bottom:1px solid var(--border);display:block;width:100%;height:106px}
+.gcard .th.empty{display:grid;place-items:center;color:var(--text3);font-size:11.5px}
+.gcard .gb{padding:9px 12px 11px;display:flex;flex-direction:column;gap:5px;flex:1}
+.gcard .gn{font-size:13px;font-weight:600;line-height:1.3}
+.gcard .gm{font-size:10.5px;color:var(--text3);font-family:var(--mono);display:flex;flex-wrap:wrap;gap:2px 10px}
+.gcard .ga{display:flex;gap:5px;margin-top:auto;padding-top:6px}
+.gcard .ga .btn{padding:3px 8px;font-size:11px}
+.gcard.src{border-color:rgba(255,82,0,.45)}
+.gcard .badge{align-self:flex-start;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--accent);border:1px solid rgba(255,82,0,.4);border-radius:5px;padding:1px 5px}
+.gnew{border:1px dashed var(--border2);border-radius:var(--r);background:none;color:var(--text3);
+  display:grid;place-items:center;gap:6px;cursor:pointer;min-height:180px;font-size:12.5px;transition:.16s}
+.gnew:hover{border-color:var(--accent);color:var(--text)}
+.gnew b{font-size:22px;font-weight:400;display:block}
 .pm-canvas{position:relative;overflow:auto;border:1px solid var(--border2);border-radius:var(--r);background:#181d2a}
 .pm-canvas svg{display:block}
 .pm-empty{padding:56px 30px;text-align:center;color:var(--text3)}
@@ -601,12 +623,22 @@ body.pm-full .pm-canvas{height:var(--pm-h,60vh)}
 .ppl-row .uses{font-size:11px;color:var(--text3);font-family:var(--mono);white-space:nowrap;text-align:right}
 .ppl-row .x{width:30px;height:30px;flex:none;border-radius:7px;border:1px solid var(--border2);background:var(--panel2);color:var(--text3);cursor:pointer}
 .ppl-row .x:hover{color:var(--blocked);border-color:var(--blocked)}
-.pm-insp{border:1px solid var(--border);border-radius:var(--r);background:var(--panel);padding:16px 18px;margin-top:14px}
-.pm-insp .h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
-.pm-insp .h b{font-size:15px}
-.pm-insp .code{font-family:var(--mono);font-size:11px;color:var(--accent)}
-.pm-igrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 20px;font-size:12.5px}
-.pm-igrid .l{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:2px}
+/* Čtecí náhled má stejnou výšku jako pás karet — hodnoty se ořežou na jeden
+   řádek a celý text ukáže až křížek ⊞ u popisku. */
+.pm-insp{border:1px solid var(--border2);border-radius:var(--r);background:var(--panel);overflow:hidden}
+.pm-insp .h{display:flex;align-items:center;gap:7px;padding:5px 11px;background:var(--panel2);border-bottom:1px solid var(--border)}
+.pm-insp .h b{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:34vw}
+.pm-insp .code{font-family:var(--mono);font-size:10.5px;color:var(--accent);flex:none}
+.pm-insp .h .btn{padding:3px 8px;font-size:11px}
+.pm-igrid{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:flex-start;padding:7px 11px 9px;font-size:12px;max-height:118px;overflow:auto}
+.pm-igrid>div{flex:0 1 180px;min-width:140px}
+.pm-igrid>div.wide{flex:2 1 320px}
+.pm-igrid .l{display:flex;align-items:center;gap:5px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:2px}
+.pm-igrid .x{width:15px;height:15px;flex:none;border:1px solid var(--border);border-radius:4px;background:none;
+  color:var(--text3);cursor:pointer;font:600 10px 'Inter',sans-serif;line-height:1;padding:0}
+.pm-igrid .x:hover{border-color:var(--accent);color:var(--text)}
+.pm-igrid .v{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.45}
+.pm-igrid .v.open{white-space:normal;max-height:82px;overflow:auto}
 @media(max-width:820px){.pm-sel{max-width:170px}}
 </style>
 </head>
@@ -933,7 +965,10 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       <h2 id="pm-title">Procesní mapa</h2><span id="pm-sub">koncept a mapa nad jednou sadou dat</span>
     </div>
 
+    <div id="pm-gallery"></div>
+
     <div class="pm-bar">
+      <button class="btn ghost sm" id="pm-backgal" onclick="pmShowGallery()" title="Zpět na přehled konceptů">← Koncepty</button>
       <div class="pm-seg" id="pm-mode">
         <button data-m="concept" class="on" onclick="pmSetMode('concept')" title="Koncept — volná plocha pro objevování procesů">Koncept</button>
         <button data-m="map" onclick="pmSetMode('map')" title="Procesní mapa — plán s typovanými vazbami">Procesní mapa</button>
@@ -1428,7 +1463,7 @@ function renderLandStats(){
 /* ================= NAV ================= */
 const viewNames={overview:'Přehled',board:'Milníková nástěnka',meetings:'Schůzky',ai:'AI analytik',pmap:'Procesní mapa',decisions:'Log rozhodnutí',issues:'Log otázek',changes:'Co se změnilo',model:'Datový model'};
 function go(v){
-  if(v==='pmap')setTimeout(()=>{pmFitHeight();renderPMap()},30);
+  if(v==='pmap'){PM.gallery=true;PM.sel=[];setTimeout(()=>{pmFitHeight();renderPMap()},30)}
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===v));
   document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id==='view-'+v));
   $('#crumb-view').textContent=viewNames[v];
@@ -2155,7 +2190,7 @@ let processes=[
 ];
 
 const PM={mode:'concept',conceptId:'K-01',unit:'month',sel:[],splitMode:false,tab:'zaklad',panelLock:false,zoom:1,snapX:null,
-  filter:[],legHidden:false,ribCollapsed:false,extra:0};
+  filter:[],legHidden:false,ribCollapsed:false,extra:0,gallery:true};
 /* Výběr je pole; poslední vybraný je „primární“ a zobrazí se v pásu karet. */
 const pmSelHas=id=>PM.sel.indexOf(id)>-1;
 const pmPrimary=()=>PM.sel.length?PM.sel[PM.sel.length-1]:null;
@@ -2346,6 +2381,13 @@ function pmMsOverrun(p){
 /* ================= VYKRESLENÍ ================= */
 function renderPMap(){
   const host=$('#pm-canvas'); if(!host)return;
+  const view=$('#view-pmap');
+  if(view)view.classList.toggle('gal',!!PM.gallery);
+  if(PM.gallery){
+    pmRenderGallery(); $('#pm-count').textContent='';
+    const nb=$('#nav-pm'); if(nb)nb.textContent=processes.length;   // v rozcestníku počítáme všechno
+    return;
+  }
   pmSyncControls();
   const list=pmVisible(), b=pmBounds(list), px=pmPx(), head=pmHeadH();
   /* pruhy i mřížka vyplní celou viditelnou plochu, ne jen výšku obsahu */
@@ -2918,6 +2960,7 @@ function pmToggleFull(){
 /* Pohled se roztáhne na výšku okna; plátno pak pruží na zbytek místa. */
 function pmFitHeight(){
   const view=$('#view-pmap'); if(!view||!view.classList.contains('active'))return;
+  if(PM.gallery){view.style.height='';return}
   const bar=$('.topbar');
   const top=document.body.classList.contains('pm-full')||!bar?0:bar.getBoundingClientRect().height;
   view.style.height=(window.innerHeight-top)+'px';
@@ -2934,22 +2977,46 @@ function pmRenderInspector(){
   const aff=(p.affected||[]).map(a=>actorName(a)).join(', ')||'—';
   const ms=[...(p.msStart||[]).map(i=>i+' (začátek)'),...(p.msEnd||[]).map(i=>i+' (konec)')].join(', ')||'—';
   const lk=(p.links||[]).map(l=>`${l.from} ${l.type||'neutrální'}${+l.lag?(l.lag>0?' +':' ')+l.lag+' d':''}${pmViolated(l,p)?' <span style="color:var(--blocked)">· porušená</span>':''}`).join('<br>')||'—';
+  /* Každé pole je jeden řádek; delší text rozbalí ⊞ u popisku. */
+  let ix=0;
+  const fld=(lab,val,wide)=>{
+    const i='iv'+(ix++);
+    return `<div class="${wide?'wide':''}"><div class="l">${lab}
+      <button class="x" id="b${i}" title="Zobrazit celý text" onclick="pmInspOpen('${i}')">⊞</button></div>
+      <div class="v" id="${i}">${val}</div></div>`;
+  };
   host.innerHTML=`<div class="pm-insp">
-    <div class="h"><span class="code">${p.id}</span><b>${escXml(p.name)}</b>${chip(p.status)}
+    <div class="h"><span class="code">${p.id}</span><b title="${escXml(p.name)}">${escXml(p.name)}</b>${chip(p.status)}
       <span class="tag">${PM_STATE[p.state]||p.state}</span>
       <div style="flex:1"></div>
       <button class="btn ghost sm ed-only" onclick="openEditor('process','${p.id}')">✎ Upravit</button>
       ${PM.mode==='map'&&p.state!=='potvrzeny'?`<button class="btn primary sm ed-only" onclick="pmConfirm('${p.id}')">Potvrdit</button>`:''}
+      <button class="btn ghost sm" title="Zavřít náhled a zrušit výběr" onclick="PM.sel=[];renderPMap()">✕</button>
     </div>
     <div class="pm-igrid">
-      <div><div class="l">Termín</div>${p.start} → ${p.end} <span style="color:var(--text3)">(${pmDays(p.start,p.end)} d)</span></div>
-      <div><div class="l">Gestor</div>${escXml(actorName(p.gestor))||'<span style="color:var(--blocked)">chybí</span>'}</div>
-      <div><div class="l">Spolugestoři</div>${co}</div>
-      <div><div class="l">Dotčení</div>${escXml(aff)}</div>
-      <div><div class="l">Milníky</div>${ms}</div>
-      <div><div class="l">Vazby</div>${lk}</div>
-      <div><div class="l">Popis</div>${escXml(p.desc||'—')}</div>
+      ${fld('Termín',`${p.start} → ${p.end} <span style="color:var(--text3)">(${pmDays(p.start,p.end)} d)</span>`)}
+      ${fld('Gestor',escXml(actorName(p.gestor))||'<span style="color:var(--blocked)">chybí</span>')}
+      ${fld('Spolugestoři',co)}
+      ${fld('Dotčení',escXml(aff))}
+      ${fld('Milníky',ms)}
+      ${fld('Vazby',lk)}
+      ${fld('Popis',escXml(p.desc||'—'),true)}
     </div></div>`;
+  pmInspTrim();
+}
+/* ⊞ rozbalí, ⊟ zase sbalí — u polí, která se na řádek nevejdou. */
+function pmInspOpen(id){
+  const v=$('#'+id), b=$('#b'+id); if(!v)return;
+  const on=v.classList.toggle('open');
+  b.textContent=on?'⊟':'⊞';
+  b.title=on?'Sbalit na jeden řádek':'Zobrazit celý text';
+}
+/* U hodnot, které se celé vejdou, nemá ⊞ co ukazovat — schová se. */
+function pmInspTrim(){
+  document.querySelectorAll('#pm-inspector .pm-igrid .v').forEach(v=>{
+    const b=$('#b'+v.id); if(!b)return;
+    if(v.scrollWidth<=v.clientWidth+1&&!/<br>/.test(v.innerHTML))b.style.display='none';
+  });
 }
 function pmConfirm(id){
   const p=pmById(id); if(!p)return;
@@ -3092,7 +3159,16 @@ function pmDeleteProcess(id){
 
 /* ================= TAŽENÍ A ROZTAHOVÁNÍ ================= */
 let pmDrag=null, pmSaveT=null, pmDirty=new Set();
-function pmQueue(o){pmDirty.add(o);clearTimeout(pmSaveT);pmSaveT=setTimeout(pmFlush,700)}
+function pmQueue(o){pmDirty.add(o);pmTouch(o);clearTimeout(pmSaveT);pmSaveT=setTimeout(pmFlush,700)}
+/* Poslední změna varianty — kvůli přehledu konceptů. Zapisuje se nejvýš
+   jednou za minutu, aby tažení procesu nedělalo zápis z každého snímku. */
+function pmTouch(o){
+  const sc=o&&o.scope; if(!sc||sc.indexOf('concept:')!==0)return;
+  const c=concepts.find(x=>x.id===sc.slice(8)); if(!c)return;
+  const now=new Date().toISOString();
+  if(c.touched&&c.touched.slice(0,16)===now.slice(0,16))return;
+  c.touched=now; persist('concept',c,concepts.indexOf(c));
+}
 function pmFlush(){
   pmDirty.forEach(o=>{
     const isMs=milestones.indexOf(o)>-1;
@@ -3993,7 +4069,8 @@ function pmBuildTemplate(silent){
   let added=0;
   Object.keys(tpl.units).forEach(u=>{if(!orgUnits[u]){orgUnits[u]=tpl.units[u];added++}});
   const t0=project.start||pmISO(Date.now());
-  const c=Object.assign({},NEW_DEFAULT.concept,{id:nextId('concept'),name:tpl.name,t0,axis:'rel',src:false});
+  const now=new Date().toISOString();
+  const c=Object.assign({},NEW_DEFAULT.concept,{id:nextId('concept'),name:tpl.name,t0,axis:'rel',src:false,created:now,touched:now});
   concepts.push(c);
   persist('concept',c,concepts.length-1);
 
@@ -4014,7 +4091,7 @@ function pmBuildTemplate(silent){
   if(added)persistMeta();
   pmFlush();
   if(!silent){
-    PM.mode='concept'; PM.conceptId=c.id; PM.sel=[]; PM.unit='month';
+    PM.mode='concept'; PM.conceptId=c.id; PM.sel=[]; PM.unit='month'; PM.gallery=false;
     toast(`Šablona načtena — ${tpl.procs.length} procesů${added?', '+added+' nových útvarů':''}`);
   }
   renderPMap();
@@ -4022,12 +4099,94 @@ function pmBuildTemplate(silent){
 }
 
 function pmNewConcept(){
-  const o=Object.assign({},NEW_DEFAULT.concept,{id:nextId('concept'),name:'Nová varianta',t0:project.start});
-  concepts.push(o); PM.conceptId=o.id; PM.mode='concept';
+  const now=new Date().toISOString();
+  const o=Object.assign({},NEW_DEFAULT.concept,{id:nextId('concept'),name:'Nová varianta',t0:project.start,created:now,touched:now});
+  concepts.push(o); PM.conceptId=o.id; PM.mode='concept'; PM.gallery=false;
   persist('concept',o,concepts.length-1);
   renderPMap(); openEditor('concept',o.id);
 }
 function pmEditConcept(){const c=pmConcept();if(c)openEditor('concept',c.id)}
+
+/* ================= ROZCESTNÍK KONCEPTŮ =================
+   Po otevření procesní mapy se nejdřív ukáže přehled variant s náhledem,
+   datem založení a poslední změny. Teprve odtud se vstupuje na plátno. */
+const PM_GW=272, PM_GH=106;
+/* Náhled = zmenšené plátno varianty. Kreslí se ze stejných dat jako plátno,
+   jen bez os, popisků a vazeb — jde o siluetu, ne o čitelný plán. */
+function pmThumb(scope){
+  const list=processes.filter(p=>p.scope===scope);
+  if(!list.length)return '<div class="th empty">zatím bez procesů</div>';
+  const t0=Math.min(...list.map(x=>pmD(x.start))), t1=Math.max(...list.map(x=>pmD(x.end)));
+  const lanes=Math.max(...list.map(x=>x.lane||0))+1;
+  const PAD=6, W=PM_GW, H=PM_GH;
+  const sx=(W-PAD*2)/Math.max(1,t1-t0), sy=(H-PAD*2)/lanes;
+  const bh=Math.max(2,Math.min(8,sy-2));
+  const bars=list.map(x=>{
+    const bx=PAD+(pmD(x.start)-t0)*sx, bw=Math.max(2,(pmD(x.end)-pmD(x.start))*sx);
+    const by=PAD+(x.lane||0)*sy+(sy-bh)/2, c=pmColorOf(x)||'#6d8dff';
+    return `<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}"
+      rx="${Math.min(2,bh/2)}" fill="${c}${x.parent?'55':'99'}" stroke="${c}" stroke-width=".6"/>`;
+  }).join('');
+  return `<svg class="th" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"
+    xmlns="http://www.w3.org/2000/svg"><rect width="${W}" height="${H}" fill="#181d2a"/>${bars}</svg>`;
+}
+const pmStamp=v=>{
+  if(!v)return '—';
+  const d=new Date(v);
+  return isNaN(d)?'—':d.toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric',year:'numeric'})
+    +(v.length>10?' '+d.toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'}):'');
+};
+function pmShowGallery(){PM.gallery=true;PM.sel=[];renderPMap()}
+function pmOpenConcept(id){
+  PM.gallery=false; PM.mode='concept'; PM.conceptId=id; PM.sel=[]; PM.extra=0;
+  renderPMap(); pmFitHeight();
+}
+function pmOpenMap(){
+  PM.gallery=false; PM.mode='map'; PM.sel=[]; PM.extra=0;
+  renderPMap(); pmFitHeight();
+}
+function pmRenderGallery(){
+  const host=$('#pm-gallery'); if(!host)return;
+  const ed=document.body.classList.contains('editing');
+  const cards=concepts.map(c=>{
+    const scope='concept:'+c.id;
+    const n=processes.filter(x=>x.scope===scope).length;
+    const axis={off:'bez osy',rel:'relativní osa',cal:'kalendářní osa'}[c.axis]||c.axis;
+    return `<div class="gcard${c.src?' src':''}" onclick="pmOpenConcept('${c.id}')" title="Otevřít variantu na plátně">
+      ${pmThumb(scope)}
+      <div class="gb">
+        ${c.src?'<span class="badge">zdroj mapy</span>':''}
+        <div class="gn">${escXml(c.name)}</div>
+        <div class="gm"><span>${n} procesů</span><span>${axis}</span></div>
+        <div class="gm"><span>založeno ${pmStamp(c.created)}</span></div>
+        <div class="gm"><span>změněno ${pmStamp(c.touched)}</span></div>
+        <div class="ga" onclick="event.stopPropagation()">
+          <button class="btn ghost sm" onclick="pmOpenConcept('${c.id}')">Otevřít</button>
+          ${ed?`<button class="btn ghost sm" title="Upravit název, osu a T0" onclick="pmOpenConcept('${c.id}');pmEditConcept()">✎</button>
+                <button class="btn ghost sm" title="Smazat variantu i s jejími procesy" onclick="pmGalDrop('${c.id}')">Smazat</button>`:''}
+        </div>
+      </div></div>`;
+  }).join('');
+  const mapN=processes.filter(x=>x.scope==='map').length;
+  const mapCard=`<div class="gcard" onclick="pmOpenMap()" title="Otevřít procesní mapu">
+    ${pmThumb('map')}
+    <div class="gb"><span class="badge">procesní mapa</span>
+      <div class="gn">Procesní mapa projektu</div>
+      <div class="gm"><span>${mapN} procesů</span><span>plán s vazbami</span></div>
+      <div class="ga" onclick="event.stopPropagation()"><button class="btn ghost sm" onclick="pmOpenMap()">Otevřít</button></div>
+    </div></div>`;
+  const add=ed?`<button class="gnew" onclick="pmNewConcept()" title="Založit prázdnou variantu"><span><b>＋</b>Nová varianta</span></button>
+    <button class="gnew" onclick="pmTemplateConcept()" title="Založit variantu z připravené šablony"><span><b>⌗</b>Ze šablony</span></button>`:'';
+  host.innerHTML=cards+mapCard+add;
+}
+function pmGalDrop(id){
+  const c=concepts.find(x=>x.id===id);
+  if(!pmDropConcept(c))return;
+  const i=concepts.indexOf(c);
+  if(i>-1){concepts.splice(i,1);persistDelete('concept',c)}
+  PM.conceptId=(concepts[0]||{}).id||'';
+  pmRenderGallery(); toast('Varianta smazána');
+}
 /* Smazání varianty musí odstranit i její procesy a rámečky — jinak by
    v datech zůstaly neviditelné osiřelé záznamy. */
 function pmDropConcept(c){
@@ -4109,6 +4268,8 @@ function pmLinkFrom(i,v){
 
 /* ================= NAPOJENÍ NA ZBYTEK APLIKACE ================= */
 function pmNormalize(){
+  /* starší varianty razítka nemají — doplníme je při prvním načtení */
+  concepts.forEach(c=>{if(!c.created)c.created=project.start||''; if(!c.touched)c.touched=c.created;});
   if(!orgUnits||typeof orgUnits!=='object')orgUnits={};
   if(!staff||typeof staff!=='object')staff={};
   Object.keys(orgUnits).forEach(u=>{if(typeof orgUnits[u]==='string')orgUnits[u]={name:orgUnits[u],kind:'Odbor'}});
