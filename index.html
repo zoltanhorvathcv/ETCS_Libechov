@@ -3167,7 +3167,13 @@ function pmPointerDown(e){
           orig:group.map(q=>({q,start:q.start,end:q.end,lane:q.lane||0}))};
   g.classList.add('dragging');
   host.setPointerCapture&&host.setPointerCapture(e.pointerId);
+  /* Výběr procesu vysune pás karet a plátno se tím posune. O ten kus se musí
+     posunout i výchozí bod tažení, jinak by proces ujel myši hned na začátku. */
+  const r0=host.getBoundingClientRect(), sl0=host.scrollLeft, st0=host.scrollTop;
   renderPMap();
+  const r1=host.getBoundingClientRect();
+  pmDrag.x+=(r1.left-r0.left)-(host.scrollLeft-sl0);
+  pmDrag.y+=(r1.top-r0.top)-(host.scrollTop-st0);
   e.preventDefault();
 }
 
@@ -3203,6 +3209,7 @@ function pmPointerMove(e){
     return;
   }
   if(pmMarq){
+    pmEdgeSet(e);
     const r=pmLocal(e.clientX,e.clientY);
     pmMarq.x1=r.x; pmMarq.y1=r.y;
     const b=pmBounds(pmVisible());
@@ -3225,6 +3232,7 @@ function pmPointerMove(e){
     pmDrag.moved=true; histPush();
   }
   if(!pmDrag.moved)return;
+  pmEdgeSet(e);
 
   PM.snapX=null;
   const sn=pmSnap(pmDrag,dd,px);
@@ -3243,8 +3251,43 @@ function pmPointerMove(e){
   if(!pmDrag.raf)pmDrag.raf=requestAnimationFrame(()=>{pmDrag&&(pmDrag.raf=0);PM.panelLock=true;renderPMap();PM.panelLock=false});
 }
 
+/* Táhnu-li proces (nebo gumičku) k okraji plátna, plátno se samo rozjede
+   za kurzorem — jinak by šlo posunout proces jen po viditelnou hranu.
+   O ujetý kus se posune i výchozí bod tažení, aby proces zůstal pod myší. */
+let pmEdge=null, pmEdgeRaf=0;
+const PM_EDGE=52, PM_EDGE_MAX=24;
+function pmEdgeSet(e){
+  const host=$('#pm-canvas'); if(!host)return;
+  const r=host.getBoundingClientRect();
+  const sp=d=>Math.ceil(PM_EDGE_MAX*Math.min(1,Math.max(0,(PM_EDGE-d))/PM_EDGE));
+  let vx=0, vy=0;
+  if(e.clientX<r.left+PM_EDGE)vx=-sp(e.clientX-r.left);
+  else if(e.clientX>r.right-PM_EDGE)vx=sp(r.right-e.clientX);
+  if(e.clientY<r.top+PM_EDGE)vy=-sp(e.clientY-r.top);
+  else if(e.clientY>r.bottom-PM_EDGE)vy=sp(r.bottom-e.clientY);
+  if(!vx&&!vy){pmEdge=null;return}
+  pmEdge={vx,vy,cx:e.clientX,cy:e.clientY};
+  if(!pmEdgeRaf)pmEdgeRaf=requestAnimationFrame(pmEdgeTick);
+}
+function pmEdgeTick(){
+  pmEdgeRaf=0;
+  const host=$('#pm-canvas');
+  if(!host||!pmEdge||(!pmDrag&&!pmMarq)){pmEdge=null;return}
+  const sl=host.scrollLeft, st=host.scrollTop;
+  host.scrollLeft=sl+pmEdge.vx;
+  host.scrollTop =Math.max(0,st+pmEdge.vy);
+  const dx=host.scrollLeft-sl, dy=host.scrollTop-st;
+  const ev={clientX:pmEdge.cx,clientY:pmEdge.cy};
+  if(dx||dy){
+    if(pmDrag){pmDrag.x-=dx; pmDrag.y-=dy}
+    pmPointerMove(ev);          // přepočte polohu i bez pohybu myši (ten pak sám plánuje další snímek)
+  }
+  if(pmEdge&&!pmEdgeRaf)pmEdgeRaf=requestAnimationFrame(pmEdgeTick);
+}
+
 function pmPointerUp(){
   const host=$('#pm-canvas');
+  pmEdge=null;
   if(pmPan){pmPan=null;host&&host.classList.remove('panning');return}
   if(pmMarq){pmMarq=null;renderPMap();return}
   if(!pmDrag)return;
