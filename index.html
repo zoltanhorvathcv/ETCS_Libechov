@@ -558,7 +558,7 @@ body.pm-full #view-pmap.active{padding:10px 14px 12px}
 #printdoc ul.tight li,#printdoc ul.issues li{margin-bottom:2px}
 #printdoc .ask{border-left:3px solid #111;padding:6px 0 6px 10px;background:#f4f4f4;font-weight:500}
 #printdoc .note{font-size:10px;color:#555;margin-top:6px}
-#printdoc .mapbox{border:1px solid #ccc;padding:4px;background:#181d2a;border-radius:4px;
+#printdoc .mapbox{border:1px solid #bbb;padding:3px;background:#fff;border-radius:4px;
   max-width:100%;overflow:hidden}
 #printdoc .mapbox svg{width:100%;max-width:100%;height:auto;display:block}
 #printdoc table.grid{width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;font-size:9.5px}
@@ -574,6 +574,10 @@ body.pm-full #view-pmap.active{padding:10px 14px 12px}
 #printdoc table.grid .mono{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 #printdoc table.grid .num{text-align:right}
 #printdoc .sub{color:#777;font-size:8.5px}
+#printdoc table.grid.faze{table-layout:auto;font-size:10.5px;margin-top:4px}
+#printdoc table.grid.faze td,#printdoc table.grid.faze th{padding:4px 6px}
+#printdoc table.grid.faze td.sw{width:22px}
+#printdoc table.grid.faze td.sw span{display:block;width:15px;height:11px;border:1.5px solid;border-radius:3px}
 
 /* Rozcestník konceptů — první, co uvidíte po otevření procesní mapy. */
 #pm-gallery{display:none}
@@ -2388,6 +2392,26 @@ function pmRailPath(x,y,w,h){
 /* Odstíny pro proužek stavu — „nezahájeno“ musí být na tmavém plátně vidět,
    proto světlejší než --idle použité jinde v aplikaci. */
 const PM_STATUSCOL={done:'#3ddc97',track:'#6d8dff',risk:'#ffb020',blocked:'#ff5c6a',replanned:'#b78cff',idle:'#8b97b1'};
+/* Plátno má dvě podoby: tmavou na obrazovku a světlou do tiskového
+   dokumentu. Tmavý blok na papíře je špatně čitelný, a protože prohlížeč
+   ve výchozím nastavení netiskne podklady, musí mapa fungovat i bez nich —
+   proto nese čitelnost obrys a text, ne výplň. */
+const PM_SKIN=()=>PM.print
+ ? {bg:'#fff',ink:'#111',ink2:'#3d4453',ink3:'#5c6473',head:'#eceff5',
+    grid:'rgba(0,0,0,.16)',grid2:'rgba(0,0,0,.06)',rule:'rgba(0,0,0,.28)',
+    lane:'rgba(0,0,0,.022)',laneLine:'rgba(0,0,0,.06)',
+    link:'rgba(70,80,100,.7)',arrow:'rgba(70,80,100,.85)',hatch:'rgba(70,80,100,.5)'}
+ : {bg:'#181d2a',ink:'var(--text)',ink2:'var(--text2)',ink3:'var(--text3)',head:'var(--panel2)',
+    grid:'rgba(255,255,255,.14)',grid2:'rgba(255,255,255,.055)',rule:'rgba(255,255,255,.16)',
+    lane:'rgba(255,255,255,.015)',laneLine:'rgba(255,255,255,.05)',
+    link:'rgba(154,161,181,.55)',arrow:'rgba(154,161,181,.75)',hatch:'rgba(154,161,181,.42)'};
+/* Světlé odstíny fází by se na bílém papíře ztratily — pro tisk je ztmavíme. */
+function pmTone(c,force){
+  if((!PM.print&&!force)||typeof c!=='string'||!/^#[0-9a-f]{6}$/i.test(c))return c;
+  const n=parseInt(c.slice(1),16), f=.58;
+  const r=Math.round(((n>>16)&255)*f),g=Math.round(((n>>8)&255)*f),b=Math.round((n&255)*f);
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
 const PM_STATUSLBL={done:'Dokončeno',track:'Podle plánu',risk:'Ohroženo',blocked:'Blokováno',replanned:'Přeplánováno',idle:'Nezahájeno'};
 /* Barva odlišuje fázi či skupinu, ne stav plnění — ten nese barva obrysu.
    Podproces barvu dědí po rodiči, pokud vlastní nemá. */
@@ -2451,6 +2475,7 @@ function pmMsOverrun(p){
 /* ================= VYKRESLENÍ ================= */
 function renderPMap(){
   const host=$('#pm-canvas'); if(!host)return;
+  const SK=PM_SKIN();
   const view=$('#view-pmap');
   if(view)view.classList.toggle('gal',!!PM.gallery);
   if(PM.gallery){
@@ -2480,20 +2505,21 @@ function renderPMap(){
   }
 
   let s=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  ${PM.print?`<rect width="${W}" height="${H}" fill="#fff"/>`:''}
   <defs>
     <pattern id="pmHatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-      <line x1="0" y1="0" x2="0" y2="7" stroke="rgba(154,161,181,.42)" stroke-width="2.4"/>
+      <line x1="0" y1="0" x2="0" y2="7" stroke="${SK.hatch}" stroke-width="2.4"/>
     </pattern>
     <marker id="pmArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-      <path d="M0 0L10 5L0 10z" fill="rgba(154,161,181,.75)"/></marker>
+      <path d="M0 0L10 5L0 10z" fill="${SK.arrow}"/></marker>
     <marker id="pmArrBad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M0 0L10 5L0 10z" fill="#ff5c6a"/></marker>
   </defs>`;
 
   /* pruhy = souběžné koleje, střídavě jemně podbarvené */
   for(let i=0;i<lanes;i++){
-    if(i%2)s+=`<rect x="0" y="${head+i*PM_LANE}" width="${W}" height="${PM_LANE}" fill="rgba(255,255,255,.015)"/>`;
-    s+=`<line x1="0" y1="${head+i*PM_LANE}" x2="${W}" y2="${head+i*PM_LANE}" stroke="rgba(255,255,255,.05)"/>`;
+    if(i%2)s+=`<rect x="0" y="${head+i*PM_LANE}" width="${W}" height="${PM_LANE}" fill="${SK.lane}"/>`;
+    s+=`<line x1="0" y1="${head+i*PM_LANE}" x2="${W}" y2="${head+i*PM_LANE}" stroke="${SK.laneLine}"/>`;
   }
 
   /* časová osa a mřížka z jednoho modelu, aby seděly na sebe */
@@ -2541,18 +2567,18 @@ function renderPMap(){
       else if(l.type==='FF'){x1=ga.x+ga.w;x2=gb.x+gb.w}
       else {x1=ga.x+ga.w;x2=gb.x}
       const y1=ga.y+ga.h/2, y2=gb.y+gb.h/2;
-      const col=bad?'#ff5c6a':'rgba(154,161,181,.55)';
+      const col=bad?'#ff5c6a':SK.link;
       const dash=l.type?'':'stroke-dasharray="5 4"';
       const d=pmLinkPath(x1,y1,x2,y2);
       /* tmavý podklad odděluje vazbu od mřížky i od křížících se vazeb */
-      s+=`<path d="${d}" fill="none" stroke="#181d2a" stroke-width="${bad?5:4}" opacity=".85"/>`;
+      s+=`<path d="${d}" fill="none" stroke="${SK.bg}" stroke-width="${bad?5:4}" opacity=".85"/>`;
       s+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="${bad?2:1.5}" ${dash}
             marker-end="url(#${bad?'pmArrBad':'pmArr'})"/>`;
       /* popisek jen tam, kde nese informaci — FS bez prodlevy je výchozí stav */
       if(l.type&&(l.type!=='FS'||+l.lag||bad)){
         const mx=(x1+x2)/2, my=Math.min(y1,y2)-9;
         s+=`<text x="${mx}" y="${my}" text-anchor="middle" font-family="var(--mono)" font-size="9.5"
-              fill="${bad?'#ff5c6a':'var(--text3)'}">${l.type}${+l.lag?(l.lag>0?'+':'')+l.lag+' d':''}</text>`;
+              fill="${bad?'#ff5c6a':SK.ink3}">${l.type}${+l.lag?(l.lag>0?'+':'')+l.lag+' d':''}</text>`;
       }
     });
   });
@@ -2569,34 +2595,34 @@ function renderPMap(){
     const hasKids=pmAll().some(x=>x.parent===p.id);
     const tx0=g.x+(hasKids?22:10), tw=p.name.length*fs*0.53;
     const inside=g.w-(tx0-g.x)-8;
-    if(tw<=inside){plan[p.id]={x:tx0,y:g.y+g.h/2+4,fs,fill:'var(--text)'};return}
+    if(tw<=inside){plan[p.id]={x:tx0,y:g.y+g.h/2+4,fs,fill:SK.ink};return}
     const nxt=(laneNext[p.lane||0]||[]).find(o=>o.x>g.x+g.w-1);
-    if(tw<=(nxt?nxt.x:W)-(g.x+g.w)-14){plan[p.id]={x:g.x+g.w+8,y:g.y+g.h/2+4,fs,fill:'var(--text)'};return}
+    if(tw<=(nxt?nxt.x:W)-(g.x+g.w)-14){plan[p.id]={x:g.x+g.w+8,y:g.y+g.h/2+4,fs,fill:SK.ink};return}
     const rows=[['a',g.y-4],['b',g.y+g.h+11]];
     for(let i=0;i<rows.length;i++){
       const key=(p.lane||0)+rows[i][0], arr=occ[key]=occ[key]||[];
       if(!arr.some(iv=>g.x<iv[1]+8&&g.x+tw>iv[0]-8)){
         arr.push([g.x,g.x+tw]);
-        plan[p.id]={x:g.x+1,y:rows[i][1],fs:fs-0.5,fill:'var(--text2)'};
+        plan[p.id]={x:g.x+1,y:rows[i][1],fs:fs-0.5,fill:SK.ink2};
         return;
       }
     }
     const max=Math.max(1,Math.floor(inside/(fs*0.53)));
-    plan[p.id]={x:tx0,y:g.y+g.h/2+4,fs,fill:'var(--text)',cut:max};
+    plan[p.id]={x:tx0,y:g.y+g.h/2+4,fs,fill:SK.ink,cut:max};
   });
 
   /* procesy */
   list.forEach(p=>{
-    const g=pmGeom(p,b), col=PM_STATUSCOL[p.status]||'var(--idle)';
+    const g=pmGeom(p,b), col=pmTone(PM_STATUSCOL[p.status]||'#8b97b1');
     const over=pmMsOverrun(p);
     const tint=pmColorOf(p);
     /* Obrys a výplň nesou fázi, proužek vlevo stav plnění, vzor výplně
        zralost. Rozpor s zamčeným milníkem přebíjí vše červenou.
        transparent, ne none — "none" nepřijímá kliknutí. */
-    const stroke=over?'#ff5c6a':(tint||col);
-    let fill=tint?tint+'26':'transparent', dash='';
+    const stroke=over?'#ff5c6a':pmTone(tint||col);
+    let fill=tint?pmTone(tint)+(PM.print?'1c':'26'):'transparent', dash='';
     if(p.state==='odvozeny')fill='url(#pmHatch)';
-    else if(p.state==='potvrzeny')fill=tint?tint+'45':'rgba(61,130,196,.15)';
+    else if(p.state==='potvrzeny')fill=tint?pmTone(tint)+(PM.print?'30':'45'):'rgba(61,130,196,.15)';
     else dash='stroke-dasharray="5 3"';
     const on=pmSelHas(p.id);
     const shape=pmRailPath(g.x,g.y,g.w,g.h);
@@ -2604,7 +2630,7 @@ function renderPMap(){
     const dim=!pmPassFilter(p);
     s+=`<g class="pmb${on?' sel':''}${dim?' dimmed':''}" data-id="${p.id}">
       ${on?`<path d="${pmRailPath(g.x-3,g.y-3,g.w+6,g.h+6)}" fill="none" stroke="var(--accent)" stroke-width="1.2" opacity=".8"/>`:''}
-      <path d="${shape}" fill="#181d2a"/>
+      <path d="${shape}" fill="${SK.bg}"/>
       <path d="${shape}" fill="${fill}" stroke="${stroke}" stroke-width="${on?2.4:1.6}" ${dash}/>`;
     if(p.state==='potvrzeny'){
       s+=`<line x1="${g.x+4}" y1="${g.y+3}" x2="${g.x+4}" y2="${g.y+g.h-3}" stroke="${stroke}" stroke-width="1.6"/>
@@ -2616,10 +2642,10 @@ function renderPMap(){
     const kids=pmAll().filter(x=>x.parent===p.id).length;
     let tx0=g.x+10;
     if(kids){
-      s+=`<text class="pmtog" data-tog="${p.id}" x="${g.x+9}" y="${g.y+g.h/2+4}" font-size="11" fill="var(--text2)" style="cursor:pointer">${p.collapsed?'▸':'▾'}</text>`;
+      s+=`<text class="pmtog" data-tog="${p.id}" x="${g.x+9}" y="${g.y+g.h/2+4}" font-size="11" fill="${SK.ink2}" style="cursor:pointer">${p.collapsed?'▸':'▾'}</text>`;
       tx0=g.x+22;
     }
-    const pl=plan[p.id]||{x:tx0,y:g.y+g.h/2+4,fs:12,fill:'var(--text)'};
+    const pl=plan[p.id]||{x:tx0,y:g.y+g.h/2+4,fs:12,fill:SK.ink};
     const lab=pl.cut?p.name.slice(0,Math.max(1,pl.cut-1))+'…':p.name;
     s+=`<text x="${pl.x}" y="${pl.y}" font-size="${pl.fs}" fill="${pl.fill}" font-family="Inter,sans-serif">${escXml(lab)}</text>`;
     s+=`<title>${escXml(p.id+' · '+p.name)}</title>`;
@@ -2652,9 +2678,9 @@ function escXml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').r
 function pmSignalSVG(id,x,y,h,i,p,isEnd){
   const m=milestones.find(z=>z.id===id); if(!m)return '';
   const bad=m.locked&&isEnd&&pmD(p.end)>pmD(m.date);
-  const col=bad?'#ff5c6a':(m.status==='done'?'var(--ok)':'var(--text3)');
+  const SK=PM_SKIN(), col=bad?'#ff5c6a':(m.status==='done'?pmTone('#3ddc97'):SK.ink3);
   const mx=x+(isEnd?-2:2)+i*13, top=y-16;
-  return `<g><line x1="${mx}" y1="${y}" x2="${mx}" y2="${top+6}" stroke="${bad?'#ff5c6a':'var(--text2)'}" stroke-width="1.4"/>
+  return `<g><line x1="${mx}" y1="${y}" x2="${mx}" y2="${top+6}" stroke="${bad?'#ff5c6a':SK.ink2}" stroke-width="1.4"/>
     <circle cx="${mx}" cy="${top}" r="5" fill="${m.status==='done'||bad?col:'var(--panel)'}" stroke="${col}" stroke-width="1.5"/>
     ${m.locked?`<rect x="${mx+6}" y="${top-5}" width="8" height="7" rx="1" fill="none" stroke="${col}" stroke-width="1.2"/>
       <path d="M ${mx+8} ${top-5} v -2 a 2 2 0 0 1 4 0 v 2" fill="none" stroke="${col}" stroke-width="1.2"/>`:''}
@@ -2698,26 +2724,28 @@ function pmAxisModel(b){
 }
 /* svislá mřížka srovnaná s osou — kreslí se pod procesy */
 function pmGridSVG(mo,head,H){
+  const SK=PM_SKIN();
   let s='';
-  mo.cells.forEach(c=>{s+=`<line x1="${c.x0}" y1="${head}" x2="${c.x0}" y2="${H}" stroke="rgba(255,255,255,.055)"/>`});
-  mo.ctx.forEach(c=>{s+=`<line x1="${c.x0}" y1="${head}" x2="${c.x0}" y2="${H}" stroke="rgba(255,255,255,.14)"/>`});
+  mo.cells.forEach(c=>{s+=`<line x1="${c.x0}" y1="${head}" x2="${c.x0}" y2="${H}" stroke="${SK.grid2}"/>`});
+  mo.ctx.forEach(c=>{s+=`<line x1="${c.x0}" y1="${head}" x2="${c.x0}" y2="${H}" stroke="${SK.grid}"/>`});
   return s;
 }
 function pmAxisSVG(mo,W,head){
   const uy=head-14;
-  let s=`<rect x="0" y="0" width="${W}" height="${head}" fill="var(--panel2)"/>`;
+  const SK=PM_SKIN();
+  let s=`<rect x="0" y="0" width="${W}" height="${head}" fill="${SK.head}"/>`;
   mo.ctx.forEach(c=>{
-    s+=`<line x1="${c.x0}" y1="0" x2="${c.x0}" y2="${head}" stroke="rgba(255,255,255,.14)"/>
+    s+=`<line x1="${c.x0}" y1="0" x2="${c.x0}" y2="${head}" stroke="${SK.grid}"/>
       <text class="pmctx" data-x0="${c.x0}" data-x1="${c.x1}" x="${c.x0+9}" y="13"
-        font-size="10.5" font-weight="600" fill="var(--text)" font-family="Inter,sans-serif">${escXml(c.lab)}</text>`;
+        font-size="10.5" font-weight="600" fill="${SK.ink}" font-family="Inter,sans-serif">${escXml(c.lab)}</text>`;
   });
-  s+=`<line x1="0" y1="${uy}" x2="${W}" y2="${uy}" stroke="rgba(255,255,255,.09)"/>`;
+  s+=`<line x1="0" y1="${uy}" x2="${W}" y2="${uy}" stroke="${SK.grid2}"/>`;
   mo.cells.forEach(c=>{
-    s+=`<line x1="${c.x0}" y1="${uy}" x2="${c.x0}" y2="${head}" stroke="rgba(255,255,255,.06)"/>
+    s+=`<line x1="${c.x0}" y1="${uy}" x2="${c.x0}" y2="${head}" stroke="${SK.grid2}"/>
       <text x="${(c.x0+c.x1)/2}" y="${head-3}" text-anchor="middle" font-size="9.5"
-        fill="var(--text3)" font-family="var(--mono)">${escXml(c.lab)}</text>`;
+        fill="${SK.ink3}" font-family="ui-monospace,Menlo,Consolas,monospace">${escXml(c.lab)}</text>`;
   });
-  s+=`<line x1="0" y1="${head}" x2="${W}" y2="${head}" stroke="rgba(255,255,255,.16)"/>`;
+  s+=`<line x1="0" y1="${head}" x2="${W}" y2="${head}" stroke="${SK.rule}"/>`;
   return s;
 }
 
@@ -4387,9 +4415,22 @@ function pmExport(id,full){
   </section>`;
 
   /* --- strana 2: mapa --- */
+  /* Pod mapou výčet fází — vysvětluje barvy a zaplní místo, které mapa
+     s málo pruhy a dlouhou osou na stránce nechává volné. */
+  const faze=S.roots.slice().sort((a,b)=>pmD(a.start)-pmD(b.start)).map(r=>{
+    const kids=S.subs.filter(x=>x.parent===r.id).length;
+    const c=pmTone(pmColorOf(r)||'#8b97b1',true);   // stejný odstín jako v mapě
+    return `<tr><td class="sw"><span style="background:${c}33;border-color:${c}"></span></td>
+      <td>${escXml(r.name)}</td><td class="mono">${r.start} → ${r.end}</td>
+      <td class="num">${pmDays(r.start,r.end)} d</td><td class="num">${kids}</td>
+      <td>${r.gestor?escXml(actorName(r.gestor)):'<span class="miss">chybí</span>'}</td></tr>`;
+  }).join('');
   const p2=`<section class="page">
     <h3>Procesní mapa varianty</h3>
     <div class="mapbox">${map.svg}</div>
+    <h4 style="margin-top:12px">Fáze varianty</h4>
+    <table class="grid faze"><thead><tr><th></th><th>Fáze</th><th>Termín</th><th>Doba</th>
+      <th>Podprocesů</th><th>Gestor</th></tr></thead><tbody>${faze}</tbody></table>
     <p class="note">Dělení osy po ${map.unit}. ${map.collapsed
       ? 'Podprocesy jsou v mapě sbaleny kvůli čitelnosti — jejich úplný výčet je v tabulce procesů.'
       : 'Mapa obsahuje všechny procesy i podprocesy.'}
