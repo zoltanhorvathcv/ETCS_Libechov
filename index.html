@@ -583,15 +583,25 @@ body.pm-full #view-pmap.active{padding:10px 14px 12px}
 #printdoc table.grid.faze{table-layout:auto;font-size:10.5px;margin-top:4px}
 #printdoc table.grid.faze td,#printdoc table.grid.faze th{padding:4px 6px}
 #printdoc table.grid.faze td.sw{width:22px}
-#printdoc table.grid.faze td.sw span{display:block;width:15px;height:11px;border:1.5px solid;border-radius:3px}
+#printdoc table.grid.faze td.sw svg{display:block}
 /* skupina procesů jedné fáze */
 #printdoc .pgrp{break-inside:avoid;page-break-inside:avoid;margin-bottom:11px}
 #printdoc .pgrp:last-child{margin-bottom:0}
 #printdoc .ghead{display:flex;align-items:center;gap:8px;padding:3px 0 3px 8px;margin-bottom:3px}
 #printdoc .ghead b{font-size:11.5px}
-#printdoc .ghead .sw{width:14px;height:10px;border:1.6px solid;border-radius:3px;flex:none}
+#printdoc .ghead svg.sw{flex:none;display:block}
 #printdoc .ghead .gm{font-size:9.5px;color:#666;margin-left:auto;font-family:ui-monospace,Menlo,Consolas,monospace}
 #printdoc table.grid td.lead{border-left-width:3px!important}
+/* grafy */
+#printdoc .chrow{display:flex;gap:18px;align-items:flex-start;margin-top:10px}
+#printdoc .ch{min-width:0;break-inside:avoid;page-break-inside:avoid}
+#printdoc .ch.full{margin-top:6px}
+#printdoc .cht{font-size:10.5px;font-weight:600;color:#111;margin-bottom:4px;
+  padding-bottom:3px;border-bottom:1px solid #ddd}
+#printdoc .chn{font-size:9px;color:#666;margin-top:3px}
+#printdoc .chleg{display:flex;flex-wrap:wrap;gap:3px 12px;margin-top:5px;font-size:9px;color:#333}
+#printdoc .chleg span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+#printdoc .chleg svg.sw{flex:none;display:block}
 
 /* Rozcestník konceptů — první, co uvidíte po otevření procesní mapy. */
 #pm-gallery{display:none}
@@ -2419,9 +2429,17 @@ const PM_SKIN=()=>PM.print
     grid:'rgba(255,255,255,.14)',grid2:'rgba(255,255,255,.055)',rule:'rgba(255,255,255,.16)',
     lane:'rgba(255,255,255,.015)',laneLine:'rgba(255,255,255,.05)',
     link:'rgba(154,161,181,.55)',arrow:'rgba(154,161,181,.75)',hatch:'rgba(154,161,181,.42)'};
-/* Světlé odstíny fází by se na bílém papíře ztratily — pro tisk je ztmavíme. */
+/* Světlé odstíny fází by se na bílém papíře ztratily. Pro tisk proto má
+   každá barva palety svůj protějšek, ověřený na odstup pro barvosleposti
+   i na kontrast proti bílé; „šedomodrá“ je záměrně neutrální slot pro
+   procesy bez barvy, proto se do kontroly kategoriálních barev nepočítá.
+   Odstíny mimo paletu (stavy plnění) se jen ztmaví výpočtem. */
+const PM_PRINT_HEX={'#3d82c4':'#2f6ba8','#3ddc97':'#2fae76','#ff5200':'#cc4200',
+  '#b78cff':'#8f6ad2','#ffb020':'#c98a13','#2fbfc7':'#0b9aa6','#ff6fa5':'#d1517f',
+  '#8b97b1':'#6b7483'};
 function pmTone(c,force){
   if((!PM.print&&!force)||typeof c!=='string'||!/^#[0-9a-f]{6}$/i.test(c))return c;
+  const hit=PM_PRINT_HEX[c.toLowerCase()]; if(hit)return hit;
   const n=parseInt(c.slice(1),16), f=.58;
   const r=Math.round(((n>>16)&255)*f),g=Math.round(((n>>8)&255)*f),b=Math.round((n&255)*f);
   return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
@@ -4381,11 +4399,161 @@ function pmDocMap(id,forceAll){
   return {svg:out,collapsed,unit};
 }
 
+/* ================= GRAFY DO DOKUMENTU =================
+   Kreslí se ručně do SVG: vektorové, ostré na papíře a nezávislé na
+   grafice pozadí, kterou prohlížeč ve výchozím nastavení netiskne.
+   Proto má každý pruh i tenký obrys a přímý popisek s hodnotou —
+   totožnost tak nikdy nenese jen barva. */
+const CH={ink:'#111',ink2:'#454b57',ink3:'#6b7280',rule:'#c8ccd4',grid:'#e6e8ec'};
+const chEsc=t=>escXml(String(t));
+/* Zkrácení popisku na pevnou šířku — v SVG se text sám nezalomí. */
+const chCut=(t,max)=>{t=String(t);return t.length>max?t.slice(0,max-1)+'…':t};
+
+/* Vodorovné pruhy, případně skládané po segmentech.
+   rows: [{lab, segs:[{v,color,name}]}] */
+function pmBarsSVG(o){
+  const W=o.w, labW=o.labW||150, rowH=o.rowH||17, gap=o.gap||5;
+  const top=4, right=o.right||46;
+  const H=top+o.rows.length*(rowH+gap)+16;
+  const plotW=W-labW-right;
+  const max=Math.max(1,...o.rows.map(r=>r.segs.reduce((a,x)=>a+x.v,0)));
+  let g='';
+  /* jemná svislá vodítka po celých dílcích */
+  const step=max<=5?1:max<=12?2:max<=30?5:max<=120?20:max<=600?100:200;
+  for(let v=step;v<=max;v+=step){
+    const x=labW+v/max*plotW;
+    g+=`<line x1="${x.toFixed(1)}" y1="${top}" x2="${x.toFixed(1)}" y2="${H-16}" stroke="${CH.grid}"/>
+        <text x="${x.toFixed(1)}" y="${H-5}" text-anchor="middle" font-size="7.5" fill="${CH.ink3}">${v}</text>`;
+  }
+  g+=`<line x1="${labW}" y1="${top}" x2="${labW}" y2="${H-16}" stroke="${CH.rule}"/>`;
+  o.rows.forEach((r,i)=>{
+    const y=top+i*(rowH+gap), tot=r.segs.reduce((a,x)=>a+x.v,0);
+    g+=`<text x="${labW-7}" y="${y+rowH/2+3}" text-anchor="end" font-size="8.5" fill="${CH.ink2}">${chEsc(chCut(r.lab,o.labMax||26))}</text>`;
+    let x=labW;
+    r.segs.forEach(sg=>{
+      if(sg.v<=0)return;
+      const w=sg.v/max*plotW;
+      /* 2px mezera mezi segmenty, aby se skládané pruhy nesplývaly */
+      g+=`<rect x="${x.toFixed(1)}" y="${y}" width="${Math.max(.8,w-2).toFixed(1)}" height="${rowH}" rx="2"
+            fill="${sg.color}" stroke="${sg.color}" stroke-width=".6"/>`;
+      if(w>26)g+=`<text x="${(x+w/2-1).toFixed(1)}" y="${y+rowH/2+3}" text-anchor="middle" font-size="7.5" fill="#fff">${sg.v}</text>`;
+      x+=w;
+    });
+    g+=`<text x="${(x+5).toFixed(1)}" y="${y+rowH/2+3}" font-size="8.5" font-weight="600" fill="${CH.ink}">${tot}${o.unit?' '+o.unit:''}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg"
+    font-family="Inter,Arial,sans-serif">${g}</svg>`;
+}
+
+/* Svislé sloupce v čase — jedna řada, takže bez legendy; název ji pojmenuje. */
+function pmColsSVG(o){
+  const W=o.w, H=o.h||150, left=26, bot=26, top=14;   // místo pro popisek špičky
+  const n=o.vals.length, plotW=W-left-8, plotH=H-top-bot;
+  const max=Math.max(1,...o.vals), bw=plotW/n;
+  let g='';
+  const step=max<=5?1:max<=12?2:max<=30?5:10;
+  for(let v=0;v<=max;v+=step){
+    const y=top+plotH-v/max*plotH;
+    g+=`<line x1="${left}" y1="${y.toFixed(1)}" x2="${W-8}" y2="${y.toFixed(1)}" stroke="${v?CH.grid:CH.rule}"/>
+        <text x="${left-5}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="7.5" fill="${CH.ink3}">${v}</text>`;
+  }
+  const peak=o.vals.indexOf(max);
+  o.vals.forEach((v,i)=>{
+    const h=v/max*plotH, x=left+i*bw;
+    if(v>0)g+=`<rect x="${(x+1).toFixed(1)}" y="${(top+plotH-h).toFixed(1)}" width="${Math.max(1,bw-2).toFixed(1)}"
+      height="${h.toFixed(1)}" rx="2" fill="${o.color}" stroke="${o.color}" stroke-width=".6"/>`;
+    if(i===peak)g+=`<text x="${(x+bw/2).toFixed(1)}" y="${(top+plotH-h-3).toFixed(1)}" text-anchor="middle"
+      font-size="8" font-weight="600" fill="${CH.ink}">${v}</text>`;
+    if(o.labs[i])g+=`<text x="${(x+bw/2).toFixed(1)}" y="${H-14}" text-anchor="middle" font-size="7" fill="${CH.ink3}">${chEsc(o.labs[i])}</text>`;
+    if(o.labs2&&o.labs2[i])g+=`<text x="${(x+bw/2).toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="7.5" font-weight="600" fill="${CH.ink2}">${chEsc(o.labs2[i])}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg"
+    font-family="Inter,Arial,sans-serif">${g}</svg>`;
+}
+/* Odznak barvy se kreslí jako SVG, ne výplní v CSS — tu prohlížeč ve
+   výchozím nastavení netiskne a na papíře by zbyl prázdný rámeček. */
+const chSw=(c,w,h)=>`<svg class="sw" width="${w||12}" height="${h||9}" aria-hidden="true"
+  xmlns="http://www.w3.org/2000/svg"><rect width="${w||12}" height="${h||9}" rx="2" fill="${c}"/></svg>`;
+/* Legenda ke grafům se dvěma a více řadami — totožnost nesmí nést jen barva. */
+const chLeg=items=>`<div class="chleg">${items.map(i=>
+  `<span>${chSw(i.c)}${chEsc(i.l)}</span>`).join('')}</div>`;
+
+const PM_MON=['led','úno','bře','dub','kvě','čvn','čvc','srp','zář','říj','lis','pro'];
+
+/* Podklady pro grafy — počítají se ze stejných dat jako tabulky. */
+function pmChartData(S){
+  const faze=S.roots.slice().sort((a,b)=>pmD(a.start)-pmD(b.start));
+  const barvaProc=p=>pmTone(pmColorOf(p)||'#8b97b1',true);
+  const fazeOf=p=>p.parent?(pmById(p.parent)||null):p;
+
+  /* 1 — vytížení gestorů: kolik procesů nese osoba či útvar, po fázích */
+  const podle={};
+  S.list.forEach(p=>{
+    if(!p.gestor)return;
+    const k=p.gestor, f=fazeOf(p);
+    (podle[k]=podle[k]||{})[f?f.id:'-']=((podle[k]||{})[f?f.id:'-']||0)+1;
+  });
+  const gestori=Object.keys(podle).map(k=>({
+    lab:actorName(k),
+    segs:faze.map(f=>({v:podle[k][f.id]||0,color:barvaProc(f),name:f.name}))
+      .concat([{v:podle[k]['-']||0,color:'#6b7483',name:'bez fáze'}]).filter(x=>x.v>0)
+  })).sort((a,b)=>b.segs.reduce((x,y)=>x+y.v,0)-a.segs.reduce((x,y)=>x+y.v,0));
+
+  /* 2 — kolik procesů běží současně v každém měsíci */
+  const mesice=[], labs=[], labs2=[];
+  if(S.list.length){
+    const A=new Date(pmD(S.od)), B=new Date(pmD(S.do));
+    let y=A.getUTCFullYear(), m=A.getUTCMonth();
+    while(y*12+m<=B.getUTCFullYear()*12+B.getUTCMonth()){
+      const m0=Date.UTC(y,m,1), m1=Date.UTC(y,m+1,1);
+      mesice.push(S.list.filter(p=>pmD(p.start)<m1&&pmD(p.end)>=m0).length);
+      labs.push(PM_MON[m]); labs2.push(m===0||labs2.length===0?String(y):'');
+      m++; if(m>11){m=0;y++}
+    }
+  }
+
+  /* 3 — délka fází ve dnech */
+  const delky=faze.map(f=>({lab:f.name,segs:[{v:pmDays(f.start,f.end),color:barvaProc(f),name:f.name}]}));
+
+  /* 4 — stav plnění: jeden skládaný pruh; má smysl, až se stavy rozejdou */
+  const stavKlice=Object.keys(PM_STATUSLBL).filter(k=>S.st[k]);
+  const stavSmysl=stavKlice.length>1||(stavKlice.length===1&&stavKlice[0]!=='idle');
+  const stavy=[{lab:'Procesy',segs:stavKlice.map(k=>({v:S.st[k],color:pmTone(PM_STATUSCOL[k],true),name:PM_STATUSLBL[k]}))}];
+
+  /* 6 — úplnost varianty v procentech */
+  const n=S.list.length||1;
+  const pct=v=>Math.round(v/n*100);
+  const uplnost=[
+    ['Má gestora',S.list.filter(p=>p.gestor).length],
+    ['Má popis',S.list.filter(p=>(p.desc||'').trim()).length],
+    ['Má navázaný milník',S.list.filter(p=>(p.msStart||[]).length||(p.msEnd||[]).length).length],
+    ['Má vazbu na předchůdce',S.list.filter(p=>(p.links||[]).length).length]
+  ].map(([l,v])=>({lab:l,segs:[{v:pct(v),color:v/n>=.8?'#2fae76':v/n>=.4?'#c98a13':'#cc4200',name:l}]}));
+
+  /* 7 — zapojení útvarů podle role */
+  const roleBarvy=['#2f6ba8','#0b9aa6','#6b7483'], roleLbl=['gestor','spolugestor','dotčený'];
+  const ut={};
+  const pridej=(k,i)=>{if(!k||!isUnit(k))return;(ut[k]=ut[k]||[0,0,0])[i]++};
+  S.list.forEach(p=>{
+    pridej(p.gestor,0);
+    (p.cogestors||[]).forEach(r=>pridej(r.who,1));
+    (p.affected||[]).forEach(a=>pridej(a,2));
+  });
+  const utvary=Object.keys(ut).map(k=>({lab:actorName(k),
+    segs:ut[k].map((v,i)=>({v,color:roleBarvy[i],name:roleLbl[i]})).filter(x=>x.v>0)}))
+    .sort((a,b)=>b.segs.reduce((x,y)=>x+y.v,0)-a.segs.reduce((x,y)=>x+y.v,0));
+
+  return {faze,gestori,mesice,labs,labs2,delky,stavy,stavSmysl,uplnost,utvary,
+    fazeLeg:faze.map(f=>({c:barvaProc(f),l:f.name})),
+    roleLeg:roleLbl.map((l,i)=>({c:roleBarvy[i],l}))};
+}
+
 function pmExport(id,full){
   const c=concepts.find(x=>x.id===id); if(!c){toast('Varianta nenalezena');return}
   const scope='concept:'+c.id, S=pmStats(scope);
   if(!S.list.length){toast('Varianta nemá žádné procesy — není co exportovat');return}
   const map=pmDocMap(c.id,false);
+  const D=pmChartData(S);
   const host=$('#printdoc'); if(!host)return;
   const nl=t=>escXml(t||'').replace(/\n/g,'<br>');
   const miss='<span class="miss">nevyplněno</span>';
@@ -4440,7 +4608,7 @@ function pmExport(id,full){
   const faze=S.roots.slice().sort((a,b)=>pmD(a.start)-pmD(b.start)).map(r=>{
     const kids=S.subs.filter(x=>x.parent===r.id).length;
     const c=pmTone(pmColorOf(r)||'#8b97b1',true);   // stejný odstín jako v mapě
-    return `<tr><td class="sw"><span style="background:${c}33;border-color:${c}"></span></td>
+    return `<tr><td class="sw">${chSw(c,15,11)}</td>
       <td>${escXml(r.name)}</td><td class="mono">${pmCz(r.start)} → ${pmCz(r.end)}</td>
       <td class="num">${pmDays(r.start,r.end)} d</td><td class="num">${kids}</td>
       <td>${r.gestor?escXml(actorName(r.gestor)):'<span class="miss">chybí</span>'}</td></tr>`;
@@ -4475,7 +4643,7 @@ function pmExport(id,full){
 
   const skupina=(nazev,barva,hlava,deti)=>`<div class="pgrp">
     <div class="ghead" style="border-left:4px solid ${barva}">
-      <span class="sw" style="border-color:${barva}"></span>
+      ${chSw(barva,14,10)}
       <b>${escXml(nazev)}</b>
       <span class="gm">${hlava?pmCz(hlava.start)+' → '+pmCz(hlava.end)+' · '+pmDays(hlava.start,hlava.end)+' d · ':''}${deti.length} podprocesů</span>
     </div>
@@ -4497,10 +4665,53 @@ function pmExport(id,full){
     ${poFazich.join('')}
   </section>`;
 
+  /* --- strana „Analýza varianty“: schválené grafy 1, 2 a 3 --- */
+  /* Pruhy mají přímé popisky s hodnotou a legenda nese názvy fází — dvě
+     barvy palety se pro barvosleposti odlišují jen slabě, takže totožnost
+     musí nést i text. */
+  const gest=D.gestori.slice(0,14);
+  const pAn=`<section class="page">
+    <h3>Analýza varianty</h3>
+    <div class="ch full">
+      <div class="cht">Rozložení práce v čase — kolik procesů běží současně</div>
+      ${pmColsSVG({w:1040,h:168,vals:D.mesice,labs:D.labs,labs2:D.labs2,color:'#2f6ba8'})}
+      <div class="chn">Sloupec = počet procesů, které v daném měsíci probíhají. Špička ukazuje měsíc s nejvyšším souběhem.</div>
+    </div>
+    <div class="chrow">
+      <div class="ch" style="flex:1.25">
+        <div class="cht">Vytížení gestorů — počet procesů podle fáze${D.gestori.length>14?' (14 nejvíce vytížených)':''}</div>
+        ${pmBarsSVG({w:620,rows:gest,labW:190,rowH:14,gap:4,labMax:30})}
+        ${chLeg(D.fazeLeg)}
+      </div>
+      <div class="ch" style="flex:1">
+        <div class="cht">Délka fází ve dnech</div>
+        ${pmBarsSVG({w:470,rows:D.delky,labW:180,rowH:15,gap:6,unit:'d',labMax:28})}
+        ${D.stavSmysl?`<div class="cht" style="margin-top:10px">Stav plnění procesů</div>
+          ${pmBarsSVG({w:470,rows:D.stavy,labW:70,rowH:18,gap:4})}
+          ${chLeg(D.stavy[0].segs.map(x=>({c:x.color,l:x.name})))}`:''}
+      </div>
+    </div>
+  </section>`;
+
   /* --- poslední strana: jen u podkladu pro vedení --- */
   let p4='';
   if(full){
     p4=`<section class="page">
+      <h3>Úplnost varianty a zapojení útvarů</h3>
+      <div class="chrow">
+        <div class="ch" style="flex:1">
+          <div class="cht">Úplnost údajů — podíl procesů v %</div>
+          ${pmBarsSVG({w:470,rows:D.uplnost,labW:170,rowH:16,gap:6,unit:'%',labMax:28})}
+          <div class="chn">Kvantifikuje seznam nesrovnalostí ze souhrnného listu.</div>
+        </div>
+        <div class="ch" style="flex:1.25">
+          <div class="cht">Zapojení útvarů podle role${D.utvary.length>14?' (14 nejvíce zapojených)':''}</div>
+          ${pmBarsSVG({w:620,rows:D.utvary.slice(0,14),labW:230,rowH:14,gap:4,labMax:36})}
+          ${chLeg(D.roleLeg)}
+        </div>
+      </div>
+    </section>
+    <section class="page">
       <h3>Předpoklady a omezení</h3><p>${val(c.assumptions)}</p>
       <h3>Klíčová rizika varianty</h3><p>${val(c.risks)}</p>
       <h3>Odkazy na předpisy a normy</h3><p>${val(c.refs)}</p>
@@ -4511,7 +4722,7 @@ function pmExport(id,full){
       </div>
     </section>`;
   }
-  host.innerHTML=p1+p2+p3+p4;
+  host.innerHTML=p1+p2+p3+pAn+p4;
   document.body.classList.add('printing');
   setTimeout(()=>{window.print()},60);
 }
