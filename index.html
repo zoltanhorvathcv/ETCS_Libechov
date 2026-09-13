@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>C-ITS přejezdy — Správa železnic</title>
+<title>Projektová inteligence — Správa železnic</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -800,8 +800,8 @@ body.pm-full .pm-canvas{height:var(--pm-h,60vh)}
   </div>
   <div class="land-hero">
     <div class="code" id="land-code">PRJ-2026-014 · ANALYTICKÝ PROJEKT · ÚNOR — PROSINEC 2026</div>
-    <h1 id="land-name">Strategická analýza nasazení C-ITS na železničních přejezdech</h1>
-    <p id="land-sub">Technická, organizační, právní a provozní proveditelnost C-ITS služeb na železničních přejezdech — řízená přes milníky, otázky, důkazy a rozhodnutí.</p>
+    <h1 id="land-name">Projektová inteligence</h1>
+    <p id="land-sub">Řízení projektu přes milníky, otázky, důkazy a rozhodnutí.</p>
     <div class="land-stats" id="land-stats"></div>
     <div style="margin-top:22px"><button class="btn ghost sm" onclick="manageProject()" style="border-color:rgba(255,255,255,.14)">⚙ Spravovat projekt</button></div>
   </div>
@@ -844,7 +844,7 @@ body.pm-full .pm-canvas{height:var(--pm-h,60vh)}
 <div class="main">
   <div class="topbar">
     <button class="burger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
-    <div class="crumb">Projekty / <b id="crumb-project">C-ITS přejezdy</b> / <span id="crumb-view">Přehled</span></div>
+    <div class="crumb">Projekty / <b id="crumb-project">Projekt</b> / <span id="crumb-view">Přehled</span></div>
     <div class="search"><span>⌕</span> Hledat otázky, rozhodnutí, důkazy…<kbd>⌘K</kbd></div>
     <span id="sync-badge" class="tag" style="display:none">DEMO režim</span>
     <button class="btn ghost sm" id="auth-btn" onclick="openLogin()">Přihlásit</button>
@@ -860,7 +860,7 @@ body.pm-full .pm-canvas{height:var(--pm-h,60vh)}
       <div class="exec-top">
         <div class="exec-id">
           <div class="code" id="exec-code">PRJ-2026-014 · ANALYTICKÝ PROJEKT</div>
-          <h1 id="exec-name" title="Upravit projekt" onclick="if(document.body.classList.contains('editing'))openEditor('project','PRJ')" style="cursor:default">Strategická analýza nasazení C-ITS na železničních přejezdech</h1>
+          <h1 id="exec-name" title="Upravit projekt" onclick="if(document.body.classList.contains('editing'))openEditor('project','PRJ')" style="cursor:default">Projektová inteligence</h1>
           <div class="exec-meta">
             <span>Fáze <b id="exec-phase">Analytická validace</b></span>
             <span>Vlastník <b id="exec-owner">Z. Horváth</b></span>
@@ -1903,7 +1903,12 @@ function syncCounts(){
 /* ================= PROJEKT META → UI ================= */
 function applyProjectMeta(){
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v};
-  set('crumb-project',project.short||project.name);
+  const kratky=project.short||project.name||'Projekt';
+  set('crumb-project',kratky);
+  /* Název záložky prohlížeče byl napevno v kódu, takže držel jméno
+     ukázkového projektu — a prohlížeč z něj odvozuje i název souboru
+     při ukládání do PDF. Řídí ho proto projekt, ne HTML. */
+  document.title=kratky+' — Správa železnic';
   set('land-code',project.code); set('land-name',project.name); set('land-sub',project.subtitle);
   set('exec-code',project.code); set('exec-name',project.name);
   set('exec-phase',project.phase); set('exec-owner',people[project.owner]||project.owner);
@@ -1953,7 +1958,7 @@ const SCHEMAS={
  project:{title:'Parametry projektu',arr:null,fields:[
    {k:'name',l:'Název projektu',t:'text',full:1},
    {k:'code',l:'Kód / štítek',t:'text',full:1},
-   {k:'short',l:'Krátký název (drobečková navigace)',t:'text'},
+   {k:'short',l:'Krátký název — navigace, záložka prohlížeče, název PDF',t:'text'},
    {k:'subtitle',l:'Podtitul (úvodní stránka)',t:'textarea',full:1},
    {k:'phase',l:'Aktuální fáze',t:'text'},{k:'owner',l:'Vlastník',t:'select',opts:OWNER_OPTS},
    {k:'sponsor',l:'Sponzor',t:'text'},{k:'progress',l:'Celkový postup %',t:'number'},
@@ -3388,15 +3393,21 @@ function pmPointerDown(e){
   const host=$('#pm-canvas');
   const tog=e.target.closest('.pmtog');
   if(tog){const p=pmById(tog.dataset.tog);if(p){p.collapsed=!p.collapsed;pmQueue(p);renderPMap()}return}
-  /* Vazba je vybíratelná: klik ji zvýrazní a zároveň vybere proces,
-     do kterého míří — tedy ten, jehož termín vazba omezuje. */
+  /* Vazba je vybíratelná: klik ji zvýrazní a vybere oba procesy, které
+     spojuje — zdroj i cíl, ať jde o hlavní proces nebo podproces.
+     Cíl je v pořadí poslední, takže se v pásu karet otevře ten, jehož
+     termín vazba omezuje. */
   const lk=e.target.closest('.pmlink');
   if(lk){
     e.preventDefault();
-    PM.link=PM.link===lk.dataset.lk?null:lk.dataset.lk;
-    PM.sel=PM.link?[lk.dataset.to]:[];
+    const zap=PM.link!==lk.dataset.lk;
+    PM.link=zap?lk.dataset.lk:null;
+    PM.sel=zap?[lk.dataset.from,lk.dataset.to]:[];
     renderPMap();
-    if(PM.link)toast('Vazba '+lk.dataset.from+' → '+lk.dataset.to+' · vybrán cílový proces');
+    if(zap){
+      const nm=id=>{const q=pmById(id);return q?q.name:id};
+      toast('Vazba: '+nm(lk.dataset.from)+' → '+nm(lk.dataset.to));
+    }
     return;
   }
   const grp=e.target.closest('.pmgrp');
