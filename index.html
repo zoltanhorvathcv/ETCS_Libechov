@@ -2399,6 +2399,15 @@ const pmISO=t=>new Date(t).toISOString().slice(0,10);
 const pmDays=(a,b)=>Math.round((pmD(b)-pmD(a))/PMDAY);
 const pmAdd=(s,n)=>pmISO(pmD(s)+n*PMDAY);
 const pmScope=()=>PM.mode==='map'?'map':'concept:'+PM.conceptId;
+/* Koncept i procesní mapa se adresují stejně — 'map' nebo id varianty.
+   Exporty tak fungují nad obojím bez vlastních větví. */
+const pmScopeOf=id=>id==='map'?'map':'concept:'+id;
+const pmVariant=id=>id==='map'
+  ? {id:'map',name:'Procesní mapa projektu',axis:'cal',t0:project.start,src:false,
+     created:'',touched:'',isMap:true}
+  : concepts.find(x=>x.id===id);
+/* Co je právě otevřené na plátně. */
+const pmCurrentId=()=>PM.mode==='map'?'map':PM.conceptId;
 const pmConcept=()=>concepts.find(c=>c.id===PM.conceptId)||concepts[0];
 const pmAxisMode=()=>PM.mode==='map'?'cal':(pmConcept()?pmConcept().axis:'cal');
 const pmAll=()=>processes.filter(p=>p.scope===pmScope());
@@ -2895,8 +2904,8 @@ function pmSyncControls(){
     : (c&&c.src?'zdrojová varianta — jen tuto lze zpevnit do mapy':'varianta k porovnání — zpevnit lze pouze zdrojový koncept');
   const nb=$('#nav-pm'); if(nb)nb.textContent=processes.filter(p=>p.scope==='map').length||pmAll().length;
 }
-function pmSetMode(m){PM.mode=m;PM.sel=[];if(m==='map')pmSetSplit(false);renderPMap()}
-function pmPickConcept(id){PM.conceptId=id;PM.sel=[];renderPMap()}
+function pmSetMode(m){PM.mode=m;PM.sel=[];PM.link=null;if(m==='map')pmSetSplit(false);renderPMap()}
+function pmPickConcept(id){PM.conceptId=id;PM.sel=[];PM.link=null;renderPMap()}
 function pmSetUnit(u){PM.unit=u;renderPMap()}
 /* zoom mění měřítko osy tlačítky — bez tažítka */
 function pmZoom(d){
@@ -3425,14 +3434,15 @@ function pmPointerDown(e){
     host.classList.add('panning');
     e.preventDefault(); return;
   }
-  if(PM.link){PM.link=null}
   if(!g){
     if(edit&&e.shiftKey&&!PM.splitMode){
       const r=pmLocal(e.clientX,e.clientY);
       pmMarq={x0:r.x,y0:r.y,x1:r.x,y1:r.y,add:true,base:PM.sel.slice()};
     } else {
-      if(PM.sel.length){PM.sel=[];renderPMap()}
-      pmPan={x:e.clientX,y:e.clientY,sl:host.scrollLeft,st:host.scrollTop};
+      /* Výběr ruší až klik do prázdna, ne tažení — posun plátna nesmí
+         shodit to, co má uživatel vybrané. Rozhodne se až při puštění
+         podle toho, zda se plátno pohnulo. */
+      pmPan={x:e.clientX,y:e.clientY,sl:host.scrollLeft,st:host.scrollTop,clear:true,moved:false};
       host.classList.add('panning');
     }
     e.preventDefault(); return;
@@ -3496,6 +3506,7 @@ function pmSnap(dr,dd,px){
 function pmPointerMove(e){
   const host=$('#pm-canvas');
   if(pmPan){
+    if(Math.abs(e.clientX-pmPan.x)>3||Math.abs(e.clientY-pmPan.y)>3)pmPan.moved=true;
     host.scrollLeft=pmPan.sl-(e.clientX-pmPan.x);
     host.scrollTop=pmPan.st-(e.clientY-pmPan.y);
     return;
@@ -3580,7 +3591,12 @@ function pmEdgeTick(){
 function pmPointerUp(){
   const host=$('#pm-canvas');
   pmEdge=null;
-  if(pmPan){pmPan=null;host&&host.classList.remove('panning');return}
+  if(pmPan){
+    const cistyKlik=pmPan.clear&&!pmPan.moved;
+    pmPan=null; host&&host.classList.remove('panning');
+    if(cistyKlik&&(PM.sel.length||PM.link)){PM.sel=[];PM.link=null;renderPMap()}
+    return;
+  }
   if(pmMarq){pmMarq=null;renderPMap();return}
   if(!pmDrag)return;
   const moved=pmDrag.moved, group=pmDrag.orig.map(o=>o.q);
@@ -4369,13 +4385,13 @@ const pmStamp=v=>{
   return isNaN(d)?'—':d.toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric',year:'numeric'})
     +(v.length>10?' '+d.toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'}):'');
 };
-function pmShowGallery(){PM.gallery=true;PM.sel=[];renderPMap()}
+function pmShowGallery(){PM.gallery=true;PM.sel=[];PM.link=null;renderPMap()}
 function pmOpenConcept(id){
-  PM.gallery=false; PM.mode='concept'; PM.conceptId=id; PM.sel=[]; PM.extra=0;
+  PM.gallery=false; PM.mode='concept'; PM.conceptId=id; PM.sel=[]; PM.link=null; PM.extra=0;
   renderPMap(); pmFitHeight();
 }
 function pmOpenMap(){
-  PM.gallery=false; PM.mode='map'; PM.sel=[]; PM.extra=0;
+  PM.gallery=false; PM.mode='map'; PM.sel=[]; PM.link=null; PM.extra=0;
   renderPMap(); pmFitHeight();
 }
 function pmRenderGallery(){
@@ -4408,7 +4424,10 @@ function pmRenderGallery(){
     <div class="gb"><span class="badge">procesní mapa</span>
       <div class="gn">Procesní mapa projektu</div>
       <div class="gm"><span>${mapN} procesů</span><span>plán s vazbami</span></div>
-      <div class="ga" onclick="event.stopPropagation()"><button class="btn ghost sm" onclick="pmOpenMap()">Otevřít</button></div>
+      <div class="ga" onclick="event.stopPropagation()">
+        <button class="btn ghost sm" onclick="pmOpenMap()">Otevřít</button>
+        <button class="btn ghost sm" title="Přehled procesní mapy — data, mapa a procesy po fázích" onclick="pmExport('map',false)">⎙ Přehled</button>
+      </div>
     </div></div>`;
   const add=ed?`<button class="gnew" onclick="pmNewConcept()" title="Založit prázdnou variantu"><span><b>＋</b>Nová varianta</span></button>
     <button class="gnew" onclick="pmTemplateConcept()" title="Založit variantu z připravené šablony"><span><b>⌗</b>Ze šablony</span></button>`:'';
@@ -4452,7 +4471,7 @@ function pmStats(scope){
    podprocesy sbalí, jinak by byla na stránce nečitelná. */
 function pmDocMap(id,forceAll){
   const keep={g:PM.gallery,m:PM.mode,c:PM.conceptId,u:PM.unit,z:PM.zoom,s:PM.sel.slice(),e:PM.extra,f:PM.filter.slice(),lh:PM.legHidden};
-  const scope='concept:'+id;
+  const scope=pmScopeOf(id);
   const list=processes.filter(p=>p.scope===scope);
   const collapsed=!forceAll&&list.length>20;
   const keepCol=list.map(p=>p.collapsed), keepLane=list.map(p=>p.lane);
@@ -4466,8 +4485,9 @@ function pmDocMap(id,forceAll){
     list.filter(p=>!p.parent).sort((a,b)=>(a.lane||0)-(b.lane||0)).forEach((p,i)=>p.lane=i);
   }
   if(wasGal)view.classList.remove('gal');
-  PM.gallery=false; PM.mode='concept'; PM.conceptId=id; PM.zoom=1; PM.sel=[]; PM.extra=0;
-  PM.filter=[]; PM.legHidden=true;
+  PM.gallery=false; PM.mode=id==='map'?'map':'concept';
+  if(id!=='map')PM.conceptId=id;
+  PM.zoom=1; PM.sel=[]; PM.extra=0; PM.filter=[]; PM.legHidden=true;
   /* Šířka mapy musí zůstat blízko šířky stránky — po zmenšení na 27 %
      by byly popisky nečitelné. Bereme největší dělení, které se ještě vejde. */
   const TARGET=1250;
@@ -4700,13 +4720,15 @@ function pmPaperByHeight(lanes){
 function pmMapSVG(o){
   const keep={g:PM.gallery,m:PM.mode,c:PM.conceptId,u:PM.unit,z:PM.zoom,s:PM.sel.slice(),
     e:PM.extra,f:PM.filter.slice(),lh:PM.legHidden,so:PM.solo,pr:PM.print,lk:PM.link};
-  const all=processes.filter(x=>x.scope==='concept:'+o.concept);
+  const scope=pmScopeOf(o.concept);
+  const all=processes.filter(x=>x.scope===scope);
   const keepCol=all.map(x=>x.collapsed), keepLane=all.map(x=>x.lane);
   const view=$('#view-pmap'), wasGal=view&&view.classList.contains('gal');
   if(wasGal)view.classList.remove('gal');
 
-  PM.gallery=false; PM.mode='concept'; PM.conceptId=o.concept; PM.zoom=1;
-  PM.sel=[]; PM.link=null; PM.extra=0; PM.filter=[]; PM.legHidden=true;
+  PM.gallery=false; PM.mode=o.concept==='map'?'map':'concept';
+  if(o.concept!=='map')PM.conceptId=o.concept;
+  PM.zoom=1; PM.sel=[]; PM.link=null; PM.extra=0; PM.filter=[]; PM.legHidden=true;
   PM.solo=o.solo||null; PM.print=o.light!==false;
   /* rozbalit, ať jsou vidět všechny podprocesy; u „jen hlavní procesy“ sbalit */
   all.forEach(x=>{if(all.some(y=>y.parent===x.id))x.collapsed=!!o.rootsOnly});
@@ -4736,8 +4758,7 @@ function pmMapSVG(o){
 /* ---- dialog s parametry ---- */
 const MEX={split:'one',paper:'auto',unit:'auto',light:true,rootsOnly:false};
 function pmMapDialog(){
-  const c=pmConcept(); if(!c){toast('Není otevřená žádná varianta');return}
-  if(PM.mode!=='concept'){toast('Export mapy je zatím jen pro koncept');return}
+  const c=pmVariant(pmCurrentId()); if(!c){toast('Není otevřená žádná varianta');return}
   $('#mex-name').textContent=c.name;
   ['split','paper','unit'].forEach(k=>{const el=$('#mex-'+k);if(el)el.value=MEX[k]});
   $('#mex-light').checked=MEX.light; $('#mex-roots').checked=MEX.rootsOnly;
@@ -4755,7 +4776,7 @@ function pmMapRead(){
 /* Náhled sdělí dopředu, na jaký papír to vyjde a v jakém měřítku. */
 function pmMapPreview(){
   pmMapRead();
-  const c=pmConcept(); if(!c)return;
+  const c=pmVariant(pmCurrentId()); if(!c)return;
   const out=$('#mex-info');
   if(MEX.split==='one'){
     const m=pmMapSVG({concept:c.id,unit:MEX.unit,light:MEX.light,rootsOnly:MEX.rootsOnly,
@@ -4769,7 +4790,7 @@ function pmMapPreview(){
       ${pct<70?'<br><span class="warn">Při tomto měřítku bude písmo drobné — zvolte větší formát nebo rozdělení po fázích.</span>':''}`;
   } else {
     const pap=MEX.split==='a4'?'A4':'A3';
-    const roots=processes.filter(x=>x.scope==='concept:'+c.id&&!x.parent);
+    const roots=processes.filter(x=>x.scope===pmScopeOf(c.id)&&!x.parent);
     let nad=0;
     roots.forEach(r=>{
       const m=pmMapSVG({concept:c.id,solo:r.id,unit:MEX.unit,light:MEX.light,availMm:pmAvailMm(pap)});
@@ -4781,7 +4802,7 @@ function pmMapPreview(){
 }
 function pmMapRun(){
   pmMapRead();
-  const c=pmConcept(); if(!c)return;
+  const c=pmVariant(pmCurrentId()); if(!c)return;
   const host=$('#printdoc'); if(!host)return;
   const zahlavi=(nadpis,m,pap)=>`<div class="mh"><b>${escXml(nadpis)}</b>
     <span>${escXml(c.name)} · ${m.pocet} procesů · ${m.rozsah} · osa po ${m.unit} · ${pap.name}
@@ -4798,7 +4819,7 @@ function pmMapRun(){
       <div class="mapbox" style="width:${(pap.wmm*pap.scale).toFixed(1)}mm">${m.svg}</div></section>`);
   } else {
     const papName=MEX.split==='a4'?'A4':'A3';
-    const roots=processes.filter(x=>x.scope==='concept:'+c.id&&!x.parent)
+    const roots=processes.filter(x=>x.scope===pmScopeOf(c.id)&&!x.parent)
       .sort((a,b)=>pmD(a.start)-pmD(b.start));
     if(!roots.length){toast('Varianta nemá žádné hlavní procesy');return}
     const f=PM_PAPERS.find(x=>x[0]===papName); W=f[1]; H=f[2];
@@ -4821,8 +4842,11 @@ function pmMapRun(){
 }
 
 function pmExport(id,full){
-  const c=concepts.find(x=>x.id===id); if(!c){toast('Varianta nenalezena');return}
-  const scope='concept:'+c.id, S=pmStats(scope);
+  const c=pmVariant(id); if(!c){toast('Varianta nenalezena');return}
+  /* Podklad pro vedení stojí na polích, která nese varianta konceptu;
+     procesní mapa je nemá, takže z ní vzniká jen datový přehled. */
+  if(c.isMap)full=false;
+  const scope=pmScopeOf(c.id), S=pmStats(scope);
   if(!S.list.length){toast('Varianta nemá žádné procesy — není co exportovat');return}
   const map=pmDocMap(c.id,false);
   const D=pmChartData(S);
@@ -4831,6 +4855,7 @@ function pmExport(id,full){
   const miss='<span class="miss">nevyplněno</span>';
   const val=t=>(t&&String(t).trim())?nl(t):miss;
   const axis={off:'vypnutá',rel:'relativní (T0 + odstupy)',cal:'kalendářní'}[c.axis]||c.axis;
+  const SLOVO=c.isMap?'mapy':'varianty';
 
   /* --- strana 1: souhrnný list --- */
   const meta=full
@@ -4858,7 +4883,7 @@ function pmExport(id,full){
   let p1=`<section class="page">
     <div class="doch"><div>
       <div class="dtit">${escXml(c.name)}</div>
-      <div class="dsub">${full?'Podklad pro vedení':'Přehled varianty'} · ${escXml(project.name||'')} ${project.code?'· '+escXml(project.code):''}</div>
+      <div class="dsub">${full?'Podklad pro vedení':'Přehled '+SLOVO} · ${escXml(project.name||'')} ${project.code?'· '+escXml(project.code):''}</div>
     </div><div class="dstamp">${new Date().toLocaleDateString('cs-CZ',{day:'numeric',month:'long',year:'numeric'})}</div></div>
     ${meta}`;
   if(full){
@@ -4886,9 +4911,9 @@ function pmExport(id,full){
       <td>${r.gestor?escXml(actorName(r.gestor)):'<span class="miss">chybí</span>'}</td></tr>`;
   }).join('');
   const p2=`<section class="page">
-    <h3>Procesní mapa varianty</h3>
+    <h3>${c.isMap?'Procesní mapa projektu':'Procesní mapa varianty'}</h3>
     <div class="mapbox">${map.svg}</div>
-    <h4 style="margin-top:12px">Fáze varianty</h4>
+    <h4 style="margin-top:12px">Fáze ${SLOVO}</h4>
     <table class="grid faze"><thead><tr><th></th><th>Fáze</th><th>Termín</th><th>Doba</th>
       <th>Podprocesů</th><th>Gestor</th></tr></thead><tbody>${faze}</tbody></table>
     <p class="note">Dělení osy po ${map.unit}. ${map.collapsed
@@ -4933,7 +4958,7 @@ function pmExport(id,full){
   if(sirotci.length)poFazich.push(skupina('Bez nadřazené fáze','#8b97b1',null,sirotci));
 
   const p3=`<section class="page">
-    <h3>Procesy varianty po fázích (${S.list.length})</h3>
+    <h3>Procesy ${SLOVO} po fázích (${S.list.length})</h3>
     ${poFazich.join('')}
   </section>`;
 
@@ -4943,7 +4968,7 @@ function pmExport(id,full){
      musí nést i text. */
   const gest=D.gestori.slice(0,14);
   const pAn=`<section class="page">
-    <h3>Analýza varianty</h3>
+    <h3>Analýza ${SLOVO}</h3>
     <div class="ch full">
       <div class="cht">Rozložení práce v čase — kolik procesů běží současně</div>
       ${pmColsSVG({w:1040,h:168,vals:D.mesice,labs:D.labs,labs2:D.labs2,color:'#2f6ba8'})}
