@@ -3884,7 +3884,12 @@ function pmSplitProcess(id,dateStr){
    v rámci svého rodiče — nejdřívější má nejnižší číslo. Funguje nad
    otevřeným konceptem i nad procesní mapou, podle toho, co je zrovna
    na plátně. */
-const PM_RENUM_ROOT=/^\d+\.\s*/, PM_RENUM_SUB=/^\d+\.\d+\s*·\s*/;
+/* Oddělovač za číslem bývá „ · “, ale u ručně přejmenovaných procesů
+   klidně chybí úplně nebo je to pomlčka — proto je nepovinný. Bez toho
+   by se nesourodě pojmenované podprocesy vyřadily z přečíslování a po
+   sloučení se stejně číslovaným zbytkem by vznikly duplicity (přesně to,
+   co se stalo). Po přečíslování mají všechny jednotný tvar „N.M · Název“. */
+const PM_RENUM_ROOT=/^\d+\.\s*/, PM_RENUM_SUB=/^\d+\.\d+\.?\s*(?:[·\-–—:]\s*)?/;
 function pmRenumber(){
   const scope=pmScope();
   const list=processes.filter(p=>p.scope===scope);
@@ -3897,7 +3902,7 @@ function pmRenumber(){
   const rootNum={};
   roots.forEach((r,i)=>{
     const x=i+1; rootNum[r.id]=x;
-    const nn=r.name.replace(PM_RENUM_ROOT,x+'. ');
+    const nn=r.name.trim().replace(PM_RENUM_ROOT,x+'. ');
     if(nn!==r.name){r.name=nn; if(r.scope==='map')r.mapEdited=true; pmQueue(r); n++;}
   });
   roots.forEach(r=>{
@@ -3906,7 +3911,7 @@ function pmRenumber(){
     kids.sort((a,b)=>pmD(a.start)-pmD(b.start));
     kids.forEach((c,i)=>{
       const y=i+1;
-      const nn=c.name.replace(PM_RENUM_SUB,x+'.'+y+' · ');
+      const nn=c.name.trim().replace(PM_RENUM_SUB,x+'.'+y+' · ');
       if(nn!==c.name){c.name=nn; if(c.scope==='map')c.mapEdited=true; pmQueue(c); n++;}
     });
   });
