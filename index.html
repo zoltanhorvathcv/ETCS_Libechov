@@ -1140,6 +1140,10 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
         <button onclick="pmZoomReset()" id="pm-zoomlbl" title="Zpět na výchozí měřítko">100 %</button>
         <button onclick="pmZoom(1)" title="Přiblížit — období se roztáhne do šířky">＋</button>
       </div>
+      <div class="pm-seg">
+        <button onclick="pmFitAll()" title="Přiblížení i posun nastavit tak, aby byl vidět celý koncept najednou">⤢ Celý koncept</button>
+        <button onclick="pmViewBack()" title="Vrátit se na pohled, který jste měli, než jste naposledy posunuli plátno">↩ Původní pohled</button>
+      </div>
       <button class="btn ghost sm" id="pm-fullbtn" onclick="pmToggleFull()" title="Celá obrazovka (ukončíte klávesou Esc)">⛶ Celá obrazovka</button>
       <button class="btn ghost sm pm-hide" id="pm-legshow" onclick="pmLegHide(false)" title="Vrátit legendu pod plátno">⬓ Legenda</button>
       <button class="btn ghost sm ed-only" onclick="openPeople()" title="Spravovat osoby a útvary — přejmenování, odebrání, zařazení">👤 Osoby</button>
@@ -1150,6 +1154,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       <button class="btn ghost sm" id="pm-mapexp" onclick="pmMapDialog()" title="Vytisknout nebo uložit mapu se všemi procesy a vazbami do PDF">⎙ Mapa do PDF</button>
       <button class="btn ghost sm ed-only" id="pm-splitbtn" onclick="pmToggleSplit()" title="Zapněte a klikejte na procesy v místě, kde je chcete rozdělit">✂ Rozdělit</button>
       <button class="btn ghost sm ed-only" id="pm-recalc" onclick="pmRecalc()" title="Posunout procesy tak, aby seděly na typované vazby">↻ Přepočítat návaznosti</button>
+      <button class="btn ghost sm ed-only" id="pm-renum" onclick="pmRenumber()" title="Přečíslovat procesy a podprocesy podle času — funguje v konceptu i v mapě">🔢 Přečíslovat</button>
       <button class="btn primary sm ed-only" id="pm-promote" onclick="pmOpenWizard()" title="Převést zdrojový koncept do procesní mapy">Zpevnit do mapy</button>
     </div>
 
@@ -1167,6 +1172,8 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
             <div class="pm-helprow"><kbd>prostřední tl.</kbd><span>totéž bez klávesnice</span></div>
             <div class="pm-helprow"><kbd>Ctrl + kolečko</kbd><span>přiblížení kolem kurzoru</span></div>
             <div class="pm-helprow"><kbd>− 100 % ＋</kbd><span>zoom tlačítky v liště</span></div>
+            <div class="pm-helprow"><kbd>⤢ Celý koncept</kbd><span>oddálí a posune tak, aby byl vidět celý rozsah najednou</span></div>
+            <div class="pm-helprow"><kbd>↩ Původní pohled</kbd><span>vrátí plátno tam, kde bylo naposledy v klidu</span></div>
           </section>
           <section>
             <h4>Výběr</h4>
@@ -1174,7 +1181,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
             <div class="pm-helprow"><kbd>Shift + klik</kbd><span>přidat nebo odebrat z výběru</span></div>
             <div class="pm-helprow"><kbd>Shift + tažení</kbd><span>gumička — výběr více procesů</span></div>
             <div class="pm-helprow"><kbd>Ctrl + A</kbd><span>vybrat vše</span></div>
-            <div class="pm-helprow"><kbd>klik na vazbu</kbd><span>zvýrazní ji a vybere proces, do kterého míří</span></div>
+            <div class="pm-helprow"><kbd>klik na vazbu</kbd><span>zvýrazní vazbu i oba spojené procesy; Delete smaže jen vazbu</span></div>
             <div class="pm-helprow"><kbd>Esc</kbd><span>zrušit výběr procesu i vazby</span></div>
           </section>
           <section>
@@ -1194,6 +1201,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
             <div class="pm-helprow"><kbd>✂ Rozdělit</kbd><span>klik na proces jej rozdělí v daném místě</span></div>
             <div class="pm-helprow"><kbd>přichytávání</kbd><span>hrana skočí na hranu souseda a ukáže vodítko</span></div>
             <div class="pm-helprow"><kbd>⎙ Mapa do PDF</kbd><span>celá mapa na jeden velký list, nebo po fázích na A4/A3</span></div>
+            <div class="pm-helprow"><kbd>🔢 Přečíslovat</kbd><span>obnoví číslování „1.“, „1.1 · “ podle času; vlastní schémata (např. „U1“) nechá být</span></div>
           </section>
           <section>
             <h4>Legenda a filtr</h4>
@@ -1336,6 +1344,18 @@ const ORG_KINDS=['Odbor','Oddělení','Útvar','Sekce','Externí'];
 /* jméno gestora — osoba i útvar, podle prefixu kódu */
 const actorName=c=>!c?'':(String(c)[0]===UNIT_PREFIX?((orgUnits[String(c).slice(1)]||{}).name||String(c).slice(1)):(people[c]||c));
 const isUnit=c=>String(c||'')[0]===UNIT_PREFIX;
+/* „Zoltán Horváth“ → „Z. Horváth“, ať se do štítku na plátně vejde víc. */
+function pmShortName(full){
+  const parts=String(full||'').trim().split(/\s+/);
+  return parts.length<2?full:parts[0][0]+'. '+parts.slice(1).join(' ');
+}
+function pmGestorLabel(code){
+  if(!code)return '';
+  if(isUnit(code))return actorName(code);
+  const nm=pmShortName(actorName(code));
+  const unit=(staff[code]||{}).unit;
+  return unit&&orgUnits[unit]?nm+' · '+orgUnits[unit].name:nm;
+}
 const STATUS = {done:['Dokončeno','ok'],track:['Podle plánu','track'],risk:['Ohroženo','risk'],blocked:['Blokováno','blocked'],replanned:['Přeplánováno','replanned'],idle:['Nezahájeno','idle']};
 let TODAY=new Date().toISOString().slice(0,10);   // skutečné dnešní datum, ne pevná hodnota z dema
 
@@ -2343,7 +2363,7 @@ let processes=[
 ];
 
 const PM={mode:'concept',conceptId:'K-01',unit:'month',sel:[],splitMode:false,tab:'zaklad',panelLock:false,zoom:1,snapX:null,
-  filter:[],legHidden:false,ribCollapsed:false,extra:0,gallery:true,print:false,link:null,solo:null};
+  filter:[],legHidden:false,ribCollapsed:false,extra:0,gallery:true,print:false,link:null,solo:null,viewBack:null,cursor:null};
 /* Výběr je pole; poslední vybraný je „primární“ a zobrazí se v pásu karet. */
 const pmSelHas=id=>PM.sel.indexOf(id)>-1;
 const pmPrimary=()=>PM.sel.length?PM.sel[PM.sel.length-1]:null;
@@ -2699,17 +2719,26 @@ function renderPMap(){
   list.forEach(p=>{const g=pmGeom(p,b);(laneNext[p.lane||0]=laneNext[p.lane||0]||[]).push({x:g.x})});
   Object.keys(laneNext).forEach(k=>laneNext[k].sort((a,c)=>a.x-c.x));
   const plan={}, occ={};
+  /* Gestor se připojí za název, oddělený tečkou, menším a tlumeným písmem —
+     ale jen tam, kde se vejde celý; jinak zůstává dostupný jen v popisku
+     pod kurzorem, aby nedocházelo k ořezávání uprostřed jména. */
   list.slice().sort((a,c)=>(a.lane||0)-(c.lane||0)||pmGeom(a,b).x-pmGeom(c,b).x).forEach(p=>{
-    const g=pmGeom(p,b), fs=p.parent?11:12;
+    const g=pmGeom(p,b), fs=p.parent?11:12, gfs=fs-2.5;
     const hasKids=pmAll().some(x=>x.parent===p.id);
     const tx0=g.x+(hasKids?22:10), tw=p.name.length*fs*0.53;
+    const glab=pmGestorLabel(p.gestor), gsep=glab?7:0, gw=glab?glab.length*gfs*0.52+gsep:0;
     const inside=g.w-(tx0-g.x)-8;
+    if(tw+gw<=inside){plan[p.id]={x:tx0,y:g.y+g.h/2+4,fs,fill:SK.ink,gestor:glab,gw:tw+gsep};return}
     if(tw<=inside){plan[p.id]={x:tx0,y:g.y+g.h/2+4,fs,fill:SK.ink};return}
     const nxt=(laneNext[p.lane||0]||[]).find(o=>o.x>g.x+g.w-1);
-    if(tw<=(nxt?nxt.x:W)-(g.x+g.w)-14){plan[p.id]={x:g.x+g.w+8,y:g.y+g.h/2+4,fs,fill:SK.ink};return}
+    const freeRight=(nxt?nxt.x:W)-(g.x+g.w)-14;
+    if(tw+gw<=freeRight){plan[p.id]={x:g.x+g.w+8,y:g.y+g.h/2+4,fs,fill:SK.ink,gestor:glab,gw:tw+gsep};return}
+    if(tw<=freeRight){plan[p.id]={x:g.x+g.w+8,y:g.y+g.h/2+4,fs,fill:SK.ink};return}
     const rows=[['a',g.y-4],['b',g.y+g.h+11]];
     for(let i=0;i<rows.length;i++){
       const key=(p.lane||0)+rows[i][0], arr=occ[key]=occ[key]||[];
+      const withG=!arr.some(iv=>g.x<iv[1]+8&&g.x+tw+gw>iv[0]-8);
+      if(withG&&glab){arr.push([g.x,g.x+tw+gw]);plan[p.id]={x:g.x+1,y:rows[i][1],fs:fs-0.5,fill:SK.ink2,gestor:glab,gw:tw+gsep};return}
       if(!arr.some(iv=>g.x<iv[1]+8&&g.x+tw>iv[0]-8)){
         arr.push([g.x,g.x+tw]);
         plan[p.id]={x:g.x+1,y:rows[i][1],fs:fs-0.5,fill:SK.ink2};
@@ -2757,7 +2786,9 @@ function renderPMap(){
     const pl=plan[p.id]||{x:tx0,y:g.y+g.h/2+4,fs:12,fill:SK.ink};
     const lab=pl.cut?p.name.slice(0,Math.max(1,pl.cut-1))+'…':p.name;
     s+=`<text x="${pl.x}" y="${pl.y}" font-size="${pl.fs}" fill="${pl.fill}" font-family="Inter,sans-serif">${escXml(lab)}</text>`;
-    s+=`<title>${escXml(p.id+' · '+p.name)}</title>`;
+    if(pl.gestor)s+=`<text x="${pl.x+pl.gw}" y="${pl.y}" font-size="${pl.fs-2.5}" fill="${SK.ink3}" font-family="Inter,sans-serif">· ${escXml(pl.gestor)}</text>`;
+    const gestTip=p.gestor?' · gestor: '+pmGestorLabel(p.gestor):'';
+    s+=`<title>${escXml(p.id+' · '+p.name+gestTip)}</title>`;
     s+=`<rect class="pmgrip" data-grip="${p.id}" x="${g.x+g.w-7}" y="${g.y}" width="9" height="${g.h}" fill="transparent" style="cursor:ew-resize"/>`;
     s+=`</g>`;
 
@@ -2909,10 +2940,33 @@ function pmPickConcept(id){PM.conceptId=id;PM.sel=[];PM.link=null;renderPMap()}
 function pmSetUnit(u){PM.unit=u;renderPMap()}
 /* zoom mění měřítko osy tlačítky — bez tažítka */
 function pmZoom(d){
-  PM.zoom=Math.min(4,Math.max(.35,PM.zoom*(d>0?1.25:0.8)));
+  PM.zoom=Math.min(4,Math.max(.04,PM.zoom*(d>0?1.25:0.8)));
   renderPMap();
 }
 function pmZoomReset(){PM.zoom=1;renderPMap()}
+/* Přizpůsobí měřítko tak, aby se celý rozsah konceptu (nebo mapy) vešel
+   do šířky viditelného plátna najednou, a posune se na začátek. Funguje
+   nad tím, co je zrovna otevřené — koncept i procesní mapa sdílejí kód. */
+function pmFitAll(){
+  const host=$('#pm-canvas'); if(!host)return;
+  const list=pmVisible(); if(!list.length){toast('Plátno je prázdné');return}
+  const b=pmBounds(list);
+  const days=(b.t1-b.t0)/PMDAY;
+  const avail=Math.max(80,host.clientWidth-PM_PAD*2-8);
+  const needPx=days*PM_PXD[PM.unit];
+  PM.viewBack={sl:host.scrollLeft,st:host.scrollTop};
+  PM.zoom=Math.max(.04,Math.min(4,avail/Math.max(1,needPx)));
+  renderPMap();
+  host.scrollLeft=0; host.scrollTop=0;
+  toast('Přizpůsobeno celému rozsahu');
+}
+/* Vrátí plátno tam, kde bylo naposledy v klidu — než začal poslední posun. */
+function pmViewBack(){
+  const host=$('#pm-canvas');
+  if(!host||!PM.viewBack){toast('Není kam se vrátit');return}
+  host.scrollLeft=PM.viewBack.sl; host.scrollTop=PM.viewBack.st;
+}
+
 function pmSetAxis(a){
   const c=pmConcept(); if(!c)return;
   c.axis=a; persist('concept',c,concepts.indexOf(c)); renderPMap();
@@ -3252,7 +3306,14 @@ function pmRibbonField(p,k){
   if(f.t==='actor')input=`<select data-prev="${esc(v)}" onchange="pmRibPerson(this,'${k}')">${actorOptionsHTML(v)}</select>`;
   else if(f.t==='textarea')input=`<textarea onchange="pmRibSet('${k}',this.value)">${esc(v)}</textarea>`;
   else if(f.t==='select'){
-    const opts=typeof f.opts==='function'?f.opts():f.opts;
+    let opts=typeof f.opts==='function'?f.opts():f.opts;
+    /* U podprocesu bez vlastní barvy je prázdná volba ve skutečnosti
+       zděděná barva rodiče, ne „žádná barva“ — jinak to na plátně
+       neodpovídá tomu, co vidí ve formuláři. */
+    if(k==='color'&&!v&&p.parent){
+      const par=pmById(p.parent), pc=par&&PM_COLORS.find(c=>c[0]===par.color);
+      if(pc)opts=opts.map(([val,lab])=>val===''?[val,'— zděděno: '+pc[2]]:[val,lab]);
+    }
     const extra=f.people?PERSON_OPT:'';
     const attrs=f.people?` data-prev="${esc(v)}" onchange="pmRibPerson(this,'${k}')"`:` onchange="pmRibSet('${k}',this.value)"`;
     input=`<select${attrs}>${opts.map(([val,lab])=>`<option value="${esc(val)}" ${String(val)===String(v)?'selected':''}>${esc(lab)}</option>`).join('')}${extra}</select>`;
@@ -3267,6 +3328,18 @@ function pmRibTab(id){
 }
 function pmRibCollapse(){PM.ribCollapsed=!PM.ribCollapsed;renderPMap()}
 function pmRenderRibbon(host,p){
+  if(PM.link){
+    const [fromId,toId]=PM.link.split('>');
+    const a=pmById(fromId), b=pmById(toId);
+    host.innerHTML=`<div class="pm-rib"><div class="pm-tabs" style="padding:5px 10px">
+      <b style="font-size:12px">Vazba: ${a?escXml(a.name):fromId} → ${b?escXml(b.name):toId}</b>
+      <span class="pm-hint">Delete smaže jen vazbu, procesy zůstanou</span>
+      <div style="flex:1"></div>
+      <button class="btn ghost sm" title="Smazat jen tuto vazbu" onclick="pmDeleteLink()">Smazat vazbu</button>
+      <button class="btn ghost sm" title="Zrušit výběr" onclick="PM.link=null;PM.sel=[];renderPMap()">✕</button>
+    </div></div>`;
+    pmFitHeight(); return;
+  }
   if(PM.sel.length>1){
     host.innerHTML=`<div class="pm-rib"><div class="pm-tabs" style="padding:5px 10px">
       <b style="font-size:12px">${PM.sel.length} vybraných procesů</b>
@@ -3275,7 +3348,7 @@ function pmRenderRibbon(host,p){
       <button class="btn ghost sm" title="Orámovat vybrané procesy jako skupinu" onclick="pmGroupSelected()">▣ Seskupit</button>
       ${pmGroupsIn().map(g=>`<button class="btn ghost sm" title="Přidat vybrané do rámečku, nebo je z něj odebrat" onclick="pmGroupAddSel('${g.id}')">± ${escXml(g.name)}</button>`).join('')}
       <button class="btn ghost sm" title="Smazat všechny vybrané" onclick="pmDeleteSelected()">Smazat vybrané</button>
-      <button class="btn ghost sm" title="Zrušit výběr" onclick="PM.sel=[];renderPMap()">✕</button>
+      <button class="btn ghost sm" title="Zrušit výběr" onclick="PM.sel=[];PM.link=null;renderPMap()">✕</button>
     </div></div>`;
     pmFitHeight(); return;
   }
@@ -3294,7 +3367,7 @@ function pmRenderRibbon(host,p){
         ${p.parent?'':`<button class="btn ghost sm" title="Založit podproces pod tímto procesem" onclick="pmNewSub('${p.id}')">＋ Podproces</button>`}
         ${PM.mode==='map'&&p.state!=='potvrzeny'?`<button class="btn primary sm" title="Označit termíny a vazby za potvrzené" onclick="pmConfirm('${p.id}')">Potvrdit</button>`:''}
         <button class="btn ghost sm" title="Smazat proces" onclick="pmDeleteProcess('${p.id}')">Smazat</button>
-        <button class="btn ghost sm" title="Zavřít pás karet a zrušit výběr" onclick="PM.sel=[];renderPMap()">✕</button>
+        <button class="btn ghost sm" title="Zavřít pás karet a zrušit výběr" onclick="PM.sel=[];PM.link=null;renderPMap()">✕</button>
       </span>
     </div>
     <div class="pm-rib-body">${tab.keys.map(k=>pmRibbonField(p,k)).join('')}</div>
@@ -3430,6 +3503,7 @@ function pmPointerDown(e){
      gumička na výběr je pod Shiftem. Posun jde i prostředním tlačítkem
      a mezerníkem odkudkoli, tedy i nad procesem. */
   if(e.button===1||pmSpace){
+    PM.viewBack={sl:host.scrollLeft,st:host.scrollTop};   // odkud šel poslední posun
     pmPan={x:e.clientX,y:e.clientY,sl:host.scrollLeft,st:host.scrollTop};
     host.classList.add('panning');
     e.preventDefault(); return;
@@ -3442,6 +3516,7 @@ function pmPointerDown(e){
       /* Výběr ruší až klik do prázdna, ne tažení — posun plátna nesmí
          shodit to, co má uživatel vybrané. Rozhodne se až při puštění
          podle toho, zda se plátno pohnulo. */
+      PM.viewBack={sl:host.scrollLeft,st:host.scrollTop};   // odkud šel poslední posun
       pmPan={x:e.clientX,y:e.clientY,sl:host.scrollLeft,st:host.scrollTop,clear:true,moved:false};
       host.classList.add('panning');
     }
@@ -3449,6 +3524,7 @@ function pmPointerDown(e){
   }
 
   const p=pmById(g.dataset.id); if(!p)return;
+  PM.link=null;
   if(PM.splitMode){
     e.preventDefault();
     if(PM.mode!=='concept'){toast('Rychlé dělení funguje jen v konceptu');return}
@@ -3625,6 +3701,7 @@ function pmKeyDown(e){
     e.preventDefault(); PM.sel=pmVisible().map(p=>p.id); renderPMap(); return;
   }
   if(!document.body.classList.contains('editing'))return;
+  if(PM.link&&(e.key==='Delete'||e.key==='Backspace')){e.preventDefault();pmDeleteLink();return}
   const sel=pmSelProcs(); if(!sel.length)return;
   if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();pmDeleteSelected();return}
   const step=e.shiftKey?7:1;
@@ -3651,12 +3728,29 @@ function pmWheel(e){
   const host=$('#pm-canvas');
   const day=pmDayAt(e.clientX);
   const at=e.clientX-host.getBoundingClientRect().left;
-  PM.zoom=Math.min(4,Math.max(.35,PM.zoom*(e.deltaY<0?1.15:1/1.15)));
+  PM.zoom=Math.min(4,Math.max(.04,PM.zoom*(e.deltaY<0?1.15:1/1.15)));
   renderPMap();
   if(day!=null){
     const b=pmBounds(pmVisible());
     host.scrollLeft=PM_PAD+(day-b.t0)/PMDAY*pmPx()-at;
   }
+}
+/* Smazání jen vazby — odebere záznam z pole `links` cílového procesu,
+   ale procesy samotné nechá být. Klik na vazbu vybírá oba její konce jen
+   kvůli zvýraznění na plátně; mazání skrz obecné „Smazat vybrané“ by tak
+   nechtěně smazalo i procesy. */
+function pmDeleteLink(){
+  if(!PM.link)return;
+  const [fromId,toId]=PM.link.split('>');
+  const t=pmById(toId);
+  const has=t&&(t.links||[]).some(l=>l.from===fromId);
+  PM.link=null; PM.sel=[];
+  if(!has){renderPMap();return}
+  histPush();
+  t.links=t.links.filter(l=>l.from!==fromId);
+  if(t.scope==='map')t.mapEdited=true;
+  pmQueue(t);
+  renderPMap(); toast('Vazba smazána');
 }
 function pmDeleteSelected(){
   const sel=pmSelProcs(); if(!sel.length)return;
@@ -3748,6 +3842,42 @@ function pmSplitProcess(id,dateStr){
 }
 
 /* ================= PŘEPOČET NÁVAZNOSTÍ (ASAP) ================= */
+/* Přečíslování — jen procesy a podprocesy, které už číslovací schéma
+   „N.“ / „N.M · “ používají; vlastní schéma (např. „U1 · “ u průkazů
+   způsobilosti, kde čísla nesou právní význam) se nedotýká. Kořenové
+   procesy dostanou pořadí podle svého začátku v čase, podprocesy stejně
+   v rámci svého rodiče — nejdřívější má nejnižší číslo. Funguje nad
+   otevřeným konceptem i nad procesní mapou, podle toho, co je zrovna
+   na plátně. */
+const PM_RENUM_ROOT=/^\d+\.\s*/, PM_RENUM_SUB=/^\d+\.\d+\s*·\s*/;
+function pmRenumber(){
+  const scope=pmScope();
+  const list=processes.filter(p=>p.scope===scope);
+  if(!list.length){toast('Není co přečíslovat');return}
+  const roots=list.filter(p=>!p.parent).filter(r=>PM_RENUM_ROOT.test(r.name.trim()));
+  let n=0;
+  if(!roots.length){toast('Žádný proces nepoužívá schéma číslování „1.“, „2.“ …');return}
+  histPush();
+  roots.sort((a,b)=>pmD(a.start)-pmD(b.start));
+  const rootNum={};
+  roots.forEach((r,i)=>{
+    const x=i+1; rootNum[r.id]=x;
+    const nn=r.name.replace(PM_RENUM_ROOT,x+'. ');
+    if(nn!==r.name){r.name=nn; if(r.scope==='map')r.mapEdited=true; pmQueue(r); n++;}
+  });
+  roots.forEach(r=>{
+    const x=rootNum[r.id];
+    const kids=list.filter(c=>c.parent===r.id&&PM_RENUM_SUB.test(c.name.trim()));
+    kids.sort((a,b)=>pmD(a.start)-pmD(b.start));
+    kids.forEach((c,i)=>{
+      const y=i+1;
+      const nn=c.name.replace(PM_RENUM_SUB,x+'.'+y+' · ');
+      if(nn!==c.name){c.name=nn; if(c.scope==='map')c.mapEdited=true; pmQueue(c); n++;}
+    });
+  });
+  pmFlush(); renderPMap();
+  toast(n?`Přečíslováno ${n} položek`:'Číslování už sedělo');
+}
 function pmRecalc(){
   const list=processes.filter(p=>p.scope==='map');
   if(!list.length){toast('Mapa je prázdná');return}
@@ -3800,13 +3930,33 @@ function pmWouldCycle(fromId,toId){
 }
 
 /* ================= NOVÝ PROCES ================= */
+/* Bod na plátně (klientské souřadnice) → den a pruh. Sdíleno s umístěním
+   nového procesu i případnými budoucími nástroji „klikni a založ zde“. */
+function pmPointToPlacement(clientX,clientY){
+  const host=$('#pm-canvas'), svg=host&&host.querySelector('svg'); if(!svg)return null;
+  const rect=svg.getBoundingClientRect();
+  const day=pmDayAt(clientX);
+  const lane=Math.max(0,Math.round((clientY-rect.top-pmHeadH())/PM_LANE));
+  return day==null?null:{day,lane};
+}
 function pmNewProcess(){
   if(PM.mode==='map'&&!processes.some(p=>p.scope==='map')){
     toast('Mapa vzniká zpevněním konceptu, ne ručně'); return;
   }
   const list=pmAll();
-  const lane=list.length?Math.max(...list.map(p=>p.lane||0))+1:0;
-  const start=list.length?list[list.length-1].end:(pmConcept()?pmConcept().t0:project.start);
+  /* Nový proces vznikne tam, kde je myš nad plátnem; není-li nad plátnem,
+     na středu právě viditelné části plátna — ne vždy až za posledním. */
+  const host=$('#pm-canvas');
+  let placed=null;
+  if(host){
+    const r=host.getBoundingClientRect();
+    const cur=PM.cursor;
+    const inCanvas=cur&&cur.x>=r.left&&cur.x<=r.right&&cur.y>=r.top&&cur.y<=r.bottom;
+    placed=pmPointToPlacement(inCanvas?cur.x:r.left+host.clientWidth/2,
+                               inCanvas?cur.y:r.top+host.clientHeight/2);
+  }
+  const lane=placed?placed.lane:(list.length?Math.max(...list.map(p=>p.lane||0))+1:0);
+  const start=placed?pmISO(placed.day):(list.length?list[list.length-1].end:(pmConcept()?pmConcept().t0:project.start));
   histPush();
   const o={id:nextId('process'),scope:pmScope(),name:'Nový proces',desc:'',gestor:'',cogestors:[],affected:[],
     parent:'',state:PM.mode==='map'?'potvrzeny':'koncept',status:'idle',
@@ -5158,6 +5308,8 @@ function pmNormalize(){
   host.addEventListener('dblclick',pmDblClick);
   host.addEventListener('scroll',pmSyncSticky);
   host.addEventListener('mousemove',pmSplitPreview);
+  host.addEventListener('mousemove',e=>{PM.cursor={x:e.clientX,y:e.clientY}});
+  host.addEventListener('mouseleave',()=>{PM.cursor=null});
   host.addEventListener('wheel',pmWheel,{passive:false});
   window.addEventListener('keydown',pmKeyDown);
   window.addEventListener('keyup',pmKeyUp);
