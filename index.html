@@ -500,6 +500,27 @@ body.editing .pm-help{display:grid}
 .pm-helprow{display:flex;gap:9px;align-items:baseline;font-size:12px;color:var(--text2);padding:2.5px 0}
 .pm-helprow kbd{flex:none;background:var(--panel2);border:1px solid var(--border2);border-bottom-width:2px;
   border-radius:5px;padding:1px 6px;font:500 10.5px var(--mono);color:var(--text);white-space:nowrap}
+/* Karta gestora — otevírá ji kolečko „G“ vedle procesu; styl ladí s
+   ovládacím centrem iOS: matné sklo, zaoblení, ocásek k místu kliknutí. */
+#pm-gpop{position:absolute;z-index:8;width:230px;padding:12px 14px;border-radius:16px;
+  border:1px solid var(--border2);background:rgba(16,19,29,.86);backdrop-filter:blur(18px) saturate(160%);
+  box-shadow:0 18px 40px -14px rgba(0,0,0,.75);display:none;pointer-events:none;
+  opacity:0;transform:translateY(-50%) scale(.96);transition:opacity .12s,transform .12s}
+#pm-gpop.on{display:block;opacity:1;transform:translateY(-50%) scale(1);pointer-events:auto}
+#pm-gpop::before{content:'';position:absolute;top:50%;width:9px;height:9px;background:inherit;
+  border:inherit;border-radius:0 0 0 3px;transform:translateY(-50%) rotate(45deg)}
+#pm-gpop.tail-l::before{left:-5px;border-right:none;border-top:none}
+#pm-gpop.tail-r::before{right:-5px;border-left:none;border-bottom:none}
+#pm-gpop .gp-head{display:flex;align-items:baseline;gap:7px;padding-bottom:8px;margin-bottom:8px;
+  border-bottom:1px solid var(--border)}
+#pm-gpop .gp-head .code{font:11px var(--mono);color:var(--accent);white-space:nowrap}
+#pm-gpop .gp-head b{font-size:12.5px;font-weight:600;line-height:1.3;color:var(--text)}
+#pm-gpop .gp-row{padding:4px 0}
+#pm-gpop .gp-row+.gp-row{border-top:1px solid var(--border)}
+#pm-gpop .gp-row .l{font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--text3)}
+#pm-gpop .gp-row .v{font-size:12px;color:var(--text2)}
+.pmgest{transition:filter .12s}
+.pmgest:hover{filter:brightness(1.35)}
 #view-pmap.active{display:flex;flex-direction:column;overflow:hidden;padding:22px 26px 14px}
 body.pm-full #view-pmap.active{padding:10px 14px 12px}
 #view-pmap .pm-stage{flex:1;min-height:0}
@@ -1162,6 +1183,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
 
     <div class="pm-stage">
       <div class="pm-canvas" id="pm-canvas"></div>
+      <div id="pm-gpop"></div>
       <button class="pm-help" id="pm-help" onclick="pmToggleHelp()" title="Ovládání plátna">?</button>
       <div class="pm-helpbox" id="pm-helpbox">
         <div class="pm-helpgrid">
@@ -2606,6 +2628,7 @@ function pmMsOverrun(p){
 /* ================= VYKRESLENÍ ================= */
 function renderPMap(){
   const host=$('#pm-canvas'); if(!host)return;
+  if(typeof pmHideGestorPop==='function')pmHideGestorPop();
   const SK=PM_SKIN();
   const view=$('#view-pmap');
   if(view)view.classList.toggle('gal',!!PM.gallery);
@@ -2729,35 +2752,54 @@ function renderPMap(){
   list.forEach(p=>{const g=pmGeom(p,b);(laneNext[p.lane||0]=laneNext[p.lane||0]||[]).push({x:g.x})});
   Object.keys(laneNext).forEach(k=>laneNext[k].sort((a,c)=>a.x-c.x));
   const plan={}, occ={};
-  /* Gestor se připojí za název, oddělený tečkou, menším a tlumeným písmem —
-     ale jen tam, kde se vejde celý; jinak zůstává dostupný jen v popisku
-     pod kurzorem, aby nedocházelo k ořezávání uprostřed jména. */
   const rz=PM.rowZoom||1;
   list.slice().sort((a,c)=>(a.lane||0)-(c.lane||0)||pmGeom(a,b).x-pmGeom(c,b).x).forEach(p=>{
-    const g=pmGeom(p,b), fs=Math.max(5,(p.parent?11:12)*rz), gfs=fs-2.5;
+    const g=pmGeom(p,b), fs=Math.max(5,(p.parent?11:12)*rz);
     const hasKids=pmAll().some(x=>x.parent===p.id);
     const tx0=g.x+(hasKids?22:10), tw=p.name.length*fs*0.53;
-    const glab=pmGestorLabel(p.gestor), gsep=glab?7:0, gw=glab?glab.length*gfs*0.52+gsep:0;
     const inside=g.w-(tx0-g.x)-8;
-    if(tw+gw<=inside){plan[p.id]={x:tx0,y:g.y+g.h/2+4,fs,fill:SK.ink,gestor:glab,gw:tw+gsep};return}
-    if(tw<=inside){plan[p.id]={x:tx0,y:g.y+g.h/2+4,fs,fill:SK.ink};return}
+    if(tw<=inside){plan[p.id]={x:tx0,y:g.y+g.h/2+4,fs,fill:SK.ink,loc:'in'};return}
     const nxt=(laneNext[p.lane||0]||[]).find(o=>o.x>g.x+g.w-1);
     const freeRight=(nxt?nxt.x:W)-(g.x+g.w)-14;
-    if(tw+gw<=freeRight){plan[p.id]={x:g.x+g.w+8,y:g.y+g.h/2+4,fs,fill:SK.ink,gestor:glab,gw:tw+gsep};return}
-    if(tw<=freeRight){plan[p.id]={x:g.x+g.w+8,y:g.y+g.h/2+4,fs,fill:SK.ink};return}
+    if(tw<=freeRight){plan[p.id]={x:g.x+g.w+8,y:g.y+g.h/2+4,fs,fill:SK.ink,loc:'right'};return}
     const rows=[['a',g.y-4],['b',g.y+g.h+11]];
     for(let i=0;i<rows.length;i++){
       const key=(p.lane||0)+rows[i][0], arr=occ[key]=occ[key]||[];
-      const withG=!arr.some(iv=>g.x<iv[1]+8&&g.x+tw+gw>iv[0]-8);
-      if(withG&&glab){arr.push([g.x,g.x+tw+gw]);plan[p.id]={x:g.x+1,y:rows[i][1],fs:fs-0.5,fill:SK.ink2,gestor:glab,gw:tw+gsep};return}
       if(!arr.some(iv=>g.x<iv[1]+8&&g.x+tw>iv[0]-8)){
         arr.push([g.x,g.x+tw]);
-        plan[p.id]={x:g.x+1,y:rows[i][1],fs:fs-0.5,fill:SK.ink2};
+        plan[p.id]={x:g.x+1,y:rows[i][1],fs:fs-0.5,fill:SK.ink2,loc:rows[i][0]==='a'?'above':'below'};
         return;
       }
     }
     const max=Math.max(1,Math.floor(inside/(fs*0.53)));
-    plan[p.id]={x:tx0,y:g.y+g.h/2+4,fs,fill:SK.ink,cut:max};
+    plan[p.id]={x:tx0,y:g.y+g.h/2+4,fs,fill:SK.ink,cut:max,loc:'cut'};
+  });
+  /* Gestor: pod objektem, když je pod ním volno (proces má název uvnitř
+     a řádek pod ním nic nezabírá) — jinak jen malé kolečko „G“ vedle
+     procesu, které po kliknutí otevře kartu s detaily (spolugestoři,
+     termíny). V tisku/exportu se kolečko nehodí (není interaktivní),
+     takže se tam gestor připojí za název jako dřív. */
+  const gplan={};
+  list.forEach(p=>{
+    if(!p.gestor)return;
+    const glab=pmGestorLabel(p.gestor); if(!glab)return;
+    const g=pmGeom(p,b), pl=plan[p.id];
+    const gfs=Math.max(5,9*rz);
+    if(pl&&pl.loc==='in'){
+      const key=(p.lane||0)+'below', arr=occ[key]=occ[key]||[];
+      const gw=glab.length*gfs*0.52;
+      if(!arr.some(iv=>g.x<iv[1]+8&&g.x+gw>iv[0]-8)){
+        arr.push([g.x,g.x+gw]);
+        gplan[p.id]={mode:'below',x:g.x+1,y:g.y+g.h+11,fs:gfs,label:glab};
+        return;
+      }
+    }
+    if(PM.print){
+      const tw=pl?p.name.length*pl.fs*0.53:0;
+      gplan[p.id]={mode:'inline',x:(pl?pl.x:g.x)+tw+7,y:pl?pl.y:g.y+g.h/2+4,fs:gfs,label:glab};
+      return;
+    }
+    gplan[p.id]={mode:'badge',x:g.x+g.w+8,y:g.y+g.h/2};
   });
 
   /* procesy */
@@ -2797,7 +2839,13 @@ function renderPMap(){
     const pl=plan[p.id]||{x:tx0,y:g.y+g.h/2+4,fs:12,fill:SK.ink};
     const lab=pl.cut?p.name.slice(0,Math.max(1,pl.cut-1))+'…':p.name;
     s+=`<text x="${pl.x}" y="${pl.y}" font-size="${pl.fs}" fill="${pl.fill}" font-family="Inter,sans-serif">${escXml(lab)}</text>`;
-    if(pl.gestor)s+=`<text x="${pl.x+pl.gw}" y="${pl.y}" font-size="${pl.fs-2.5}" fill="${SK.ink3}" font-family="Inter,sans-serif">· ${escXml(pl.gestor)}</text>`;
+    const gp=gplan[p.id];
+    if(gp&&(gp.mode==='below'||gp.mode==='inline')){
+      s+=`<text x="${gp.x}" y="${gp.y}" font-size="${gp.fs}" fill="${SK.ink3}" font-family="Inter,sans-serif">${gp.mode==='inline'?'· ':''}${escXml(gp.label)}</text>`;
+    } else if(gp&&gp.mode==='badge'){
+      s+=`<circle class="pmgest" data-gid="${p.id}" cx="${gp.x}" cy="${gp.y}" r="7" fill="${SK.bg}" stroke="${SK.ink3}" stroke-width="1.2" style="cursor:pointer"/>
+          <text class="pmgest" data-gid="${p.id}" x="${gp.x}" y="${gp.y+3.5}" text-anchor="middle" font-size="9" font-weight="600" fill="${SK.ink2}" font-family="Inter,sans-serif" style="cursor:pointer">G</text>`;
+    }
     const gestTip=p.gestor?' · gestor: '+pmGestorLabel(p.gestor):'';
     s+=`<title>${escXml(p.id+' · '+p.name+gestTip)}</title>`;
     s+=`<rect class="pmgrip" data-grip="${p.id}" x="${g.x+g.w-7}" y="${g.y}" width="9" height="${g.h}" fill="transparent" style="cursor:ew-resize"/>`;
@@ -3232,6 +3280,42 @@ document.addEventListener('pointerdown',e=>{
   pmToggleHelp(false);
 },true);
 
+/* Karta gestora — kolečko „G“ vedle procesu, kam se název s gestorem
+   nevejde. Otevírá se kliknutím (ne najetím myší — plátno má vlastní
+   tažení/posun na pointer eventech, spolehlivé hover-s-prodlevou by s
+   ním kolidovalo a na dotykových zařízeních hover stejně nefunguje). */
+function pmToggleGestorPop(id,btn){
+  const pop=$('#pm-gpop');
+  if(pop.dataset.gid===id&&pop.classList.contains('on')){pmHideGestorPop();return}
+  const p=pmById(id); if(!p)return;
+  const co=(p.cogestors||[]).map(r=>`${escXml(actorName(r.who))}${r.resp?' — '+escXml(r.resp):''}`).join('<br>')||'—';
+  pop.innerHTML=`<div class="gp-head"><span class="code">${escXml(p.id)}</span><b>${escXml(p.name)}</b></div>
+    <div class="gp-row"><div class="l">Gestor</div><div class="v">${escXml(actorName(p.gestor))||'—'}</div></div>
+    <div class="gp-row"><div class="l">Spolugestoři</div><div class="v">${co}</div></div>
+    <div class="gp-row"><div class="l">Začátek</div><div class="v">${pmCz(p.start)}</div></div>
+    <div class="gp-row"><div class="l">Konec</div><div class="v">${pmCz(p.end)}</div></div>`;
+  const stage=$('.pm-stage').getBoundingClientRect(), br=btn.getBoundingClientRect();
+  const cx=br.left+br.width/2-stage.left, cy=br.top+br.height/2-stage.top;
+  const onRight=cx<stage.width/2;
+  pop.classList.toggle('tail-l',onRight);
+  pop.classList.toggle('tail-r',!onRight);
+  pop.style.left=onRight?(cx+12)+'px':'';
+  pop.style.right=onRight?'':(stage.width-cx+12)+'px';
+  pop.style.top=Math.max(10,Math.min(stage.height-10,cy))+'px';
+  pop.dataset.gid=id;
+  pop.classList.add('on');
+}
+function pmHideGestorPop(){
+  const pop=$('#pm-gpop'); if(!pop)return;
+  pop.classList.remove('on'); delete pop.dataset.gid;
+}
+document.addEventListener('pointerdown',e=>{
+  const pop=$('#pm-gpop');
+  if(!pop||!pop.classList.contains('on'))return;
+  if(e.target.closest('#pm-gpop')||e.target.closest('.pmgest'))return;
+  pmHideGestorPop();
+},true);
+
 function pmToggleFull(){
   const on=!document.body.classList.contains('pm-full');
   document.body.classList.toggle('pm-full',on);
@@ -3500,6 +3584,8 @@ function pmPointerDown(e){
   const host=$('#pm-canvas');
   const tog=e.target.closest('.pmtog');
   if(tog){const p=pmById(tog.dataset.tog);if(p){p.collapsed=!p.collapsed;pmQueue(p);renderPMap()}return}
+  const gest=e.target.closest('.pmgest');
+  if(gest){e.preventDefault();pmToggleGestorPop(gest.dataset.gid,gest);return}
   /* Vazba je vybíratelná: klik ji zvýrazní a vybere oba procesy, které
      spojuje — zdroj i cíl, ať jde o hlavní proces nebo podproces.
      Cíl je v pořadí poslední, takže se v pásu karet otevře ten, jehož
