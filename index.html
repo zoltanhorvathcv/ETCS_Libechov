@@ -2799,7 +2799,10 @@ function renderPMap(){
       gplan[p.id]={mode:'inline',x:(pl?pl.x:g.x)+tw+7,y:pl?pl.y:g.y+g.h/2+4,fs:gfs,label:glab};
       return;
     }
-    gplan[p.id]={mode:'badge',x:g.x+g.w+8,y:g.y+g.h/2};
+    /* Kolečko nesmí sednout na popisek jména vpravo od objektu —
+       pokud tam jméno je, kolečko čeká až za ním. */
+    const bx=(pl&&pl.loc==='right')?pl.x+p.name.length*pl.fs*0.53+10:g.x+g.w+8;
+    gplan[p.id]={mode:'badge',x:bx,y:g.y+g.h/2};
   });
 
   /* procesy */
