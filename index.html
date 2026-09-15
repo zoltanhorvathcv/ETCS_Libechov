@@ -1170,7 +1170,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
             <div class="pm-helprow"><kbd>tažení</kbd><span>posun plátna prázdnou plochou</span></div>
             <div class="pm-helprow"><kbd>mezerník + tažení</kbd><span>posun i nad procesem</span></div>
             <div class="pm-helprow"><kbd>prostřední tl.</kbd><span>totéž bez klávesnice</span></div>
-            <div class="pm-helprow"><kbd>Ctrl + kolečko</kbd><span>přiblížení kolem kurzoru</span></div>
+            <div class="pm-helprow"><kbd>Ctrl + kolečko</kbd><span>přiblížení kolem kurzoru — časová osa i výška řádků najednou</span></div>
             <div class="pm-helprow"><kbd>− 100 % ＋</kbd><span>zoom tlačítky v liště</span></div>
             <div class="pm-helprow"><kbd>⤢ Celý koncept</kbd><span>zmenší časovou osu i výšku řádků, ať jsou vidět všechny procesy a podprocesy</span></div>
             <div class="pm-helprow"><kbd>↩ Původní pohled</kbd><span>vrátí plátno tam, kde bylo naposledy v klidu</span></div>
@@ -2949,7 +2949,7 @@ function pmSyncControls(){
   const nb=$('#nav-pm'); if(nb)nb.textContent=processes.filter(p=>p.scope==='map').length||pmAll().length;
 }
 function pmSetMode(m){PM.mode=m;PM.sel=[];PM.link=null;if(m==='map')pmSetSplit(false);renderPMap()}
-function pmPickConcept(id){PM.conceptId=id;PM.sel=[];PM.link=null;renderPMap()}
+function pmPickConcept(id){PM.conceptId=id;PM.sel=[];PM.link=null;pmCenterToday()}
 function pmSetUnit(u){PM.unit=u;renderPMap()}
 /* zoom mění měřítko osy tlačítky — bez tažítka */
 function pmZoom(d){
@@ -3752,13 +3752,22 @@ function pmWheel(e){
   e.preventDefault();
   const host=$('#pm-canvas');
   const day=pmDayAt(e.clientX);
-  const at=e.clientX-host.getBoundingClientRect().left;
-  PM.zoom=Math.min(4,Math.max(.04,PM.zoom*(e.deltaY<0?1.15:1/1.15)));
+  const rect=host.getBoundingClientRect();
+  const atX=e.clientX-rect.left, atY=e.clientY-rect.top;
+  /* Svislá poloha pod kurzorem se drží stejně jako datum pod kurzorem
+     u vodorovného zoomu — jinak by kolečko myši „utíkalo“ jinam, než
+     kam ukazuje kurzor. Bere se poloha v pruzích, ne v pixelech. */
+  const head=pmHeadH(), oldRowH=pmRowH();
+  const lanePos=(host.scrollTop+atY-head)/oldRowH;
+  const f=e.deltaY<0?1.15:1/1.15;
+  PM.zoom=Math.min(4,Math.max(.04,PM.zoom*f));
+  PM.rowZoom=Math.min(4,Math.max(.04,(PM.rowZoom||1)*f));
   renderPMap();
   if(day!=null){
     const b=pmBounds(pmVisible());
-    host.scrollLeft=PM_PAD+(day-b.t0)/PMDAY*pmPx()-at;
+    host.scrollLeft=PM_PAD+(day-b.t0)/PMDAY*pmPx()-atX;
   }
+  host.scrollTop=Math.max(0,head+lanePos*pmRowH()-atY);
 }
 /* Smazání jen vazby — odebere záznam z pole `links` cílového procesu,
    ale procesy samotné nechá být. Klik na vazbu vybírá oba její konce jen
@@ -4562,13 +4571,32 @@ const pmStamp=v=>{
     +(v.length>10?' '+d.toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'}):'');
 };
 function pmShowGallery(){PM.gallery=true;PM.sel=[];PM.link=null;renderPMap()}
+/* Otevření konceptu (nebo mapy) vždy začíná na dnešku uprostřed a s asi
+   3/4 celého rozsahu vidět najednou — ne tam, kde zůstal zoom z minula. */
+function pmCenterToday(){
+  const host=$('#pm-canvas'); if(!host)return;
+  /* Než jde měřit šířku plátna, musí se nejdřív vykreslit — dokud visí
+     třída rozcestníku, je plátno schované (display:none) a šířka by
+     vyšla nulová. */
+  renderPMap();
+  const list=pmVisible(); if(!list.length)return;
+  const b=pmBounds(list);
+  const totalDays=Math.max(1,(b.t1-b.t0)/PMDAY);
+  const availW=Math.max(80,host.clientWidth-PM_PAD*2-8);
+  const visibleDays=Math.max(1,totalDays*0.75);
+  PM.zoom=Math.max(.04,Math.min(4,availW/(visibleDays*PM_PXD[PM.unit])));
+  renderPMap();
+  const px=pmPx(), todayX=PM_PAD+(pmD(TODAY)-b.t0)/PMDAY*px;
+  const maxScroll=Math.max(0,host.scrollWidth-host.clientWidth);
+  host.scrollLeft=Math.min(maxScroll,Math.max(0,todayX-host.clientWidth/2));
+}
 function pmOpenConcept(id){
   PM.gallery=false; PM.mode='concept'; PM.conceptId=id; PM.sel=[]; PM.link=null; PM.extra=0;
-  renderPMap(); pmFitHeight();
+  pmFitHeight(); pmCenterToday();
 }
 function pmOpenMap(){
   PM.gallery=false; PM.mode='map'; PM.sel=[]; PM.link=null; PM.extra=0;
-  renderPMap(); pmFitHeight();
+  pmFitHeight(); pmCenterToday();
 }
 function pmRenderGallery(){
   const host=$('#pm-gallery'); if(!host)return;
