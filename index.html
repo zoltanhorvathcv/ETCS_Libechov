@@ -1141,7 +1141,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
         <button onclick="pmZoom(1)" title="Přiblížit — období se roztáhne do šířky">＋</button>
       </div>
       <div class="pm-seg">
-        <button onclick="pmFitAll()" title="Přiblížení i posun nastavit tak, aby byl vidět celý koncept najednou">⤢ Celý koncept</button>
+        <button onclick="pmFitAll()" title="Zmenší časovou osu i výšku řádků tak, aby byly vidět úplně všechny procesy a podprocesy najednou">⤢ Celý koncept</button>
         <button onclick="pmViewBack()" title="Vrátit se na pohled, který jste měli, než jste naposledy posunuli plátno">↩ Původní pohled</button>
       </div>
       <button class="btn ghost sm" id="pm-fullbtn" onclick="pmToggleFull()" title="Celá obrazovka (ukončíte klávesou Esc)">⛶ Celá obrazovka</button>
@@ -1172,7 +1172,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
             <div class="pm-helprow"><kbd>prostřední tl.</kbd><span>totéž bez klávesnice</span></div>
             <div class="pm-helprow"><kbd>Ctrl + kolečko</kbd><span>přiblížení kolem kurzoru</span></div>
             <div class="pm-helprow"><kbd>− 100 % ＋</kbd><span>zoom tlačítky v liště</span></div>
-            <div class="pm-helprow"><kbd>⤢ Celý koncept</kbd><span>oddálí a posune tak, aby byl vidět celý rozsah najednou</span></div>
+            <div class="pm-helprow"><kbd>⤢ Celý koncept</kbd><span>zmenší časovou osu i výšku řádků, ať jsou vidět všechny procesy a podprocesy</span></div>
             <div class="pm-helprow"><kbd>↩ Původní pohled</kbd><span>vrátí plátno tam, kde bylo naposledy v klidu</span></div>
           </section>
           <section>
@@ -2365,7 +2365,7 @@ let processes=[
 ];
 
 const PM={mode:'concept',conceptId:'K-01',unit:'month',sel:[],splitMode:false,tab:'zaklad',panelLock:false,zoom:1,snapX:null,
-  filter:[],legHidden:false,ribCollapsed:false,extra:0,gallery:true,print:false,link:null,solo:null,viewBack:null,cursor:null};
+  filter:[],legHidden:false,ribCollapsed:false,extra:0,gallery:true,print:false,link:null,solo:null,viewBack:null,cursor:null,rowZoom:1};
 /* Výběr je pole; poslední vybraný je „primární“ a zobrazí se v pásu karet. */
 const pmSelHas=id=>PM.sel.indexOf(id)>-1;
 const pmPrimary=()=>PM.sel.length?PM.sel[PM.sel.length-1]:null;
@@ -2412,6 +2412,7 @@ function pmSyncHist(){
 }
 const PM_STATE={koncept:'koncept',odvozeny:'odvozený',potvrzeny:'potvrzený'};
 const PM_LANE=50, PM_PAD=26;
+const pmRowH=()=>PM_LANE*(PM.rowZoom||1);   // výška pruhu po svislém přizpůsobení
 const PMDAY=86400000;
 /* Časová osa konceptu i procesní mapy je omezená na roky 2000–2045 —
    mimo tento rozsah se ani nekreslí mřížka, ani nejdou zapsat termíny. */
@@ -2499,11 +2500,11 @@ function pmBounds(list){
   return {t0:a,t1:b};
 }
 function pmGeom(p,b){
-  const px=pmPx();
+  const px=pmPx(), rz=PM.rowZoom||1, rowH=pmRowH();
   const x=PM_PAD+(pmD(p.start)-b.t0)/PMDAY*px;
   const w=Math.max(16,(pmD(p.end)-pmD(p.start))/PMDAY*px);
-  const h=p.parent?19:26, head=pmHeadH();
-  const y=head+(p.lane||0)*PM_LANE+(PM_LANE-h)/2;
+  const h=(p.parent?19:26)*rz, head=pmHeadH();
+  const y=head+(p.lane||0)*rowH+(rowH-h)/2;
   return {x,y,w,h};
 }
 const pmHeadH=()=>pmAxisMode()==='off'?10:36;
@@ -2620,9 +2621,9 @@ function renderPMap(){
   const avail=PM.print?0:Math.max(260,(host.clientHeight||420)-2);
   /* vždy zásoba prázdných pruhů pod obsahem, aby šlo rolovat a zakládat do volna;
      PM.extra přibývá, jakmile se doroluje ke spodní hraně — svisle tedy bez konce */
-  const lanes=PM.print?need:Math.max(need,Math.floor((avail-head)/PM_LANE))+6+(PM.extra||0);
+  const lanes=PM.print?need:Math.max(need,Math.floor((avail-head)/pmRowH()))+6+(PM.extra||0);
   const W=PM.print?PM_PAD*2+(b.t1-b.t0)/PMDAY*px:Math.max(PM_PAD*2+(b.t1-b.t0)/PMDAY*px, host.clientWidth-2);
-  const H=Math.max(head+lanes*PM_LANE, avail);
+  const H=Math.max(head+lanes*pmRowH(), avail);
 
   if(!list.length){
     host.innerHTML=`<div class="pm-empty"><b>${PM.mode==='map'?'Procesní mapa je zatím prázdná':'Tento koncept nemá žádné procesy'}</b>
@@ -2650,8 +2651,8 @@ function renderPMap(){
 
   /* pruhy = souběžné koleje, střídavě jemně podbarvené */
   for(let i=0;i<lanes;i++){
-    if(i%2)s+=`<rect x="0" y="${head+i*PM_LANE}" width="${W}" height="${PM_LANE}" fill="${SK.lane}"/>`;
-    s+=`<line x1="0" y1="${head+i*PM_LANE}" x2="${W}" y2="${head+i*PM_LANE}" stroke="${SK.laneLine}"/>`;
+    if(i%2)s+=`<rect x="0" y="${head+i*pmRowH()}" width="${W}" height="${pmRowH()}" fill="${SK.lane}"/>`;
+    s+=`<line x1="0" y1="${head+i*pmRowH()}" x2="${W}" y2="${head+i*pmRowH()}" stroke="${SK.laneLine}"/>`;
   }
 
   /* časová osa a mřížka z jednoho modelu, aby seděly na sebe */
@@ -2731,8 +2732,9 @@ function renderPMap(){
   /* Gestor se připojí za název, oddělený tečkou, menším a tlumeným písmem —
      ale jen tam, kde se vejde celý; jinak zůstává dostupný jen v popisku
      pod kurzorem, aby nedocházelo k ořezávání uprostřed jména. */
+  const rz=PM.rowZoom||1;
   list.slice().sort((a,c)=>(a.lane||0)-(c.lane||0)||pmGeom(a,b).x-pmGeom(c,b).x).forEach(p=>{
-    const g=pmGeom(p,b), fs=p.parent?11:12, gfs=fs-2.5;
+    const g=pmGeom(p,b), fs=Math.max(5,(p.parent?11:12)*rz), gfs=fs-2.5;
     const hasKids=pmAll().some(x=>x.parent===p.id);
     const tx0=g.x+(hasKids?22:10), tw=p.name.length*fs*0.53;
     const glab=pmGestorLabel(p.gestor), gsep=glab?7:0, gw=glab?glab.length*gfs*0.52+gsep:0;
@@ -2789,7 +2791,7 @@ function renderPMap(){
     const kids=pmAll().filter(x=>x.parent===p.id).length;
     let tx0=g.x+10;
     if(kids){
-      s+=`<text class="pmtog" data-tog="${p.id}" x="${g.x+9}" y="${g.y+g.h/2+4}" font-size="11" fill="${SK.ink2}" style="cursor:pointer">${p.collapsed?'▸':'▾'}</text>`;
+      s+=`<text class="pmtog" data-tog="${p.id}" x="${g.x+9}" y="${g.y+g.h/2+4}" font-size="${Math.max(6,11*(PM.rowZoom||1))}" fill="${SK.ink2}" style="cursor:pointer">${p.collapsed?'▸':'▾'}</text>`;
       tx0=g.x+22;
     }
     const pl=plan[p.id]||{x:tx0,y:g.y+g.h/2+4,fs:12,fill:SK.ink};
@@ -2914,7 +2916,7 @@ let pmGrowing=false;
 function pmGrowLanes(){
   const host=$('#pm-canvas');
   if(!host||pmGrowing||!host.querySelector('svg'))return;
-  if(host.scrollTop+host.clientHeight > host.scrollHeight-PM_LANE*2){
+  if(host.scrollTop+host.clientHeight > host.scrollHeight-pmRowH()*2){
     PM.extra=(PM.extra||0)+4;
     pmGrowing=true;
     try{renderPMap()}finally{pmGrowing=false}
@@ -2934,7 +2936,9 @@ function pmSyncControls(){
   ['pm-promote','pm-newvar','pm-tplvar','pm-editvar','pm-splitbtn'].forEach(id=>$('#'+id).classList.toggle('pm-hide',isMap));
   $('#pm-recalc').classList.toggle('pm-hide',!isMap);
   $('#pm-splitbtn').classList.toggle('on',PM.splitMode);
-  $('#pm-zoomlbl').textContent=Math.round(PM.zoom*100)+' %';
+  const zpct=Math.round(PM.zoom*100), rpct=Math.round((PM.rowZoom||1)*100);
+  $('#pm-zoomlbl').textContent=zpct+' %';
+  $('#pm-zoomlbl').title=rpct<100?`Časová osa ${zpct} % · řádky ${rpct} % — klik vrátí obojí na 100 %`:'Zpět na výchozí měřítko';
   pmSyncHist();
   $('#pm-canvas').classList.toggle('pm-splitting',PM.splitMode&&!isMap);
   const c=pmConcept();
@@ -2952,7 +2956,7 @@ function pmZoom(d){
   PM.zoom=Math.min(4,Math.max(.04,PM.zoom*(d>0?1.25:0.8)));
   renderPMap();
 }
-function pmZoomReset(){PM.zoom=1;renderPMap()}
+function pmZoomReset(){PM.zoom=1;PM.rowZoom=1;renderPMap()}
 /* Přizpůsobí měřítko tak, aby se celý rozsah konceptu (nebo mapy) vešel
    do šířky viditelného plátna najednou, a posune se na začátek. Funguje
    nad tím, co je zrovna otevřené — koncept i procesní mapa sdílejí kód. */
@@ -2961,11 +2965,21 @@ function pmFitAll(){
   const list=pmVisible(); if(!list.length){toast('Plátno je prázdné');return}
   const b=pmBounds(list);
   const days=(b.t1-b.t0)/PMDAY;
-  const avail=Math.max(80,host.clientWidth-PM_PAD*2-8);
   const needPx=days*PM_PXD[PM.unit];
+  /* Svisle se zmenší i výška pruhů, ať se vejdou úplně všechny procesy
+     a podprocesy najednou — dosavadní zoom měnil jen časovou osu a řádky
+     nechával v původní výšce, takže se dolní pruhy musely dorolovat. */
+  const lanesUsed=Math.max(...list.map(x=>x.lane||0))+1;
   PM.viewBack={sl:host.scrollLeft,st:host.scrollTop};
-  PM.zoom=Math.max(.04,Math.min(4,avail/Math.max(1,needPx)));
-  renderPMap();
+  /* Druhý průchod: první vykreslení může (třeba zmizelým posuvníkem)
+     nepatrně změnit dostupnou plochu, druhý dopočet už sedí přesně. */
+  for(let i=0;i<2;i++){
+    const availW=Math.max(80,host.clientWidth-PM_PAD*2-8);
+    const availH=Math.max(60,host.clientHeight-pmHeadH()-8);
+    PM.zoom=Math.max(.04,Math.min(4,availW/Math.max(1,needPx)));
+    PM.rowZoom=Math.max(.12,Math.min(1,availH/Math.max(1,lanesUsed*PM_LANE)));
+    renderPMap();
+  }
   host.scrollLeft=0; host.scrollTop=0;
   toast('Přizpůsobeno celému rozsahu');
 }
@@ -3617,7 +3631,7 @@ function pmPointerMove(e){
   if(!pmDrag)return;
   const px=pmPx();
   let dd=Math.round((e.clientX-pmDrag.x)/px);
-  const dl=Math.round((e.clientY-pmDrag.y)/PM_LANE);
+  const dl=Math.round((e.clientY-pmDrag.y)/pmRowH());
   if(!pmDrag.moved&&(Math.abs(e.clientX-pmDrag.x)>3||Math.abs(e.clientY-pmDrag.y)>3)){
     pmDrag.moved=true; histPush();
   }
@@ -3948,7 +3962,7 @@ function pmPointToPlacement(clientX,clientY){
   const host=$('#pm-canvas'), svg=host&&host.querySelector('svg'); if(!svg)return null;
   const rect=svg.getBoundingClientRect();
   const day=pmDayAt(clientX);
-  const lane=Math.max(0,Math.round((clientY-rect.top-pmHeadH())/PM_LANE));
+  const lane=Math.max(0,Math.round((clientY-rect.top-pmHeadH())/pmRowH()));
   return day==null?null:{day,lane};
 }
 function pmNewProcess(){
@@ -4632,7 +4646,7 @@ function pmStats(scope){
    přepne kontext a výsledné SVG se vyzvedne. U rozsáhlých variant se
    podprocesy sbalí, jinak by byla na stránce nečitelná. */
 function pmDocMap(id,forceAll){
-  const keep={g:PM.gallery,m:PM.mode,c:PM.conceptId,u:PM.unit,z:PM.zoom,s:PM.sel.slice(),e:PM.extra,f:PM.filter.slice(),lh:PM.legHidden};
+  const keep={g:PM.gallery,m:PM.mode,c:PM.conceptId,u:PM.unit,z:PM.zoom,rz:PM.rowZoom,s:PM.sel.slice(),e:PM.extra,f:PM.filter.slice(),lh:PM.legHidden};
   const scope=pmScopeOf(id);
   const list=processes.filter(p=>p.scope===scope);
   const collapsed=!forceAll&&list.length>20;
@@ -4649,7 +4663,7 @@ function pmDocMap(id,forceAll){
   if(wasGal)view.classList.remove('gal');
   PM.gallery=false; PM.mode=id==='map'?'map':'concept';
   if(id!=='map')PM.conceptId=id;
-  PM.zoom=1; PM.sel=[]; PM.extra=0; PM.filter=[]; PM.legHidden=true;
+  PM.zoom=1; PM.rowZoom=1; PM.sel=[]; PM.extra=0; PM.filter=[]; PM.legHidden=true;
   /* Šířka mapy musí zůstat blízko šířky stránky — po zmenšení na 27 %
      by byly popisky nečitelné. Bereme největší dělení, které se ještě vejde. */
   const TARGET=1250;
@@ -4660,7 +4674,7 @@ function pmDocMap(id,forceAll){
   const unit={week:'týdnech',month:'měsících',quarter:'čtvrtletích'}[PM.unit]||'';
   PM.print=false;
   list.forEach((p,i)=>{p.collapsed=keepCol[i];p.lane=keepLane[i]});
-  Object.assign(PM,{gallery:keep.g,mode:keep.m,conceptId:keep.c,unit:keep.u,zoom:keep.z,
+  Object.assign(PM,{gallery:keep.g,mode:keep.m,conceptId:keep.c,unit:keep.u,zoom:keep.z,rowZoom:keep.rz,
     sel:keep.s,extra:keep.e,filter:keep.f,legHidden:keep.lh});
   if(wasGal&&view)view.classList.add('gal');
   renderPMap();
@@ -4880,7 +4894,7 @@ function pmPaperByHeight(lanes){
 /* Jedno vykreslení mapy do SVG s danými parametry. Vrací i rozměry,
    aby se podle nich dal zvolit papír. */
 function pmMapSVG(o){
-  const keep={g:PM.gallery,m:PM.mode,c:PM.conceptId,u:PM.unit,z:PM.zoom,s:PM.sel.slice(),
+  const keep={g:PM.gallery,m:PM.mode,c:PM.conceptId,u:PM.unit,z:PM.zoom,rz:PM.rowZoom,s:PM.sel.slice(),
     e:PM.extra,f:PM.filter.slice(),lh:PM.legHidden,so:PM.solo,pr:PM.print,lk:PM.link};
   const scope=pmScopeOf(o.concept);
   const all=processes.filter(x=>x.scope===scope);
@@ -4890,7 +4904,7 @@ function pmMapSVG(o){
 
   PM.gallery=false; PM.mode=o.concept==='map'?'map':'concept';
   if(o.concept!=='map')PM.conceptId=o.concept;
-  PM.zoom=1; PM.sel=[]; PM.link=null; PM.extra=0; PM.filter=[]; PM.legHidden=true;
+  PM.zoom=1; PM.rowZoom=1; PM.sel=[]; PM.link=null; PM.extra=0; PM.filter=[]; PM.legHidden=true;
   PM.solo=o.solo||null; PM.print=o.light!==false;
   /* rozbalit, ať jsou vidět všechny podprocesy; u „jen hlavní procesy“ sbalit */
   all.forEach(x=>{if(all.some(y=>y.parent===x.id))x.collapsed=!!o.rootsOnly});
@@ -4910,7 +4924,7 @@ function pmMapSVG(o){
   const unit={week:'týdnech',month:'měsících',quarter:'čtvrtletích'}[PM.unit]||'';
 
   all.forEach((x,i)=>{x.collapsed=keepCol[i];x.lane=keepLane[i]});
-  Object.assign(PM,{gallery:keep.g,mode:keep.m,conceptId:keep.c,unit:keep.u,zoom:keep.z,
+  Object.assign(PM,{gallery:keep.g,mode:keep.m,conceptId:keep.c,unit:keep.u,zoom:keep.z,rowZoom:keep.rz,
     sel:keep.s,extra:keep.e,filter:keep.f,legHidden:keep.lh,solo:keep.so,print:keep.pr,link:keep.lk});
   if(wasGal&&view)view.classList.add('gal');
   renderPMap();
