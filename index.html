@@ -2415,7 +2415,8 @@ let processes=[
 ];
 
 const PM={mode:'concept',conceptId:'K-01',unit:'month',sel:[],splitMode:false,tab:'zaklad',panelLock:false,zoom:1,snapX:null,
-  filter:[],legHidden:false,ribCollapsed:false,extra:0,gallery:true,print:false,link:null,solo:null,viewBack:null,cursor:null,rowZoom:1,linkFocus:null};
+  filter:[],legHidden:false,ribCollapsed:false,extra:0,gallery:true,print:false,link:null,solo:null,viewBack:null,cursor:null,rowZoom:1,linkFocus:null,
+  padL:0,padR:0};
 /* Výběr je pole; poslední vybraný je „primární“ a zobrazí se v pásu karet. */
 const pmSelHas=id=>PM.sel.indexOf(id)>-1;
 const pmPrimary=()=>PM.sel.length?PM.sel[PM.sel.length-1]:null;
@@ -2565,7 +2566,11 @@ function pmBounds(list){
   /* okraj = alespoň dvě jednotky, u delších projektů čtvrtina rozsahu */
   const unitMs={week:7,month:30.44,quarter:91.3}[u]*PMDAY;
   const pad=PM.print?unitMs:Math.max(unitMs*2,(b-a)*0.25);
-  const backPad=rel?0:pad;
+  /* Doroluje-li se uživatel ke kraji osy, přibývá čas i do stran — plátno
+     tak nekončí u prvního a posledního procesu (svisle to dělá PM.extra). */
+  const padL=PM.print?0:(PM.padL||0)*PMDAY, padR=PM.print?0:(PM.padR||0)*PMDAY;
+  const backPad=(rel?0:pad)+padL;
+  b+=padR;
   if(u==='week'){a=pmWeekStart(a-backPad);b=pmWeekStart(b+pad)+7*PMDAY}
   else{const A=new Date(a-backPad),B=new Date(b+pad);
     const m0=u==='quarter'?Math.floor(A.getUTCMonth()/3)*3:A.getUTCMonth();
@@ -2736,9 +2741,11 @@ function renderPMap(){
     s+=`<line x1="0" y1="${head+i*pmRowH()}" x2="${W}" y2="${head+i*pmRowH()}" stroke="${SK.laneLine}"/>`;
   }
 
-  /* časová osa a mřížka z jednoho modelu, aby seděly na sebe */
+  /* časová osa a mřížka z jednoho modelu, aby seděly na sebe;
+     samotné záhlaví osy se kreslí až nakonec (viz níže), aby při svislém
+     posunu mohlo zůstat přilepené nahoře a obsah jel pod ním */
   const mo=pmAxisMode()!=='off'?pmAxisModel(b):null;
-  if(mo){s+=pmGridSVG(mo,head,H); s+=pmAxisSVG(mo,W,head);}
+  if(mo)s+=pmGridSVG(mo,head,H);
 
   /* dnešek */
   const tx=PM_PAD+(pmD(TODAY)-b.t0)/PMDAY*px;
@@ -2935,8 +2942,9 @@ function renderPMap(){
           <text class="pmgest" data-gid="${p.id}" x="${gp.x}" y="${gp.y+3.5}" text-anchor="middle" font-size="9" font-weight="600" fill="${SK.ink2}" font-family="Inter,sans-serif" style="cursor:pointer">G</text>`;
     }
     if(roleCol){
-      s+=`<circle cx="${g.x-1}" cy="${g.y-1}" r="6.5" fill="${roleCol}" stroke="${SK.bg}" stroke-width="1.4"/>
-          <text x="${g.x-1}" y="${g.y+2.5}" text-anchor="middle" font-size="8" font-weight="700" fill="#0a0d15" font-family="var(--mono)">${role==='pred'?'P':'N'}</text>`;
+      const rcy=Math.max(g.y-1,head+8);
+      s+=`<circle cx="${g.x-1}" cy="${rcy}" r="6.5" fill="${roleCol}" stroke="${SK.bg}" stroke-width="1.4"/>
+          <text x="${g.x-1}" y="${rcy+3.5}" text-anchor="middle" font-size="8" font-weight="700" fill="#0a0d15" font-family="var(--mono)">${role==='pred'?'P':'N'}</text>`;
     }
     if(p.id===PM.linkFocus&&!on){
       s+=`<path d="${pmRailPath(g.x-3,g.y-3,g.w+6,g.h+6)}" fill="none" stroke="var(--accent)" stroke-width="1.6" opacity=".9"/>`;
@@ -2958,6 +2966,9 @@ function renderPMap(){
     s+=`<rect x="${x}" y="${y}" width="${Math.abs(pmMarq.x1-pmMarq.x0)}" height="${Math.abs(pmMarq.y1-pmMarq.y0)}"
           fill="rgba(255,82,0,.09)" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3"/>`;
   }
+  /* záhlaví osy úplně nahoře v pořadí kreslení — při svislém posunu se
+     posouvá s plátnem (pmSyncSticky) a obsah mizí pod ním */
+  if(mo)s+=`<g class="pmhead">${pmAxisSVG(mo,W,head)}</g>`;
   s+=`</svg>`;
   const keepL=host.scrollLeft, keepT=host.scrollTop;
   host.innerHTML=s;
@@ -2973,7 +2984,9 @@ function pmSignalSVG(id,x,y,h,i,p,isEnd){
   const m=milestones.find(z=>z.id===id); if(!m)return '';
   const bad=m.locked&&isEnd&&pmD(p.end)>pmD(m.date);
   const SK=PM_SKIN(), col=bad?'#ff5c6a':(m.status==='done'?pmTone('#3ddc97'):SK.ink3);
-  const mx=x+(isEnd?-2:2)+i*13, top=y-16;
+  /* praporek nesmí vyjet pod přilepené záhlaví osy — u prvního pruhu
+     se proto zkrátí stožár, místo aby zmizel v ose */
+  const mx=x+(isEnd?-2:2)+i*13, top=Math.max(y-16,pmHeadH()+6);
   return `<g><line x1="${mx}" y1="${y}" x2="${mx}" y2="${top+6}" stroke="${bad?'#ff5c6a':SK.ink2}" stroke-width="1.4"/>
     <circle cx="${mx}" cy="${top}" r="5" fill="${m.status==='done'||bad?col:'var(--panel)'}" stroke="${col}" stroke-width="1.5"/>
     ${m.locked?`<rect x="${mx+6}" y="${top-5}" width="8" height="7" rx="1" fill="none" stroke="${col}" stroke-width="1.2"/>
@@ -2989,12 +3002,16 @@ function pmAxisModel(b){
   const t0c=rel&&c?c.t0:null;
   const cells=[], ctx=[];
   const X=t=>PM_PAD+(t-b.t0)/PMDAY*px;
+  /* Posun za levý kraj vyrobí i odstupy před T0 — musí se psát se znaménkem,
+     ne jako „+-2 M“, a nadřazený pruh je tam prostě „před T0“. */
+  const relCell=(n,u)=>(n<0?'−':'+')+Math.abs(n)+' '+u;
+  const relYear=n=>n<0?'před T0':(Math.floor(n/12)+1)+'. rok';
   if(PM.unit==='week'){
     let cur=null;
     for(let t=pmWeekStart(b.t0);t<b.t1;t+=7*PMDAY){
-      cells.push({x0:X(t),x1:X(t+7*PMDAY),lab:rel?'+'+Math.round((t-pmD(t0c))/(7*PMDAY))+' T':String(pmIsoWeek(t))});
+      cells.push({x0:X(t),x1:X(t+7*PMDAY),lab:rel?relCell(Math.round((t-pmD(t0c))/(7*PMDAY)),'T'):String(pmIsoWeek(t))});
       const th=new Date(t+3*PMDAY), key=th.getUTCFullYear()+'-'+th.getUTCMonth();
-      const lab=rel?(Math.floor(pmMonthsBetween(t0c,pmISO(t))/12)+1)+'. rok':monCz[th.getUTCMonth()]+' '+th.getUTCFullYear();
+      const lab=rel?relYear(pmMonthsBetween(t0c,pmISO(t))):monCz[th.getUTCMonth()]+' '+th.getUTCFullYear();
       if(cur&&cur.key===key)cur.x1=X(t+7*PMDAY);
       else{cur={key,lab,x0:X(t),x1:X(t+7*PMDAY)};ctx.push(cur)}
     }
@@ -3005,10 +3022,10 @@ function pmAxisModel(b){
     while(Date.UTC(y,m,1)<b.t1){
       const t=Date.UTC(y,m,1), tn=Date.UTC(y,m+step,1);
       const lab=rel
-        ? (PM.unit==='quarter'?'+'+Math.round(pmMonthsBetween(t0c,pmISO(t))/3)+' Q':'+'+pmMonthsBetween(t0c,pmISO(t))+' M')
+        ? (PM.unit==='quarter'?relCell(Math.round(pmMonthsBetween(t0c,pmISO(t))/3),'Q'):relCell(pmMonthsBetween(t0c,pmISO(t)),'M'))
         : (PM.unit==='quarter'?'Q'+(Math.floor(m/3)+1):monCz[m]);
       cells.push({x0:X(t),x1:X(tn),lab});
-      const clab=rel?(Math.floor(pmMonthsBetween(t0c,pmISO(t))/12)+1+'. rok'):String(y);
+      const clab=rel?relYear(pmMonthsBetween(t0c,pmISO(t))):String(y);
       if(cur&&cur.key===clab)cur.x1=X(tn);
       else{cur={key:clab,lab:clab,x0:X(t),x1:X(tn)};ctx.push(cur)}
       m+=step; if(m>11){m-=12;y++}
@@ -3043,7 +3060,8 @@ function pmAxisSVG(mo,W,head){
   return s;
 }
 
-/* popisek kontextu přilepený k levému okraji, dokud pruh neodejde */
+/* popisek kontextu přilepený k levému okraji, dokud pruh neodejde;
+   celé záhlaví osy pak zůstává přilepené k horní hraně i při svislém posunu */
 function pmSyncSticky(){
   const host=$('#pm-canvas'); if(!host)return;
   const sl=host.scrollLeft;
@@ -3051,6 +3069,12 @@ function pmSyncSticky(){
     const x0=+t.dataset.x0, x1=+t.dataset.x1, w=Math.min(110,x1-x0-8);
     t.setAttribute('x',Math.min(Math.max(sl+10,x0+10),Math.max(x0+10,x1-w)));
   });
+  const hd=host.querySelector('.pmhead');
+  if(hd){
+    const dy=PM.print?0:host.scrollTop;
+    if(dy)hd.setAttribute('transform','translate(0,'+dy+')');
+    else hd.removeAttribute('transform');
+  }
   pmGrowLanes();
 }
 /* U spodní hrany doplní další prázdné pruhy — svislý posun tak nikdy nenarazí.
@@ -3064,6 +3088,39 @@ function pmGrowLanes(){
     pmGrowing=true;
     try{renderPMap()}finally{pmGrowing=false}
   }
+}
+/* Vodorovný protějšek pmGrowLanes: u kraje osy přidá další čas, aby plátno
+   nekončilo u prvního a posledního procesu. Roste jen k mezím osy
+   (2000–2045); když už dál nejde, přídavek se vrátí zpět a nic se nepřekresluje.
+   Vrací, o kolik pixelů se obsah posunul doprava (růst doleva), aby volající
+   mohl dorovnat posun plátna a pohled zůstal stát na místě. */
+let pmGrowingX=false;
+function pmGrowSpan(side){
+  const host=$('#pm-canvas');
+  if(!host||pmGrowingX||PM.print||PM.gallery||!host.querySelector('svg'))return 0;
+  const px=pmPx(), before=pmBounds(pmVisible());
+  const days=Math.max(20,Math.round((host.clientWidth||600)/Math.max(.001,px)/2));
+  if(side==='left')PM.padL=(PM.padL||0)+days; else PM.padR=(PM.padR||0)+days;
+  const after=pmBounds(pmVisible());
+  if(after.t0===before.t0&&after.t1===before.t1){        // narazili jsme na mez osy
+    if(side==='left')PM.padL-=days; else PM.padR-=days;
+    return 0;
+  }
+  const dpx=(before.t0-after.t0)/PMDAY*px;
+  pmGrowingX=true;
+  try{renderPMap()}finally{pmGrowingX=false}
+  if(dpx)host.scrollLeft+=dpx;
+  return dpx;
+}
+/* Kolečko či trackpad do strany: čas přibude jen tehdy, když se uživatel
+   opravdu snaží jet za kraj. Pouhé dorolování ke kraji plátno neroztahuje —
+   jinak by se obsah pod rukou posouval i při obyčejném návratu na začátek. */
+function pmGrowSpanOnWheel(e){
+  const host=$('#pm-canvas'); if(!host)return;
+  const dx=e.deltaX||(e.shiftKey?e.deltaY:0); if(!dx)return;
+  const max=host.scrollWidth-host.clientWidth;
+  if(dx<0&&host.scrollLeft<=0)pmGrowSpan('left');
+  else if(dx>0&&host.scrollLeft>=max)pmGrowSpan('right');
 }
 
 /* ================= OVLÁDACÍ PRVKY ================= */
@@ -3106,6 +3163,7 @@ function pmZoomReset(){PM.zoom=1;PM.rowZoom=1;renderPMap()}
 function pmFitAll(){
   const host=$('#pm-canvas'); if(!host)return;
   const list=pmVisible(); if(!list.length){toast('Plátno je prázdné');return}
+  PM.padL=PM.padR=0;                       // přizpůsobit se má obsahu, ne dorolovanému prázdnu
   const b=pmBounds(list);
   const days=(b.t1-b.t0)/PMDAY;
   const needPx=days*PM_PXD[PM.unit];
@@ -3848,6 +3906,11 @@ function pmPointerMove(e){
   const host=$('#pm-canvas');
   if(pmPan){
     if(Math.abs(e.clientX-pmPan.x)>3||Math.abs(e.clientY-pmPan.y)>3)pmPan.moved=true;
+    /* Tažení za hranu osy nekončí zaražením o první/poslední proces —
+       plátnu se přidá čas a tažení plynule pokračuje. */
+    const want=pmPan.sl-(e.clientX-pmPan.x), max=host.scrollWidth-host.clientWidth;
+    if(want<-4)pmPan.sl+=pmGrowSpan('left');
+    else if(want>max+4)pmGrowSpan('right');
     host.scrollLeft=pmPan.sl-(e.clientX-pmPan.x);
     host.scrollTop=pmPan.st-(e.clientY-pmPan.y);
     return;
@@ -3988,7 +4051,7 @@ function pmKeyUp(e){
 }
 /* Ctrl+kolečko = zoom, s udržením data pod kurzorem */
 function pmWheel(e){
-  if(!(e.ctrlKey||e.metaKey))return;
+  if(!(e.ctrlKey||e.metaKey)){pmGrowSpanOnWheel(e);return}
   e.preventDefault();
   const host=$('#pm-canvas');
   const day=pmDayAt(e.clientX);
@@ -4836,11 +4899,11 @@ function pmCenterToday(){
   host.scrollLeft=Math.min(maxScroll,Math.max(0,todayX-host.clientWidth/2));
 }
 function pmOpenConcept(id){
-  PM.gallery=false; PM.mode='concept'; PM.conceptId=id; PM.sel=[]; PM.link=null; PM.extra=0;
+  PM.gallery=false; PM.mode='concept'; PM.conceptId=id; PM.sel=[]; PM.link=null; PM.extra=0; PM.padL=PM.padR=0;
   pmFitHeight(); pmCenterToday();
 }
 function pmOpenMap(){
-  PM.gallery=false; PM.mode='map'; PM.sel=[]; PM.link=null; PM.extra=0;
+  PM.gallery=false; PM.mode='map'; PM.sel=[]; PM.link=null; PM.extra=0; PM.padL=PM.padR=0;
   pmFitHeight(); pmCenterToday();
 }
 function pmRenderGallery(){
