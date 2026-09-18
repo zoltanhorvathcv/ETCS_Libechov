@@ -384,16 +384,17 @@ npm run check                     # build + kouřový test
 ```
 
 `test/smoke.mjs` projede sestavený `index.html` v headless prohlížeči a
-ověří 16 kontrol:
+ověří 17 kontrol:
 
 1. načtení appky bez chyb v konzoli,
 2. založení instituce a dvou skupin,
 3. přesun boxu tažením,
 4. přidání lomené vazby včetně úchytu a ID štítku,
 5. ruční posun konce vazby a jeho uložení do dat,
-6. exporty SVG / PNG / PPTX,
-7. vykreslení přehledů a export všech přehledů do XLSX,
-8. „Uložit / exportovat appku“ + znovuotevření staženého souboru
+6. přidání zástupce včetně e-mailu a telefonu,
+7. exporty SVG / PNG / PPTX,
+8. vykreslení přehledů a export všech přehledů do XLSX,
+9. „Uložit / exportovat appku“ + znovuotevření staženého souboru
    (roundtrip dat) bez chyb.
 
 Test končí nenulovým exit kódem, takže se dá zapojit do CI. Při přidání

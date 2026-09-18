@@ -1,2 +1,8 @@
 node_modules/
 .build/
+
+# Vygenerované samostatné appky s reálnými daty (jména/e-maily/telefony
+# zástupců SŽ) – vznikají scripts/import-zastupci.mjs a
+# scripts/merge-eu-rail.mjs. Dodávají se uživateli jako soubor, NIKDY
+# se necommitují (viz AGENTS.md, oddíl "Osobní a organizační data").
+pavouci-*.html

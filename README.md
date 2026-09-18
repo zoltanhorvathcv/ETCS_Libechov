@@ -61,7 +61,7 @@ uložená přímo uvnitř tohoto souboru.
 
 ```bash
 npm install && npx playwright install chromium
-npm run check      # build + kouřový test (16 kontrol)
+npm run check      # build + kouřový test (17 kontrol)
 ```
 
 ## Vývoj / sestavení appky ze zdrojových souborů

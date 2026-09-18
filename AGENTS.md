@@ -20,7 +20,7 @@ npm run check                      # build + kouřový test – SPOUŠTĚJ PO KA
 
 `npm run check` = `npm run build` (sestaví `index.html`) +
 `npm run smoke` (`test/smoke.mjs` projede appku v headless prohlížeči).
-Musí projít **16/16 kontrol**.
+Musí projít **17/17 kontrol**.
 
 **`index.html` je commitovaný artefakt, ne generovaný odpad.** Je to
 soubor, který se kopíruje uživatelům do SharePointu. Po jakékoli změně
@@ -61,6 +61,26 @@ páteř lepící se na okraj sloupce), která testem ani konzolí neprojdou.
 7. **Nepřestavuj `#editor-shell`, když stačí překreslit obsah.**
    Fullscreen prohlížeče je vázaný na konkrétní element a přestavba DOMu
    ho shodí.
+
+## Osobní a organizační data
+
+`src/seed.js` obsahuje jen holý seznam institucí (kód + název), **žádné
+skupiny, vazby ani zástupce**. Je to záměr, ne nedodělek – appka se
+distribuuje jako `index.html` se vším vloženým uvnitř, a to, co je
+v `src/`, končí v tomto veřejném/sdíleném souboru i v repozitáři.
+
+Reálná organizační data (skupiny, vazby, jména/e-maily/telefony zástupců)
+patří výhradně do `data/` a do skriptů ve `scripts/` (`import-zastupci.mjs`,
+`merge-eu-rail.mjs`), které je vkládají až do **samostatně generovaného**
+HTML souboru mimo `index.html` – ten se pak jen pošle uživateli, **nikdy se
+necommituje** (`.gitignore` má `pavouci-*.html`, ale to je pojistka navíc,
+ne jediná ochrana – hlídej to i sám). Než cokoliv commitneš nebo pushneš,
+zkontroluj `git status`/`git diff --cached`, jestli se do stage
+nedostal soubor s jmény, e-maily nebo telefonními čísly.
+
+Platí to i pro `data/eu-rail-structure.mjs` – ten osobní údaje neobsahuje
+(jen názvy skupin a vazby EU-Rail/RNE/PRIME/…), a proto commitovaný je;
+nový podobný soubor s daty konkrétních lidí by commitovaný být neměl.
 
 ## Časté chyby, na které se dá narazit
 
