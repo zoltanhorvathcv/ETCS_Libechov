@@ -805,7 +805,7 @@ body.pm-full .pm-canvas{height:var(--pm-h,60vh)}
   <div class="modal" style="width:560px">
     <h3>Mapa do PDF <span style="font-weight:400;color:var(--text3);font-size:13px">— <span id="mex-name"></span></span></h3>
     <label>Rozdělení</label>
-    <select id="mex-split" onchange="pmMapPreview()">
+    <select id="mex-split" onchange="MEX.autoSplit=false;pmMapPreview()">
       <option value="one">Jeden velký list — celá mapa pohromadě</option>
       <option value="a3">Po fázích na A3 — na listu hlavní proces a jeho podprocesy</option>
       <option value="a4">Po fázích na A4 — na listu hlavní proces a jeho podprocesy</option>
@@ -5268,10 +5268,17 @@ function pmMapSVG(o){
 }
 
 /* ---- dialog s parametry ---- */
-const MEX={split:'one',paper:'auto',unit:'auto',light:true,rootsOnly:false};
+const MEX={split:'one',paper:'auto',unit:'auto',light:true,rootsOnly:false,autoSplit:true};
+/* Mobilní prohlížeče (tisk ze sdílecí nabídky do PDF) obvykle ignorují
+   vlastní @page rozměr velkého listu a vlastní tiskový engine nahradí
+   vlastním — velký list se pak roztříští do několika stránek, z nichž
+   většina vyjde prázdná. „Po fázích“ tiskne na skutečné normované
+   formáty, které tenhle problém nemá, proto je na mobilu výchozí. */
+const pmIsMobile=()=>matchMedia('(max-width:820px)').matches;
 function pmMapDialog(){
   const c=pmVariant(pmCurrentId()); if(!c){toast('Není otevřená žádná varianta');return}
   $('#mex-name').textContent=c.name;
+  if(MEX.autoSplit&&MEX.split==='one'&&pmIsMobile())MEX.split='a4';
   ['split','paper','unit'].forEach(k=>{const el=$('#mex-'+k);if(el)el.value=MEX[k]});
   $('#mex-light').checked=MEX.light; $('#mex-roots').checked=MEX.rootsOnly;
   $('#mapexp').classList.add('open');
@@ -5299,7 +5306,8 @@ function pmMapPreview(){
     out.innerHTML=`<b>${pap.name} na šířku</b> · ${m.pocet} procesů · mapa
       ${Math.round(pap.wmm)} × ${Math.round(pap.hmm)} mm · měřítko ${pct} %
       · dělení osy po ${m.unit}
-      ${pct<70?'<br><span class="warn">Při tomto měřítku bude písmo drobné — zvolte větší formát nebo rozdělení po fázích.</span>':''}`;
+      ${pct<70?'<br><span class="warn">Při tomto měřítku bude písmo drobné — zvolte větší formát nebo rozdělení po fázích.</span>':''}
+      ${pmIsMobile()?'<br><span class="warn">Na mobilu tisk do PDF velký formát papíru často nerespektuje a mapu rozdělí do několika prázdných stránek — spolehlivě funguje jen rozdělení po fázích.</span>':''}`;
   } else {
     const pap=MEX.split==='a4'?'A4':'A3';
     const roots=processes.filter(x=>x.scope===pmScopeOf(c.id)&&!x.parent);
