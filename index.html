@@ -2858,6 +2858,20 @@ function renderPMap(){
      termíny). V tisku/exportu se kolečko nehodí (není interaktivní),
      takže se tam gestor připojí za název jako dřív. */
   const gplan={};
+  /* Řádek pod objektem musí zůstat celý uvnitř kreslicí plochy i tehdy,
+     když je samotný proces (nebo jeho jméno vedle něj) blízko pravého
+     okraje osy — jinak by tam „below“ popisek přečníval stejně jako dřív
+     inline varianta. Posune se doleva, a nevejde-li se ani na celou šířku
+     plátna, zkrátí se (radši zkrácený text než uříznutý přes okraj listu). */
+  const gPlaceBelow=(x0,glab,gfs)=>{
+    const avail=W-10;
+    let label=glab, gw=label.length*gfs*0.52;
+    if(gw>avail){
+      const max=Math.max(1,Math.floor(avail/(gfs*0.52))-1);
+      label=glab.slice(0,max)+'…'; gw=label.length*gfs*0.52;
+    }
+    return {x:Math.max(2,Math.min(x0,W-8-gw)),label};
+  };
   list.forEach(p=>{
     if(!p.gestor)return;
     const glab=pmGestorLabel(p.gestor); if(!glab)return;
@@ -2868,7 +2882,8 @@ function renderPMap(){
       const gw=glab.length*gfs*0.52;
       if(!arr.some(iv=>g.x<iv[1]+8&&g.x+gw>iv[0]-8)){
         arr.push([g.x,g.x+gw]);
-        gplan[p.id]={mode:'below',x:g.x+1,y:g.y+g.h+11,fs:gfs,label:glab};
+        const bp=gPlaceBelow(g.x+1,glab,gfs);
+        gplan[p.id]={mode:'below',x:bp.x,y:g.y+g.h+11,fs:gfs,label:bp.label};
         return;
       }
     }
@@ -2883,7 +2898,8 @@ function renderPMap(){
       if(x0+gw<=W-8){
         gplan[p.id]={mode:'inline',x:x0,y:pl?pl.y:g.y+g.h/2+4,fs:gfs,label:glab};
       } else {
-        gplan[p.id]={mode:'below',x:g.x+1,y:g.y+g.h+11,fs:gfs,label:glab};
+        const bp=gPlaceBelow(g.x+1,glab,gfs);
+        gplan[p.id]={mode:'below',x:bp.x,y:g.y+g.h+11,fs:gfs,label:bp.label};
       }
       return;
     }
