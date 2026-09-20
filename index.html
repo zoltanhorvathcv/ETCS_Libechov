@@ -2873,8 +2873,18 @@ function renderPMap(){
       }
     }
     if(PM.print){
+      /* Připojit za jméno jen tam, kde se to i se jménem vejde do kreslicí
+         plochy — jinak by u procesů/popisků těsně u pravého okraje listu
+         gestor přečníval přes hranu stránky a v PDF by byl prostě uříznutý.
+         Nevejde-li se, jde na řádek pod objekt (stejně jako u obrazovky). */
       const tw=pl?p.name.length*pl.fs*0.53:0;
-      gplan[p.id]={mode:'inline',x:(pl?pl.x:g.x)+tw+7,y:pl?pl.y:g.y+g.h/2+4,fs:gfs,label:glab};
+      const gw=glab.length*gfs*0.52;
+      const x0=(pl?pl.x:g.x)+tw+7;
+      if(x0+gw<=W-8){
+        gplan[p.id]={mode:'inline',x:x0,y:pl?pl.y:g.y+g.h/2+4,fs:gfs,label:glab};
+      } else {
+        gplan[p.id]={mode:'below',x:g.x+1,y:g.y+g.h+11,fs:gfs,label:glab};
+      }
       return;
     }
     /* Kolečko nesmí sednout na popisek jména vpravo od objektu —
