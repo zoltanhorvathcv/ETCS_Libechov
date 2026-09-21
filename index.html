@@ -735,6 +735,9 @@ body.editing .pmb.dragging{cursor:grabbing}
 .pm-subrow .x{flex:none;width:26px;height:26px;border-radius:6px;border:1px solid var(--border2);background:var(--panel2);color:var(--text3);cursor:pointer;font-size:13px;line-height:1}
 .pm-subrow .x:hover{color:var(--blocked);border-color:var(--blocked)}
 .pm-addbtn{align-self:flex-start;background:var(--panel2);border:1px dashed var(--border2);color:var(--text2);border-radius:7px;padding:5px 11px;font:600 11.5px 'Inter',sans-serif;cursor:pointer}
+/* vazba bez vybraného předchůdce nikam nevede — ať to není vidět až na plátně */
+.pm-subrow.undone select:first-child{border-color:var(--risk)}
+.pm-linkwarn{flex:none;font:600 9.5px var(--mono);color:var(--risk);white-space:nowrap}
 /* číslo procesu vedle názvu — jen ke čtení, mění ho přečíslování */
 .pm-namerow{display:flex;gap:8px;align-items:center}
 .pm-namerow input{flex:1;min-width:0}
@@ -5768,14 +5771,15 @@ function pmSubRender(k){
   }
   else if(k==='links'){
     const cand=processes.filter(p=>p.scope===o.scope&&p.id!==o.id);
-    h=o[k].map((l,i)=>`<div class="pm-subrow">
-        <select onchange="pmLinkFrom(${i},this.value)">${[['','—']].concat(cand.map(p=>[p.id,p.id+' · '+p.name]))
+    h=o[k].map((l,i)=>`<div class="pm-subrow${l.from?'':' undone'}">
+        <select onchange="pmLinkFrom(${i},this.value)">${[['','— vyberte předchůdce']].concat(cand.map(p=>[p.id,p.id+' · '+p.name]))
           .map(([v,t])=>`<option value="${v}" ${v===l.from?'selected':''}>${esc(t)}</option>`).join('')}</select>
         <select style="max-width:140px" onchange="subCtx.obj.links[${i}].type=this.value;subFire()">
           ${[['','neutrální'],['FS','FS konec→začátek'],['SS','SS začátek→začátek'],['FF','FF konec→konec']]
             .map(([v,t])=>`<option value="${v}" ${v===(l.type||'')?'selected':''}>${t}</option>`).join('')}</select>
         <input type="number" style="max-width:90px" value="${+l.lag||0}" title="prodleva ve dnech" oninput="subCtx.obj.links[${i}].lag=+this.value||0;subFire()">
-        <button type="button" class="x" onclick="subCtx.obj.links.splice(${i},1);pmSubRender('links');subFire()">✕</button></div>`).join('');
+        <button type="button" class="x" onclick="subCtx.obj.links.splice(${i},1);pmSubRender('links');subFire()">✕</button>
+        ${l.from?'':'<span class="pm-linkwarn" title="Bez vybraného předchůdce vazba neexistuje — na plátně se nekreslí a u druhého procesu se neukáže">nedokončená</span>'}</div>`).join('');
     h+=`<button type="button" class="pm-addbtn" onclick="subCtx.obj.links.push({from:'',type:'',lag:0});pmSubRender('links')">＋ Vazba</button>
         <div class="pm-hint" style="margin-top:2px">V konceptu vazby nic neposouvají — typ se doplní až při zpevnění.</div>`;
   }
