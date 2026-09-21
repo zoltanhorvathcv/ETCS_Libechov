@@ -737,6 +737,10 @@ body.editing .pmb.dragging{cursor:grabbing}
 .pm-addbtn{align-self:flex-start;background:var(--panel2);border:1px dashed var(--border2);color:var(--text2);border-radius:7px;padding:5px 11px;font:600 11.5px 'Inter',sans-serif;cursor:pointer}
 /* vazba bez vybraného předchůdce nikam nevede — ať to není vidět až na plátně */
 .pm-subrow.undone select:first-child{border-color:var(--risk)}
+.pm-subrow.draft{padding:5px 7px;border:1px dashed var(--accent);border-radius:8px;background:rgba(255,82,0,.05)}
+.pm-okbtn{flex:none;background:var(--accent);border:none;color:#fff;border-radius:6px;padding:5px 11px;
+  font:600 11.5px 'Inter',sans-serif;cursor:pointer;white-space:nowrap}
+.pm-okbtn:disabled{background:var(--panel2);color:var(--text3);cursor:not-allowed}
 .pm-linkwarn{flex:none;font:600 9.5px var(--mono);color:var(--risk);white-space:nowrap}
 /* číslo procesu vedle názvu — jen ke čtení, mění ho přečíslování */
 .pm-namerow{display:flex;gap:8px;align-items:center}
@@ -2755,6 +2759,10 @@ function pmMsOverrun(p){
 /* ================= VYKRESLENÍ ================= */
 function renderPMap(){
   const host=$('#pm-canvas'); if(!host)return;
+  /* Výběr procesu vysune pás karet a plátno se o jeho výšku posune —
+     obsah by ujel pod kurzorem. Poloha plátna se proto změří před
+     překreslením a na konci se stejný kus dorovná posunem. */
+  const rBefore=host.getBoundingClientRect();
   if(typeof pmHideGestorPop==='function')pmHideGestorPop();
   if(typeof pmHideLinksPop==='function')pmHideLinksPop();
   if(PM.linkFocus&&!pmById(PM.linkFocus))PM.linkFocus=null;
@@ -3068,6 +3076,17 @@ function renderPMap(){
   pmSyncSticky(); pmRenderLegend();
   $('#pm-count').textContent=`${pmAll().length} procesů`;
   pmRenderInspector();
+  pmKeepView(host,rBefore);
+}
+/* Dorovná posun plátna způsobený změnou výšky pásu karet, aby obsah
+   zůstal očima i kurzorem na stejném místě. V tisku a v rozcestníku
+   plátno nemá rozměr, tam se nic nedorovnává. */
+function pmKeepView(host,r0){
+  if(PM.print||PM.gallery||!r0||!r0.height)return;
+  const r1=host.getBoundingClientRect(); if(!r1.height)return;
+  const dy=r1.top-r0.top, dx=r1.left-r0.left;
+  if(Math.abs(dy)>0.5)host.scrollTop+=dy;
+  if(Math.abs(dx)>0.5)host.scrollLeft+=dx;
 }
 
 function escXml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
@@ -5771,17 +5790,31 @@ function pmSubRender(k){
   }
   else if(k==='links'){
     const cand=processes.filter(p=>p.scope===o.scope&&p.id!==o.id);
+    const whoOpts=sel=>[['','— vyberte předchůdce']].concat(cand.map(p=>[p.id,p.id+' · '+p.name]))
+      .map(([v,t])=>`<option value="${v}" ${v===sel?'selected':''}>${esc(t)}</option>`).join('');
+    const typOpts=sel=>[['','neutrální'],['FS','FS konec→začátek'],['SS','SS začátek→začátek'],['FF','FF konec→konec']]
+      .map(([v,t])=>`<option value="${v}" ${v===(sel||'')?'selected':''}>${t}</option>`).join('');
     h=o[k].map((l,i)=>`<div class="pm-subrow${l.from?'':' undone'}">
-        <select onchange="pmLinkFrom(${i},this.value)">${[['','— vyberte předchůdce']].concat(cand.map(p=>[p.id,p.id+' · '+p.name]))
-          .map(([v,t])=>`<option value="${v}" ${v===l.from?'selected':''}>${esc(t)}</option>`).join('')}</select>
-        <select style="max-width:140px" onchange="subCtx.obj.links[${i}].type=this.value;subFire()">
-          ${[['','neutrální'],['FS','FS konec→začátek'],['SS','SS začátek→začátek'],['FF','FF konec→konec']]
-            .map(([v,t])=>`<option value="${v}" ${v===(l.type||'')?'selected':''}>${t}</option>`).join('')}</select>
+        <select onchange="pmLinkFrom(${i},this.value)">${whoOpts(l.from)}</select>
+        <select style="max-width:140px" onchange="subCtx.obj.links[${i}].type=this.value;subFire()">${typOpts(l.type)}</select>
         <input type="number" style="max-width:90px" value="${+l.lag||0}" title="prodleva ve dnech" oninput="subCtx.obj.links[${i}].lag=+this.value||0;subFire()">
         <button type="button" class="x" onclick="subCtx.obj.links.splice(${i},1);pmSubRender('links');subFire()">✕</button>
         ${l.from?'':'<span class="pm-linkwarn" title="Bez vybraného předchůdce vazba neexistuje — na plátně se nekreslí a u druhého procesu se neukáže">nedokončená</span>'}</div>`).join('');
-    h+=`<button type="button" class="pm-addbtn" onclick="subCtx.obj.links.push({from:'',type:'',lag:0});pmSubRender('links')">＋ Vazba</button>
-        <div class="pm-hint" style="margin-top:2px">V konceptu vazby nic neposouvají — typ se doplní až při zpevnění.</div>`;
+    /* Nová vazba se do procesu nezapíše hned — nejdřív se vybere předchůdce
+       a teprve tlačítko ji potvrdí. Rozdělaná vazba tak nemůže zůstat
+       viset v datech jako prázdný řádek. */
+    const d=subCtx.draft;
+    const dBad=d&&d.from?pmLinkBad(o,d.from,-1):'';
+    h+=d
+      ? `<div class="pm-subrow draft">
+          <select onchange="pmLinkDraftSet('from',this.value)">${whoOpts(d.from)}</select>
+          <select style="max-width:140px" onchange="pmLinkDraftSet('type',this.value)">${typOpts(d.type)}</select>
+          <input type="number" style="max-width:90px" value="${+d.lag||0}" title="prodleva ve dnech" oninput="pmLinkDraftSet('lag',this.value)">
+          <button type="button" class="pm-okbtn" ${d.from&&!dBad?'':'disabled'} onclick="pmLinkAdd()">✓ Přidat vazbu</button>
+          <button type="button" class="x" title="Zrušit přidávání" onclick="pmLinkDraft(false)">✕</button>
+          ${dBad?`<span class="pm-linkwarn">${esc(dBad)}</span>`:''}</div>`
+      : `<button type="button" class="pm-addbtn" onclick="pmLinkDraft(true)">＋ Vazba</button>`;
+    h+=`<div class="pm-hint" style="margin-top:2px">V konceptu vazby nic neposouvají — typ se doplní až při zpevnění.</div>`;
   }
   else if(k==='affected'){
     h=o[k].map((id,i)=>`<div class="pm-subrow">
@@ -5803,11 +5836,42 @@ Object.keys(SCHEMAS).forEach(k=>{
   (SCHEMAS[k].fields||[]).forEach(f=>{if(f.k==='owner'||f.k==='gestor')f.people=1});
 });
 
+/* Co brání vazbě na daného předchůdce — prázdný řetězec znamená v pořádku. */
+function pmLinkBad(o,v,skipIdx){
+  if(!v)return 'Vyberte předchůdce';
+  if(v===o.id)return 'Proces nemůže navazovat sám na sebe';
+  if(o.id&&pmWouldCycle(v,o.id))return 'Tato vazba by uzavřela kruh — odmítnuto';
+  const cil=pmById(v);
+  if(cil&&(pmIsAncestor(v,o)||pmIsAncestor(o.id,cil)))return 'Rodič a potomek nemohou být vázáni časově';
+  if((o.links||[]).some((l,i)=>i!==skipIdx&&l.from===v))return 'Tahle vazba už existuje';
+  return '';
+}
+/* rozdělaná (zatím nepotvrzená) vazba */
+function pmLinkDraft(on){
+  if(!subCtx)return;
+  subCtx.draft=on?{from:'',type:'',lag:0}:null;
+  pmSubRender('links');
+}
+function pmLinkDraftSet(k,v){
+  if(!subCtx||!subCtx.draft)return;
+  subCtx.draft[k]=k==='lag'?(+v||0):v;
+  if(k==='from')pmSubRender('links');     // výběrem předchůdce se odemkne potvrzení
+}
+function pmLinkAdd(){
+  if(!subCtx||!subCtx.draft)return;
+  const o=subCtx.obj, d=subCtx.draft;
+  const bad=pmLinkBad(o,d.from,-1);
+  if(bad){toast(bad);return}
+  if(!Array.isArray(o.links))o.links=[];
+  o.links.push({from:d.from,type:d.type||'',lag:+d.lag||0});
+  subCtx.draft=null;
+  pmSubRender('links'); subFire();
+  toast('Vazba přidána');
+}
 function pmLinkFrom(i,v){
   const o=subCtx.obj;
-  if(v&&o.id&&pmWouldCycle(v,o.id)){toast('Tato vazba by uzavřela kruh — odmítnuto');pmSubRender('links');return}
-  const cil=v?pmById(v):null;
-  if(v&&cil&&(pmIsAncestor(v,o)||pmIsAncestor(o.id,cil))){toast('Rodič a potomek nemohou být vázáni časově');pmSubRender('links');return}
+  const bad=v?pmLinkBad(o,v,i):'';
+  if(bad){toast(bad);pmSubRender('links');return}
   o.links[i].from=v; subFire();
 }
 
