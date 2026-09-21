@@ -658,6 +658,11 @@ body.pm-full #view-pmap.active{padding:10px 14px 12px}
 #printdoc.mapmode .mh span{font-size:9.5px;color:#555}
 #printdoc.mapmode .mapbox{border:1px solid #bbb;padding:2px;background:#fff;max-width:none}
 #printdoc.mapmode .mapbox svg{width:100%;height:auto;display:block}
+.tplopt{display:flex;flex-direction:column;gap:3px;align-items:flex-start;width:100%;text-align:left;
+  background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:11px 14px;margin-bottom:9px;cursor:pointer}
+.tplopt:hover{border-color:var(--accent)}
+.tplopt b{font-size:13px;color:var(--text)}
+.tplopt span{font-size:11.5px;color:var(--text3);font-family:var(--mono)}
 .mex-info{margin-top:16px;padding:11px 13px;border:1px solid var(--border2);border-radius:10px;
   background:var(--panel);font-size:12.5px;color:var(--text2);line-height:1.5}
 .mex-info b{color:var(--text)}
@@ -856,6 +861,14 @@ body.pm-full .pm-canvas{height:var(--pm-h,60vh)}
       <button class="btn ghost" onclick="closeMapExp()">Zrušit</button>
       <button class="btn primary" onclick="pmMapRun()">⎙ Vytisknout / uložit do PDF</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-veil" id="tplpick" onclick="if(event.target===this)closeTplPick()">
+  <div class="modal" style="width:520px">
+    <h3>Ze šablony <span style="font-weight:400;color:var(--text3);font-size:13px">— vyberte, co se má založit</span></h3>
+    <div id="tplpick-list"></div>
+    <div class="m-actions"><button class="btn ghost" onclick="closeTplPick()">Zrušit</button></div>
   </div>
 </div>
 
@@ -4964,7 +4977,129 @@ const PM_TPL_ETCS={
      desc:'Je-li nový PZD vyžadován, jeho vydání podle § 49f odst. 4 ve spojení s § 49d odst. 2. Samostatný průkaz způsobilosti UTZ jen tam, kde se neuplatní výjimka podle § 47 odst. 3 pro prvky interoperability a subsystémy s ES prohlášením.'}
   ]
 };
-function pmTemplateConcept(){histPush();pmBuildTemplate(false)}
+/* ================= ŠABLONA: APLIKACE SIEMENS LEU DO NÁVĚSTNÍHO OBVODU =========
+   Převedený diagram „Aplikace Siemens LEU do návěstního obvodu AŽD 71
+   (ETCS L1 LS, žst. Liběchov)“, verze pro jednání s J. Kaláčem.
+   Plavecké dráhy diagramu (SŽ, Siemens, VÚŽ, O14, autorizovaná osoba, provoz)
+   jsou tady gestory procesů, sloupce diagramu jsou fáze.
+   Aby koncept časově navazoval na variantu „plný rozsah procesů“, nese
+   i přípravu a dokumentaci z ní a běží na stejné ose (T0 = začátek projektu).
+   Klíčový vstup z hovoru s J. Semrádem: hodnocení bezpečnosti neběží až po
+   realizaci, ale souběžně s projektovou přípravou — proto fáze 4 začíná
+   už v průběhu PDPS a táhne se přes realizaci. */
+const PM_TPL_LEU={
+  name:'Aplikace Siemens LEU do návěstního obvodu AŽD 71 (Liběchov)',
+  axis:'cal',
+  units:{
+    SZ:{name:'SŽ — investor a provozovatel',kind:'Útvar'},
+    O9:{name:'O9 - Odbor přípravy staveb',kind:'Odbor'},
+    VUZ:{name:'VÚŽ — hodnotitel bezpečnosti (ISA)',kind:'Externí'},
+    AUTO:{name:'Autorizovaná osoba / UTZ',kind:'Externí'},
+    PROV:{name:'Provoz SŽ',kind:'Útvar'}
+  },
+  procs:[
+    /* ---------- 1. a 2. fáze převzaté z varianty „plný rozsah procesů“ ---------- */
+    {k:'A',n:'1. Vymezení a povolení',g:'@O14',color:'slate',o:0,d:600,lane:0,
+     desc:'Převzato z varianty „ETCS L1 LS Liběchov — plný rozsah procesů“, aby nová mapa stála na stejné časové ose.'},
+    {k:'A1',p:'A',n:'1.1 Vyjasnění režimu stavby s DESÚ — předběžná informace dle §174 stavebního zákona',g:'@DESU',o:0,d:240,lane:1,
+     desc:'Stanovisko rozhoduje, zda se vede stavební řízení.'},
+    {k:'A2',p:'A',n:'1.2 Technické rozhraní Siemens a kusovník',g:'@SIE',o:30,d:60,lane:2,dep:['A1'],
+     desc:'Uzavřít rozhraní SZZ–LEU–balíza a rozdělit dodávky mezi Siemens a SŽ.'},
+    {k:'A3',p:'A',n:'1.3 Stavební řízení (podmíněné)',g:'@O14',o:250,d:150,lane:1,dep:['A1'],
+     desc:'Podmíněno stanoviskem DESÚ.'},
+    {k:'A4',p:'A',n:'1.4 Režim zavádění LEU podle SM008',g:'@O14',o:420,d:180,lane:1,dep:['A3'],
+     desc:'Režim zavádění LEU Siemens a podmínky jejich použití podle SŽ SM008.'},
+
+    {k:'B',n:'2. Dokumentace',g:'@O9',color:'blue',o:45,d:435,lane:3,
+     desc:'Převzato z varianty „plný rozsah procesů“ — hodnocení bezpečnosti běží souběžně s touto fází.'},
+    {k:'B1',p:'B',n:'2.1 Zpracování PDPS',g:'@O9',o:45,d:240,lane:4,dep:['A2'],
+     desc:'Projektová dokumentace včetně návrhu ETCS L1 LS.'},
+    {k:'B1a',p:'B1',n:'2.1.1 Technický návrh ETCS',g:'@PROJ',o:45,d:210,lane:5},
+    {k:'B1b',p:'B1',n:'2.1.2 Rozpočet',g:'@O14',o:60,d:210,lane:6},
+    {k:'B1c',p:'B1',n:'2.1.3 Odborné přezkoušení techn. návrhu ETCS v PDPS (CTD laborka)',g:'@CTD',o:210,d:60,lane:7,dep:['B1a']},
+    {k:'B2',p:'B',n:'2.2 Vysoutěžení autorizované osoby pro PDPS (současně RDS i případně DPS)',g:'@O9',o:150,d:270,lane:8},
+    {k:'B3',p:'B',n:'2.3 Majetkoprávní příprava a pozemky',g:'@MAJ',o:90,d:90,lane:9,dep:['A1']},
+    {k:'B4',p:'B',n:'2.4 Interní připomínkování pracovní verze PDPS',g:'@ORU',o:255,d:45,lane:9,dep:['B1']},
+    {k:'B5',p:'B',n:'2.5 Realizační dokumentace (RDS) a řízení změn',g:'@ZHO',o:390,d:90,lane:9,dep:['B4']},
+
+    /* ---------- 3. Příprava a zadání aplikace LEU (paralelně s PD) ---------- */
+    {k:'C',n:'3. Příprava a zadání aplikace LEU',g:'@SZ',color:'teal',o:45,d:150,lane:10,
+     desc:'Sloupec 1 diagramu. Běží paralelně s projektovou přípravou — podle J. Semráda je vhodné zahájit co nejdřív, protože hodnocení bezpečnosti může být časově rizikovější než vlastní realizace.'},
+    {k:'C1',p:'C',n:'3.1 Definice záměru a rozsahu aplikace LEU ↔ AŽD 71',g:'@SZ',o:45,d:30,lane:11,dep:['A2'],
+     desc:'Otevřená otázka na jednání: je předmětem pouze aplikace LEU ↔ návěstní obvod, nebo širší rozsah?'},
+    {k:'C2',p:'C',n:'3.2 Zajištění vstupní dokumentace AŽD 71',g:'@SZ',o:60,d:60,lane:12,dep:['C1'],
+     desc:'Podklady k AŽD 71 — bezpečnostní a aplikační podmínky, technické parametry, schémata. Otevřená otázka: kdo je poskytuje (AŽD, SŽ, interní podklady).'},
+    {k:'C3',p:'C',n:'3.3 Příprava technické dokumentace LEU (SRAC, technický popis, schéma zapojení)',g:'@SIE',o:60,d:90,lane:13,dep:['C1'],
+     desc:'SRAC = Safety-Related Application Conditions. Hodnotitel z toho posuzuje poruchové stavy a jejich dopad na bezpečnost (např. svaření či rozpojení kontaktu a riziko falešného návěstního znaku). Ověřit termín i rozsah u J. F. Sedláčka.'},
+    {k:'C4',p:'C',n:'3.4 Zadání hodnocení bezpečnosti — objednávka hodnotitele',g:'@SZ',o:120,d:45,lane:11,dep:['C1'],
+     desc:'Otevřená otázka: kdo je žadatelem a objednatelem u VÚŽ — SŽ, nebo Siemens? Jaké jsou role a odpovědnosti?'},
+
+    /* ---------- 4. Hodnocení bezpečnosti (ISA / VÚŽ) ---------- */
+    {k:'D',n:'4. Hodnocení bezpečnosti (ISA / VÚŽ)',g:'@VUZ',color:'purple',o:150,d:330,lane:14,
+     desc:'Sloupec 2 diagramu. Předmětem není výkopová část, ale bezpečná vazba Siemens LEU na stávající návěstní obvody AŽD 71. Fyzicky nakoupené ani instalované LEU k zahájení potřeba není — hodnotitel vychází z dokumentace.'},
+    {k:'D1',p:'D',n:'4.1 Předání požadavků a podkladů pro ISA',g:'@SZ',o:150,d:30,lane:15,dep:['C4']},
+    {k:'D2',p:'D',n:'4.2 Předání podkladů VÚŽ (SRAC, schéma zapojení, parametry AŽD 71)',g:'@SIE',o:165,d:45,lane:16,dep:['C3']},
+    {k:'D3',p:'D',n:'4.3 Analýza podkladů a hodnocení bezpečnosti',g:'@VUZ',o:195,d:180,lane:17,dep:['D2'],
+     desc:'Referenční případ Thales: VÚŽ neposuzoval celý ETCS L1 LS, ale konkrétní instalaci FlexLEU do vybraných návěstních obvodů AŽD 71 — tedy zda instalace negativně neovlivní stávající zabezpečovací zařízení.'},
+    {k:'D4',p:'D',n:'4.4 Iterace — doplnění podkladů dle požadavků ISA',g:'@SIE',o:300,d:90,lane:16,dep:['D3']},
+    {k:'D5',p:'D',n:'4.5 Zpráva o hodnocení bezpečnosti (ZHB / ISA Statement)',g:'@VUZ',o:420,d:60,lane:17,dep:['D4']},
+
+    /* ---------- 5. Schválení podmínek ověřovacího provozu (O14) ---------- */
+    {k:'E',n:'5. Schválení podmínek ověřovacího provozu',g:'@O14',color:'gold',o:360,d:150,lane:18,
+     desc:'Sloupec 3 diagramu. Fáze schválně překrývá hodnocení bezpečnosti: u referenčního Thalesu mají podmínky O14 datum 3. 4. 2024, ale stanovisko VÚŽ až 9. 4. 2024 a odkazuje na už existující podmínky — nešlo tedy o jednosměrnou sekvenci, ale o iteraci O14 ↔ dodavatel ↔ hodnotitel. Ověřit u J. F. Sedláčka. V diagramu je tato dráha popsaná jako „Drážní úřad“ — také k ověření.'},
+    {k:'E1',p:'E',n:'5.1 Žádost a součinnost s O14 (podklady, jednání)',g:'@SZ',o:360,d:45,lane:19,dep:['D3']},
+    {k:'E2',p:'E',n:'5.2 Posouzení žádosti',g:'@O14',o:395,d:45,lane:20,dep:['E1']},
+    {k:'E3',p:'E',n:'5.3 Schválení podmínek ověřovacího provozu',g:'@O14',o:430,d:30,lane:19,dep:['E2']},
+
+    /* ---------- 6. Realizace a zkoušky ---------- */
+    {k:'F',n:'6. Realizace a zkoušky',g:'@SZ',color:'green',o:480,d:210,lane:21,
+     desc:'Sloupec 4 diagramu.'},
+    {k:'F1',p:'F',n:'6.1 Zajištění podmínek pro realizaci (stavba / vlastní kapacity)',g:'@SZ',o:480,d:60,lane:22,dep:['B5'],
+     desc:'Část realizace má jít vlastními kapacitami SŽ — z toho plyne otázka u zhodnocení komplexního vyzkoušení.'},
+    {k:'F2',p:'F',n:'6.2 Dodávka a instalace LEU',g:'@SIE',o:510,d:90,lane:23,dep:['F1']},
+    {k:'F3',p:'F',n:'6.3 Provedení interních zkoušek',g:'@SIE',o:585,d:30,lane:24,dep:['F2']},
+    {k:'F4',p:'F',n:'6.4 Koordinace zkoušek',g:'@SZ',o:585,d:60,lane:22,dep:['F2']},
+    {k:'F5',p:'F',n:'6.5 Technicko-bezpečnostní zkouška (TBZ)',g:'@AUTO',o:615,d:45,lane:23,dep:['F3'],
+     desc:'Otevřená otázka: kdo provede TBZ a kdo TPZ UTZ — lze využít interní kapacity SŽ?'},
+    {k:'F6',p:'F',n:'6.6 Protokol o technické prohlídce a zkoušce UTZ',g:'@AUTO',o:645,d:30,lane:24,dep:['F5']},
+    {k:'F7',p:'F',n:'6.7 Zhodnocení komplexního vyzkoušení',g:'@SZ',o:645,d:45,lane:25,dep:['F3'],
+     desc:'Běžně jej dodává zhotovitel. Protože část realizace jde vlastními kapacitami, je nutné určit, kdo jej za SŽ vyhotoví a podepíše.'},
+
+    /* ---------- 7. Aktivace a ověřovací provoz ---------- */
+    {k:'G',n:'7. Aktivace a ověřovací provoz',g:'@SZ',color:'orange',o:690,d:210,lane:26,
+     desc:'Sloupec 5 diagramu. Doklady k aktivaci: prohlášení výrobce a dodavatele, revize (min. část od napojení po LEU), zhodnocení komplexního vyzkoušení, osvědčení o TBZ, protokol o prohlídce a zkoušce UTZ, ZHB a schválené podmínky ověřovacího provozu O14.'},
+    {k:'G1',p:'G',n:'7.1 Vystavení osvědčení / protokolu (dle výsledků)',g:'@AUTO',o:690,d:30,lane:27,dep:['F6']},
+    {k:'G2',p:'G',n:'7.2 Převzetí dokladů k aktivaci',g:'@SZ',o:705,d:30,lane:28,dep:['G1','F7']},
+    {k:'G3',p:'G',n:'7.3 Aktivace zařízení',g:'@SZ',o:735,d:15,lane:27,dep:['G2','E3','D5'],
+     desc:'Aktivace je vázaná na doklady, na ZHB i na schválené podmínky ověřovacího provozu O14.'},
+    {k:'G4',p:'G',n:'7.4 Součinnost při aktivaci a podpora v průběhu ověřovacího provozu',g:'@SIE',o:735,d:150,lane:29,dep:['G3']},
+    {k:'G5',p:'G',n:'7.5 Ověřovací provoz (sběr dat, průběžné vyhodnocení)',g:'@PROV',o:750,d:150,lane:30,dep:['G3'],
+     desc:'Otevřená otázka: kdo stanoví četnost a formu průběžného vyhodnocení a je ověřovací provoz vůbec nutný?'},
+
+    /* ---------- 8. Vyhodnocení a zavedení ---------- */
+    {k:'H',n:'8. Vyhodnocení a zavedení',g:'@SZ',color:'pink',o:900,d:120,lane:31,
+     desc:'Sloupec 6 diagramu.'},
+    {k:'H1',p:'H',n:'8.1 Poskytnutí podkladů pro závěrečné vyhodnocení',g:'@SIE',o:900,d:30,lane:32,dep:['G5']},
+    {k:'H2',p:'H',n:'8.2 Závěrečné vyhodnocení ověřovacího provozu',g:'@PROV',o:915,d:45,lane:33,dep:['G5'],
+     desc:'Výsledek: funkční a použitelné → možnost zavedení.'},
+    {k:'H3',p:'H',n:'8.3 Vyhodnocení výsledků a rozhodnutí o zavedení',g:'@SZ',o:950,d:30,lane:32,dep:['H2']},
+    {k:'H4',p:'H',n:'8.4 Zaváděcí list pro aplikaci LEU do návěstního obvodu',g:'@O14',o:975,d:45,lane:33,dep:['H3'],
+     desc:'Otevřená otázka: kdo vydává zaváděcí list, co přesně znamená „zavést“ a umožní použití stejné aplikace jinde?'}
+  ]
+};
+const PM_TPLS=[PM_TPL_ETCS,PM_TPL_LEU];
+/* Šablon je víc — bez upřesnění se nabídne výběr. */
+function pmTemplateConcept(key){
+  if(key===undefined&&PM_TPLS.length>1){pmTplPick();return}
+  histPush(); pmBuildTemplate(false,PM_TPLS[key||0]);
+}
+function pmTplPick(){
+  const host=$('#tplpick-list'); if(!host)return;
+  host.innerHTML=PM_TPLS.map((t,i)=>`<button class="tplopt" onclick="closeTplPick();pmTemplateConcept(${i})">
+    <b>${escXml(t.name)}</b><span>${t.procs.length} procesů · osa ${t.axis==='cal'?'kalendářní':'relativní'}</span></button>`).join('');
+  $('#tplpick').classList.add('open');
+}
+function closeTplPick(){$('#tplpick').classList.remove('open')}
 /* Jednorázové založení šablony do dat. Spouští se i samo po přihlášení,
    aby koncept existoval bez nutnosti klikat — zápis do Supabase je
    povolen jen přihlášenému správci (RLS), proto až v té chvíli. */
@@ -4976,14 +5111,14 @@ function pmSeedTemplate(){
   if(c){project.tplSeeded=true;persistMeta();
     toast('Přidán koncept „'+PM_TPL_ETCS.name+'“ — najdete jej ve výběru variant');}
 }
-function pmBuildTemplate(silent){
-  const tpl=PM_TPL_ETCS;
+function pmBuildTemplate(silent,tplIn){
+  const tpl=tplIn||PM_TPL_ETCS;
   /* útvary ze šablony doplníme, existující nepřepisujeme */
   let added=0;
   Object.keys(tpl.units).forEach(u=>{if(!orgUnits[u]){orgUnits[u]=tpl.units[u];added++}});
   const t0=project.start||pmISO(Date.now());
   const now=new Date().toISOString();
-  const c=Object.assign({},NEW_DEFAULT.concept,{id:nextId('concept'),name:tpl.name,t0,axis:'rel',src:false,created:now,touched:now});
+  const c=Object.assign({},NEW_DEFAULT.concept,{id:nextId('concept'),name:tpl.name,t0,axis:tpl.axis||'rel',src:false,created:now,touched:now});
   concepts.push(c);
   persist('concept',c,concepts.length-1);
 
@@ -5119,7 +5254,8 @@ function pmRenderGallery(){
       </div>
     </div></div>`;
   const add=ed?`<button class="gnew" onclick="pmNewConcept()" title="Založit prázdnou variantu"><span><b>＋</b>Nová varianta</span></button>
-    <button class="gnew" onclick="pmTemplateConcept()" title="Založit variantu z připravené šablony"><span><b>⌗</b>Ze šablony</span></button>`:'';
+    ${PM_TPLS.map((t,i)=>`<button class="gnew" onclick="pmTemplateConcept(${i})" title="${escXml(t.name)} — ${t.procs.length} procesů">
+      <span><b>⌗</b>${escXml(t.name)}</span></button>`).join('')}`:'';
   host.innerHTML=cards+mapCard+add;
 }
 /* ================= EXPORT DO PDF =================
@@ -5918,8 +6054,8 @@ function pmNormalize(){
    aktuální verzi skriptu, nebo starou z mezipaměti prohlížeče. */
 (function(){
   const el=$('#app-build');
-  if(el&&typeof PM_TPL_ETCS==='object')
-    el.textContent='prototyp v0.10 · šablona '+PM_TPL_ETCS.procs.length+' procesů';
+  if(el&&typeof PM_TPLS==='object')
+    el.textContent='prototyp v0.10 · '+PM_TPLS.length+' šablony · '+PM_TPLS.reduce((n,t)=>n+t.procs.length,0)+' procesů';
 })();
 
 /* ================= INIT ================= */
