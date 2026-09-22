@@ -1253,6 +1253,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       <button class="btn ghost sm" id="pm-mapexp" onclick="pmMapDialog()" title="Vytisknout nebo uložit mapu se všemi procesy a vazbami do PDF">⎙ Mapa do PDF</button>
       <button class="btn ghost sm ed-only" id="pm-splitbtn" onclick="pmToggleSplit()" title="Zapněte a klikejte na procesy v místě, kde je chcete rozdělit">✂ Rozdělit</button>
       <button class="btn ghost sm ed-only" id="pm-recalc" onclick="pmRecalc()" title="Posunout procesy tak, aby seděly na typované vazby">↻ Přepočítat návaznosti</button>
+      <button class="btn ghost sm ed-only" id="pm-topup" onclick="pmTplTopUpPick()" title="Doplní do otevřeného konceptu procesy, které v něm oproti šabloně chybí — stávajících se nedotkne">⇩ Doplnit ze šablony</button>
       <button class="btn ghost sm ed-only" id="pm-renum" onclick="pmRenumber()" title="Přečíslovat procesy a podprocesy podle času — funguje v konceptu i v mapě">🔢 Přečíslovat</button>
       <button class="btn primary sm ed-only" id="pm-promote" onclick="pmOpenWizard()" title="Převést zdrojový koncept do procesní mapy">Zpevnit do mapy</button>
     </div>
@@ -2746,7 +2747,8 @@ const PM_STATUSLBL={done:'Dokončeno',track:'Podle plánu',risk:'Ohroženo',bloc
    Podproces barvu dědí po rodiči, pokud vlastní nemá. */
 const PM_COLORS=[['blue','#3D82C4','Modrá'],['green','#3ddc97','Zelená'],['orange','#FF5200','Oranžová'],
   ['purple','#b78cff','Fialová'],['gold','#ffb020','Zlatá'],['teal','#2fbfc7','Tyrkysová'],
-  ['pink','#ff6fa5','Růžová'],['slate','#8b97b1','Šedomodrá']];
+  ['pink','#ff6fa5','Růžová'],['slate','#8b97b1','Šedomodrá'],
+  ['red','#e2564a','Červená'],['cyan','#4fb8e8','Azurová']];
 const PM_COLOR_OPTS=[['','— bez barvy']].concat(PM_COLORS.map(([k,,l])=>[k,l]));
 function pmHex(key){const f=PM_COLORS.find(c=>c[0]===key);return f?f[1]:(key&&key[0]==='#'?key:null)}
 function pmColorOf(p){
@@ -5172,18 +5174,24 @@ const PM_TPL_LEU={
     O9:{name:'O9 - Odbor přípravy staveb',kind:'Odbor'},
     VUZ:{name:'VÚŽ — hodnotitel bezpečnosti (ISA)',kind:'Externí'},
     AUTO:{name:'Autorizovaná osoba / UTZ',kind:'Externí'},
-    PROV:{name:'Provoz SŽ',kind:'Útvar'}
+    PROV:{name:'Provoz SŽ',kind:'Útvar'},
+    ASBO:{name:'AsBo — nezávislý posuzovatel',kind:'Externí'},
+    NOBO:{name:'NoBo — oznámený subjekt',kind:'Externí'},
+    ERA:{name:'Agentura EU pro železnice (ERA)',kind:'Externí'},
+    DU:{name:'Drážní úřad',kind:'Externí'},
+    PO:{name:'Právnická osoba pro UTZ',kind:'Externí'},
+    REV:{name:'Revizní technik',kind:'Externí'}
   },
   procs:[
     /* ---------- 1. a 2. fáze převzaté z varianty „plný rozsah procesů“ ---------- */
     {k:'A',n:'1. Vymezení a povolení',g:'@O14',color:'slate',o:0,d:600,lane:0,
      desc:'Převzato z varianty „ETCS L1 LS Liběchov — plný rozsah procesů“, aby nová mapa stála na stejné časové ose.'},
     {k:'A1',p:'A',n:'1.1 Vyjasnění režimu stavby s DESÚ — předběžná informace dle §174 stavebního zákona',g:'@DESU',o:0,d:240,lane:1,
-     desc:'Stanovisko rozhoduje, zda se vede stavební řízení.'},
+     desc:'Stanovisko rozhoduje, zda se vede stavební řízení. Pro Liběchov se předpokládá, že jde o drobnou stavbu bez povolovacího režimu — právě tohle je potřeba potvrdit.'},
     {k:'A2',p:'A',n:'1.2 Technické rozhraní Siemens a kusovník',g:'@SIE',o:30,d:60,lane:2,dep:['A1'],
      desc:'Uzavřít rozhraní SZZ–LEU–balíza a rozdělit dodávky mezi Siemens a SŽ.'},
-    {k:'A3',p:'A',n:'1.3 Stavební řízení (podmíněné)',g:'@O14',o:250,d:150,lane:1,dep:['A1'],
-     desc:'Podmíněno stanoviskem DESÚ.'},
+    {k:'A3',p:'A',n:'1.3 Stavební povolení (pro Liběchov se nepředpokládá)',g:'@DESU',o:250,d:150,lane:1,dep:['A1'],
+     desc:'KOMENTÁŘ ZH: Liběchov je drobná stavba, stavební povolení se nepředpokládá. Proces je v konceptu ponechán pro jednání, aby bylo zřejmé, který povolovací režim se neuplatní a na základě čeho. Ve schématu O14 stojí na začátku větve „uvedení subsystému do provozu“ (stavební povolení → zkušební provoz → kolaudace).'},
     {k:'A4',p:'A',n:'1.4 Režim zavádění LEU podle SM008',g:'@O14',o:420,d:180,lane:1,dep:['A3'],
      desc:'Režim zavádění LEU Siemens a podmínky jejich použití podle SŽ SM008.'},
 
@@ -5201,66 +5209,132 @@ const PM_TPL_LEU={
 
     /* ---------- 3. Příprava a zadání aplikace LEU (paralelně s PD) ---------- */
     {k:'C',n:'3. Příprava a zadání aplikace LEU',g:'@SZ',color:'teal',o:45,d:150,lane:10,
-     desc:'Sloupec 1 diagramu. Běží paralelně s projektovou přípravou — podle J. Semráda je vhodné zahájit co nejdřív, protože hodnocení bezpečnosti může být časově rizikovější než vlastní realizace.'},
+     desc:'Běží paralelně s projektovou přípravou — podle J. Semráda je vhodné zahájit co nejdřív, protože hodnocení bezpečnosti může být časově rizikovější než vlastní realizace.'},
     {k:'C1',p:'C',n:'3.1 Definice záměru a rozsahu aplikace LEU ↔ AŽD 71',g:'@SZ',o:45,d:30,lane:11,dep:['A2'],
      desc:'Otevřená otázka na jednání: je předmětem pouze aplikace LEU ↔ návěstní obvod, nebo širší rozsah?'},
-    {k:'C2',p:'C',n:'3.2 Zajištění vstupní dokumentace AŽD 71',g:'@SZ',o:60,d:60,lane:12,dep:['C1'],
-     desc:'Podklady k AŽD 71 — bezpečnostní a aplikační podmínky, technické parametry, schémata. Otevřená otázka: kdo je poskytuje (AŽD, SŽ, interní podklady).'},
+    {k:'C2',p:'C',n:'3.2 Zajištění vstupní dokumentace AŽD 71 (SRAC a aplikační podmínky)',g:'@SZ',o:60,d:60,lane:12,dep:['C1'],
+     desc:'Podklady k AŽD 71 — bezpečnostní a aplikační podmínky, technické parametry, schémata. Podle J. Semráda jsou potřeba SRAC od OBOU vzájemně propojovaných zařízení, tedy i od AŽD 71, ne jen od LEU. Otevřená otázka: kdo je poskytuje (AŽD, SŽ, interní podklady).'},
     {k:'C3',p:'C',n:'3.3 Příprava technické dokumentace LEU (SRAC, technický popis, schéma zapojení)',g:'@SIE',o:60,d:90,lane:13,dep:['C1'],
      desc:'SRAC = Safety-Related Application Conditions. Hodnotitel z toho posuzuje poruchové stavy a jejich dopad na bezpečnost (např. svaření či rozpojení kontaktu a riziko falešného návěstního znaku). Ověřit termín i rozsah u J. F. Sedláčka.'},
-    {k:'C4',p:'C',n:'3.4 Zadání hodnocení bezpečnosti — objednávka hodnotitele',g:'@SZ',o:120,d:45,lane:11,dep:['C1'],
-     desc:'Otevřená otázka: kdo je žadatelem a objednatelem u VÚŽ — SŽ, nebo Siemens? Jaké jsou role a odpovědnosti?'},
+    {k:'C4',p:'C',n:'3.4 Oslovení hodnotitele bezpečnosti — objednávka a zadání',g:'@SZ',o:120,d:45,lane:11,dep:['C1'],
+     desc:'Ve schématu J. Semráda je to úplně první bod časové osy („Oslovení HB — VÚŽ“). Otevřená otázka: kdo je žadatelem a objednatelem u VÚŽ — SŽ, nebo Siemens? Jaké jsou role a odpovědnosti?'},
 
-    /* ---------- 4. Hodnocení bezpečnosti (ISA / VÚŽ) ---------- */
-    {k:'D',n:'4. Hodnocení bezpečnosti (ISA / VÚŽ)',g:'@VUZ',color:'purple',o:150,d:330,lane:14,
-     desc:'Sloupec 2 diagramu. Předmětem není výkopová část, ale bezpečná vazba Siemens LEU na stávající návěstní obvody AŽD 71. Fyzicky nakoupené ani instalované LEU k zahájení potřeba není — hodnotitel vychází z dokumentace.'},
-    {k:'D1',p:'D',n:'4.1 Předání požadavků a podkladů pro ISA',g:'@SZ',o:150,d:30,lane:15,dep:['C4']},
-    {k:'D2',p:'D',n:'4.2 Předání podkladů VÚŽ (SRAC, schéma zapojení, parametry AŽD 71)',g:'@SIE',o:165,d:45,lane:16,dep:['C3']},
-    {k:'D3',p:'D',n:'4.3 Analýza podkladů a hodnocení bezpečnosti',g:'@VUZ',o:195,d:180,lane:17,dep:['D2'],
+    /* ---------- 4. Nezávislé posouzení AsBo (CSM 402/2013) — sloupec 1 schématu O14 ---------- */
+    {k:'S',n:'4. Nezávislé posouzení AsBo (CSM 402/2013)',g:'@ASBO',color:'red',o:150,d:330,lane:14,
+     desc:'Sloupec 1 schématu O14 z 22. 9. 2026. Posouzení podle nařízení 402/2013 (společná bezpečnostní metoda pro hodnocení a posuzování rizik) běží PARALELNĚ s hodnocením podle EN 5012x a obě větve si vyměňují podklady oběma směry. V dosavadním konceptu tahle větev úplně chyběla.'},
+    {k:'S1',p:'S',n:'4.1 Posouzení významnosti změny podle CSM-RA',g:'@SZ',o:150,d:45,lane:15,dep:['C1'],
+     desc:'Rozhoduje, zda se nezávislé posouzení AsBo vůbec vede a v jakém rozsahu. K projednání s O14 — u aplikace LEU do stávajícího návěstního obvodu není výsledek předem zřejmý.'},
+    {k:'S2',p:'S',n:'4.2 Vymezení posuzovaného systému',g:'@ASBO',o:195,d:60,lane:16,dep:['S1'],
+     desc:'První rámeček sloupce 1 schématu O14. Vymezení hranic systému a rozhraní — obsahově se potkává s vymezením na straně ISA, proto je mezi nimi obousměrná vazba.'},
+    {k:'S3',p:'S',n:'4.3 Registr nebezpečí, pravděpodobnosti a bezpečnostní opatření',g:'@ASBO',o:255,d:120,lane:16,dep:['S2'],
+     desc:'Druhý rámeček sloupce 1 schématu O14 (rizika — pravděpodobnost — opatření).'},
+    {k:'S4',p:'S',n:'4.4 Zpráva AsBo o posouzení bezpečnosti',g:'@ASBO',o:400,d:80,lane:15,
+     dep:[{k:'S3',subj:'Registr nebezpečí a přijatá bezpečnostní opatření'}],
+     desc:'Výstup větve AsBo. Ruční poznámka ve schématu O14: „zprávy se mohou doplňovat, ale nesmí být duplicitní“ — obsah zprávy AsBo a zprávy ISA je nutné vzájemně vymezit předem, jinak vznikne dvojí posouzení téhož.'},
+
+    /* ---------- 5. Hodnocení bezpečnosti (ISA / VÚŽ) ---------- */
+    {k:'D',n:'5. Hodnocení bezpečnosti (ISA / VÚŽ)',g:'@VUZ',color:'purple',o:150,d:330,lane:17,
+     desc:'Sloupec 2 schématu O14 (hodnocení bezpečnosti podle EN 5012x). Předmětem není výkopová část, ale bezpečná vazba Siemens LEU na stávající návěstní obvody AŽD 71. Fyzicky nakoupené ani instalované LEU k zahájení potřeba není — hodnotitel vychází z dokumentace.'},
+    {k:'D1',p:'D',n:'5.1 Předání požadavků a podkladů pro ISA',g:'@SZ',o:150,d:30,lane:18,dep:['C4']},
+    {k:'D2',p:'D',n:'5.2 Předání podkladů VÚŽ (SRAC, schéma zapojení, parametry AŽD 71)',g:'@SIE',o:165,d:45,lane:19,
+     dep:[{k:'C3',subj:'SRAC, technický popis a schéma zapojení LEU'},{k:'C2',subj:'SRAC a aplikační podmínky AŽD 71'}]},
+    {k:'D3',p:'D',n:'5.3 Vymezení posuzovaného systému a rozhraní LEU ↔ AŽD 71',g:'@VUZ',o:195,d:60,lane:20,
+     dep:[{k:'D2',subj:'Vstupní dokumentace obou zařízení'},{k:'S2',subj:'Vymezení systému na straně AsBo — sjednotit hranice'}],
+     desc:'Odpovídá prvnímu (nepopsanému) rámečku sloupce 2 schématu O14. Se sloupcem AsBo je nakreslena obousměrná šipka — hranice systému musí být v obou větvích stejné.'},
+    {k:'D4',p:'D',n:'5.4 Porovnání SRAC obou propojovaných zařízení',g:'@VUZ',o:240,d:75,lane:20,
+     dep:[{k:'D3',subj:'Vymezené rozhraní a hranice systému'}],
+     desc:'Ze skenu J. Semráda z 21. 9. 2026: potřebné podklady jsou SRAC od obou vzájemně propojovaných zařízení (aplikační podmínky) a teprve jejich porovnáním hodnotitel vyhodnotí hodnocení bezpečnosti. Odpovídá druhému rámečku sloupce 2 schématu O14 (obousměrná vazba na registr rizik AsBo).'},
+    {k:'D5',p:'D',n:'5.5 Analýza podkladů a hodnocení bezpečnosti',g:'@VUZ',o:300,d:120,lane:21,dep:['D4'],
      desc:'Referenční případ Thales: VÚŽ neposuzoval celý ETCS L1 LS, ale konkrétní instalaci FlexLEU do vybraných návěstních obvodů AŽD 71 — tedy zda instalace negativně neovlivní stávající zabezpečovací zařízení.'},
-    {k:'D4',p:'D',n:'4.4 Iterace — doplnění podkladů dle požadavků ISA',g:'@SIE',o:300,d:90,lane:16,dep:['D3']},
-    {k:'D5',p:'D',n:'4.5 Zpráva o hodnocení bezpečnosti (ZHB / ISA Statement)',g:'@VUZ',o:420,d:60,lane:17,dep:['D4']},
+    {k:'D6',p:'D',n:'5.6 Iterace — doplnění podkladů dle požadavků ISA',g:'@SIE',o:330,d:90,lane:19,dep:['D5']},
+    {k:'D7',p:'D',n:'5.7 Zpráva o hodnocení bezpečnosti (ZHB / ISA Statement)',g:'@VUZ',o:420,d:60,lane:21,
+     dep:[{k:'D6',subj:'Doplněné podklady a vypořádané připomínky'},{k:'S4',subj:'Zpráva AsBo — obsah se doplňuje, nesmí být duplicitní'}],
+     desc:'Druhý bod časové osy J. Semráda (ZHB). Vazba na zprávu AsBo je vědomá: obsahy se mají doplňovat, ne opakovat.'},
 
-    /* ---------- 5. Schválení podmínek ověřovacího provozu (O14) ---------- */
-    {k:'E',n:'5. Schválení podmínek ověřovacího provozu',g:'@O14',color:'gold',o:360,d:150,lane:18,
-     desc:'Sloupec 3 diagramu. Fáze schválně překrývá hodnocení bezpečnosti: u referenčního Thalesu mají podmínky O14 datum 3. 4. 2024, ale stanovisko VÚŽ až 9. 4. 2024 a odkazuje na už existující podmínky — nešlo tedy o jednosměrnou sekvenci, ale o iteraci O14 ↔ dodavatel ↔ hodnotitel. Ověřit u J. F. Sedláčka. V diagramu je tato dráha popsaná jako „Drážní úřad“ — také k ověření.'},
-    {k:'E1',p:'E',n:'5.1 Žádost a součinnost s O14 (podklady, jednání)',g:'@SZ',o:360,d:45,lane:19,dep:['D3']},
-    {k:'E2',p:'E',n:'5.2 Posouzení žádosti',g:'@O14',o:395,d:45,lane:20,dep:['E1']},
-    {k:'E3',p:'E',n:'5.3 Schválení podmínek ověřovacího provozu',g:'@O14',o:430,d:30,lane:19,dep:['E2']},
+    /* ---------- 6. Schválení podmínek ověřovacího provozu (O14) ---------- */
+    {k:'E',n:'6. Schválení podmínek ověřovacího provozu',g:'@O14',color:'gold',o:360,d:150,lane:22,
+     desc:'Ve schématu O14 je to rámeček „SM008 — souhlas s PO (provozní ověření)“ na konci sloupce 2. Fáze schválně překrývá hodnocení bezpečnosti: u referenčního Thalesu mají podmínky O14 datum 3. 4. 2024, ale stanovisko VÚŽ až 9. 4. 2024 a odkazuje na už existující podmínky — nešlo tedy o jednosměrnou sekvenci, ale o iteraci O14 ↔ dodavatel ↔ hodnotitel.'},
+    {k:'E1',p:'E',n:'6.1 Žádost a součinnost s O14 (podklady, jednání)',g:'@SZ',o:360,d:45,lane:23,dep:['D5']},
+    {k:'E2',p:'E',n:'6.2 Posouzení žádosti',g:'@O14',o:395,d:45,lane:24,dep:['E1']},
+    {k:'E3',p:'E',n:'6.3 Schválení podmínek ověřovacího provozu (souhlas s PO podle SM008)',g:'@O14',o:430,d:30,lane:23,dep:['E2'],
+     desc:'Třetí bod časové osy J. Semráda — O14 (OP). Ve schématu O14 je tenhle souhlas zároveň vstupem do protokolu právnické osoby v UTZ větvi.'},
 
-    /* ---------- 6. Realizace a zkoušky ---------- */
-    {k:'F',n:'6. Realizace a zkoušky',g:'@SZ',color:'green',o:480,d:210,lane:21,
-     desc:'Sloupec 4 diagramu.'},
-    {k:'F1',p:'F',n:'6.1 Zajištění podmínek pro realizaci (stavba / vlastní kapacity)',g:'@SZ',o:480,d:60,lane:22,dep:['B5'],
+    /* ---------- 7. Realizace a zkoušky (sloupec 3 schématu O14 — UTZ) ---------- */
+    {k:'F',n:'7. Realizace a zkoušky',g:'@SZ',color:'green',o:480,d:210,lane:25,
+     desc:'Zahrnuje sloupec 3 schématu O14 — režim určených technických zařízení podle zákona 266/1994 Sb. a vyhlášky 100/1995 Sb.'},
+    {k:'F1',p:'F',n:'7.1 Zajištění podmínek pro realizaci (stavba / vlastní kapacity)',g:'@SZ',o:480,d:60,lane:26,dep:['B5'],
      desc:'Část realizace má jít vlastními kapacitami SŽ — z toho plyne otázka u zhodnocení komplexního vyzkoušení.'},
-    {k:'F2',p:'F',n:'6.2 Dodávka a instalace LEU',g:'@SIE',o:510,d:90,lane:23,dep:['F1']},
-    {k:'F3',p:'F',n:'6.3 Provedení interních zkoušek',g:'@SIE',o:585,d:30,lane:24,dep:['F2']},
-    {k:'F4',p:'F',n:'6.4 Koordinace zkoušek',g:'@SZ',o:585,d:60,lane:22,dep:['F2']},
-    {k:'F5',p:'F',n:'6.5 Technicko-bezpečnostní zkouška (TBZ)',g:'@AUTO',o:615,d:45,lane:23,dep:['F3'],
-     desc:'Otevřená otázka: kdo provede TBZ a kdo TPZ UTZ — lze využít interní kapacity SŽ?'},
-    {k:'F6',p:'F',n:'6.6 Protokol o technické prohlídce a zkoušce UTZ',g:'@AUTO',o:645,d:30,lane:24,dep:['F5']},
-    {k:'F7',p:'F',n:'6.7 Zhodnocení komplexního vyzkoušení',g:'@SZ',o:645,d:45,lane:25,dep:['F3'],
+    {k:'F2',p:'F',n:'7.2 Dodávka a instalace LEU',g:'@SIE',o:510,d:90,lane:27,dep:['F1']},
+    {k:'F3',p:'F',n:'7.3 Provedení interních zkoušek',g:'@SIE',o:585,d:30,lane:28,dep:['F2']},
+    {k:'F4',p:'F',n:'7.4 Koordinace zkoušek',g:'@SZ',o:585,d:60,lane:26,dep:['F2']},
+    {k:'F5',p:'F',n:'7.5 Revize elektrického zařízení a revizní zpráva',g:'@REV',o:600,d:30,lane:29,dep:['F2'],
+     desc:'Ve schématu O14 je ruční poznámka „PROHODIT revize a přezkoušení dle T200“ — revize má předcházet přezkoušení, na schématu byla nakreslena obráceně. Revizní zpráva je zároveň vstupem do průkazu způsobilosti UTZ a jedním z dokladů k aktivaci (sken J. Semráda: „revizní zprávy elektro“).'},
+    {k:'F6',p:'F',n:'7.6 Přezkoušení podle T200 — technicko-bezpečnostní zkouška (TBZ)',g:'@AUTO',o:630,d:45,lane:27,
+     dep:[{k:'F3',subj:'Protokoly interních zkoušek'},{k:'F5',subj:'Revizní zpráva elektro'}],
+     desc:'Ve schématu O14 je u rámečku „Přezkoušení T200“ rovnítko: přezkoušení podle T200 = TBZ. Otevřená otázka: kdo provede TBZ a kdo TPZ UTZ — lze využít interní kapacity SŽ?'},
+    {k:'F7',p:'F',n:'7.7 Osvědčení o technicko-bezpečnostní zkoušce',g:'@AUTO',o:660,d:20,lane:28,
+     dep:[{k:'F6',subj:'Výsledek TBZ'}],
+     desc:'Ze seznamu dokladů J. Semráda — vydává autorizovaná osoba, případně OŘ.'},
+    {k:'F8',p:'F',n:'7.8 Technická prohlídka a zkouška UTZ — protokol právnické osoby',g:'@PO',o:660,d:30,lane:29,
+     dep:[{k:'F6',subj:'Provedené přezkoušení podle T200'},{k:'E3',subj:'Souhlas s ověřovacím provozem podle SM008'}],
+     desc:'Ve schématu O14 samostatný rámeček „Protokol právnické osoby“, do kterého vede jak větev přezkoušení, tak souhlas SM008. V dosavadním konceptu byl protokol sloučený s průkazem způsobilosti — podle schématu jde o dva kroky.'},
+    {k:'F9',p:'F',n:'7.9 Doplnění průkazu způsobilosti UTZ',g:'@PO',o:675,d:30,lane:28,
+     dep:[{k:'F8',subj:'Protokol o technické prohlídce a zkoušce UTZ'},{k:'F5',subj:'Revizní zpráva elektro'}],
+     desc:'Ve schématu O14 poslední rámeček sloupce 3. Sken J. Semráda jej uvádí mezi doklady k aktivaci jako „doplněný průkaz způsobilosti daného zařízení“.'},
+    {k:'F10',p:'F',n:'7.10 Zhodnocení komplexního vyzkoušení',g:'@SZ',o:660,d:30,lane:30,dep:['F3'],
      desc:'Běžně jej dodává zhotovitel. Protože část realizace jde vlastními kapacitami, je nutné určit, kdo jej za SŽ vyhotoví a podepíše.'},
+    {k:'F11',p:'F',n:'7.11 Prohlášení výrobce a dodavatele, záruční listy',g:'@SIE',o:660,d:30,lane:31,dep:['F2'],
+     desc:'Ze seznamu dokladů k aktivaci ve skenu J. Semráda.'},
 
-    /* ---------- 7. Aktivace a ověřovací provoz ---------- */
-    {k:'G',n:'7. Aktivace a ověřovací provoz',g:'@SZ',color:'orange',o:690,d:210,lane:26,
-     desc:'Sloupec 5 diagramu. Doklady k aktivaci: prohlášení výrobce a dodavatele, revize (min. část od napojení po LEU), zhodnocení komplexního vyzkoušení, osvědčení o TBZ, protokol o prohlídce a zkoušce UTZ, ZHB a schválené podmínky ověřovacího provozu O14.'},
-    {k:'G1',p:'G',n:'7.1 Vystavení osvědčení / protokolu (dle výsledků)',g:'@AUTO',o:690,d:30,lane:27,dep:['F6']},
-    {k:'G2',p:'G',n:'7.2 Převzetí dokladů k aktivaci',g:'@SZ',o:705,d:30,lane:28,dep:['G1','F7']},
-    {k:'G3',p:'G',n:'7.3 Aktivace zařízení',g:'@SZ',o:735,d:15,lane:27,dep:['G2','E3','D5'],
-     desc:'Aktivace je vázaná na doklady, na ZHB i na schválené podmínky ověřovacího provozu O14.'},
-    {k:'G4',p:'G',n:'7.4 Součinnost při aktivaci a podpora v průběhu ověřovacího provozu',g:'@SIE',o:735,d:150,lane:29,dep:['G3']},
-    {k:'G5',p:'G',n:'7.5 Ověřovací provoz (sběr dat, průběžné vyhodnocení)',g:'@PROV',o:750,d:150,lane:30,dep:['G3'],
-     desc:'Otevřená otázka: kdo stanoví četnost a formu průběžného vyhodnocení a je ověřovací provoz vůbec nutný?'},
+    /* ---------- 8. Aktivace a ověřovací provoz ---------- */
+    {k:'G',n:'8. Aktivace a ověřovací provoz',g:'@SZ',color:'orange',o:690,d:210,lane:32,
+     desc:'Odpovídá druhé polovině časové osy J. Semráda: aktivace → ověřovací provoz → vyhodnocení.'},
+    {k:'G1',p:'G',n:'8.1 Převzetí dokladů k aktivaci',g:'@SZ',o:690,d:45,lane:33,
+     dep:[{k:'F7',subj:'Osvědčení o technicko-bezpečnostní zkoušce'},
+          {k:'F8',subj:'Protokol o technické prohlídce a zkoušce UTZ'},
+          {k:'F9',subj:'Doplněný průkaz způsobilosti zařízení'},
+          {k:'F10',subj:'Zhodnocení komplexního vyzkoušení (stavba)'},
+          {k:'F11',subj:'Prohlášení výrobce a dodavatele, záruční listy'},
+          {k:'F5',subj:'Revizní zprávy elektro'}],
+     desc:'Seznam dokladů podle skenu J. Semráda z 21. 9. 2026: osvědčení o TBZ (autorizovaná osoba / OŘ), protokol o provedené technické prohlídce a zkoušce UTZ, prohlášení výrobce a dodavatele, záruční listy, revizní zprávy elektro, zhodnocení komplexního vyzkoušení (stavba), doplněný průkaz způsobilosti daného zařízení. V případě ověřovacího provozu navíc stanovisko posuzovatele bezpečnosti (ZHB) a souhlas s ověřovacím provozem (schválení podmínek — O14).'},
+    {k:'G2',p:'G',n:'8.2 Aktivace zařízení',g:'@SZ',o:735,d:15,lane:34,
+     dep:[{k:'G1',subj:'Kompletní složka dokladů k aktivaci'},
+          {k:'E3',subj:'Schválené podmínky ověřovacího provozu (O14)'},
+          {k:'D7',subj:'Stanovisko posuzovatele bezpečnosti (ZHB)'}],
+     desc:'Čtvrtý bod časové osy J. Semráda. Aktivace je vázaná na doklady, na ZHB i na schválené podmínky ověřovacího provozu O14.'},
+    {k:'G3',p:'G',n:'8.3 Součinnost při aktivaci a podpora v průběhu ověřovacího provozu',g:'@SIE',o:735,d:150,lane:35,dep:['G2']},
+    {k:'G4',p:'G',n:'8.4 Ověřovací provoz (sběr dat, průběžné vyhodnocení)',g:'@PROV',o:750,d:150,lane:36,dep:['G2'],
+     desc:'Na ose J. Semráda úsek „OP“ mezi aktivací a vyhodnocením. Otevřená otázka: kdo stanoví četnost a formu průběžného vyhodnocení a je ověřovací provoz vůbec nutný?'},
+    {k:'G5',p:'G',n:'8.5 Zkušební provoz podle stavebního zákona (pro Liběchov se nepředpokládá)',g:'@DESU',o:690,d:60,lane:37,dep:['A3'],
+     desc:'KOMENTÁŘ ZH: u Liběchova jako drobné stavby se zkušební provoz nepředpokládá. Proces je uveden pro jednání, aby se nepletl s ověřovacím provozem podle SM008 — to jsou dvě různé věci a ve schématu O14 stojí každá v jiném sloupci. Do zkušebního provozu ve schématu vstupuje „initial engagement“ s ERA.'},
 
-    /* ---------- 8. Vyhodnocení a zavedení ---------- */
-    {k:'H',n:'8. Vyhodnocení a zavedení',g:'@SZ',color:'pink',o:900,d:120,lane:31,
-     desc:'Sloupec 6 diagramu.'},
-    {k:'H1',p:'H',n:'8.1 Poskytnutí podkladů pro závěrečné vyhodnocení',g:'@SIE',o:900,d:30,lane:32,dep:['G5']},
-    {k:'H2',p:'H',n:'8.2 Závěrečné vyhodnocení ověřovacího provozu',g:'@PROV',o:915,d:45,lane:33,dep:['G5'],
+    /* ---------- 9. Uvedení subsystému do provozu (sloupec 4 schématu O14) ---------- */
+    {k:'I',n:'9. Uvedení subsystému do provozu (TSI / drážní zákon)',g:'@SZ',color:'cyan',o:540,d:360,lane:38,
+     desc:'Sloupec 4 schématu O14. Celá tahle větev v dosavadním konceptu chyběla. K projednání je, nakolik se u Liběchova uplatní — jde o aplikaci LEU do stávajícího návěstního obvodu, ne o nový subsystém.'},
+    {k:'I1',p:'I',n:'9.1 Initial engagement s ERA',g:'@ERA',o:540,d:45,lane:39,dep:['C1'],
+     desc:'Ve schématu O14 vstupuje šipkou do zkušebního provozu. Zahajovací jednání s agenturou o rozsahu a postupu schvalování.'},
+    {k:'I2',p:'I',n:'9.2 ES ověření shody s TSI CCS — výstupy NoBo',g:'@NOBO',o:585,d:120,lane:40,
+     dep:[{k:'F6',subj:'Výsledky zkoušek traťové části'}],
+     desc:'Ve schématu O14 rámeček „Výstupy NoBo“. Podklad pro průkaz způsobilosti dráhy.'},
+    {k:'I3',p:'I',n:'9.3 ERTMS Trackside Approval (ERA)',g:'@ERA',o:660,d:120,lane:41,
+     dep:[{k:'I1',subj:'Výsledek initial engagement'},{k:'I2',subj:'Výstupy NoBo'}],
+     desc:'Ve schématu O14 samostatný rámeček „TA — trackside approval“ s poznámkou „výstup od ERA k trackside approval“, který vstupuje do průkazu způsobilosti dráhy.'},
+    {k:'I4',p:'I',n:'9.4 Průkaz způsobilosti dráhy',g:'@DU',o:780,d:60,lane:39,
+     dep:[{k:'I3',subj:'Výstup od ERA k trackside approval'},{k:'I2',subj:'Výstupy NoBo'},{k:'F9',subj:'Průkaz způsobilosti UTZ'}],
+     desc:'Ve schématu O14 sbíhají do tohoto rámečku tři vstupy: výstupy NoBo, výstup od ERA a průkaz způsobilosti UTZ z větve 7. K projednání: rozhodne Drážní úřad, zda je nový průkaz vůbec potřeba.'},
+    {k:'I5',p:'I',n:'9.5 Kolaudace (pro Liběchov se nepředpokládá)',g:'@DESU',o:840,d:60,lane:40,dep:['I4'],
+     desc:'KOMENTÁŘ ZH: u Liběchova jako drobné stavby kolaudace nebude. Proces je uveden pro jednání spolu se stavebním povolením a zkušebním provozem — ve schématu O14 tvoří konec sloupce 4.'},
+
+    /* ---------- 10. Vyhodnocení a zavedení ---------- */
+    {k:'H',n:'10. Vyhodnocení a zavedení',g:'@SZ',color:'pink',o:900,d:120,lane:42,
+     desc:'Konec časové osy J. Semráda: vyhodnocení se rozpadá na dvě větve — zaváděcí list, nebo konec.'},
+    {k:'H1',p:'H',n:'10.1 Poskytnutí podkladů pro závěrečné vyhodnocení',g:'@SIE',o:900,d:30,lane:43,dep:['G4']},
+    {k:'H2',p:'H',n:'10.2 Závěrečné vyhodnocení ověřovacího provozu',g:'@PROV',o:915,d:45,lane:44,dep:['G4'],
      desc:'Výsledek: funkční a použitelné → možnost zavedení.'},
-    {k:'H3',p:'H',n:'8.3 Vyhodnocení výsledků a rozhodnutí o zavedení',g:'@SZ',o:950,d:30,lane:32,dep:['H2']},
-    {k:'H4',p:'H',n:'8.4 Zaváděcí list pro aplikaci LEU do návěstního obvodu',g:'@O14',o:975,d:45,lane:33,dep:['H3'],
+    {k:'H3',p:'H',n:'10.3 Vyhodnocení výsledků a rozhodnutí o zavedení',g:'@SZ',o:950,d:30,lane:43,dep:['H2'],
+     desc:'Ve schématu J. Semráda rozcestí: plus → zaváděcí list, minus → konec.'},
+    {k:'H4',p:'H',n:'10.4 Zaváděcí list pro aplikaci LEU do návěstního obvodu',g:'@O14',o:975,d:45,lane:44,
+     dep:[{k:'H3',subj:'Kladné rozhodnutí o zavedení'}],
      desc:'Otevřená otázka: kdo vydává zaváděcí list, co přesně znamená „zavést“ a umožní použití stejné aplikace jinde?'}
   ]
 };
@@ -5277,6 +5351,64 @@ function pmTplPick(){
   $('#tplpick').classList.add('open');
 }
 function closeTplPick(){$('#tplpick').classList.remove('open')}
+/* Šablona se mezitím rozrostla, ale koncept už má vlastní úpravy a termíny.
+   Doplnění proto přidá jen procesy, které v konceptu podle názvu chybí,
+   a dotáhne k nim rodiče a vazby. Ničeho, co už v konceptu je, se nedotkne. */
+function pmTplTopUpPick(){
+  if(PM.mode!=='concept'||!PM.conceptId){toast('Doplnit ze šablony jde jen v otevřeném konceptu');return}
+  const host=$('#tplpick-list'); if(!host)return;
+  host.innerHTML=PM_TPLS.map((t,i)=>`<button class="tplopt" onclick="closeTplPick();pmTplTopUp(${i})">
+    <b>${escXml(t.name)}</b><span>doplnit chybějící procesy — ${t.procs.length} v šabloně</span></button>`).join('');
+  $('#tplpick').classList.add('open');
+}
+function pmTplTopUp(key){
+  const tpl=PM_TPLS[key||0]; if(!tpl)return;
+  const c=concepts.find(x=>x.id===PM.conceptId); if(!c)return;
+  const scope='concept:'+c.id;
+  const mine=processes.filter(x=>x.scope===scope);
+  const klic=n=>pmNorm(pmNameOf({name:n}));
+  const idMap={};
+  mine.forEach(x=>{const k=klic(x.name); if(!idMap['@'+k])idMap['@'+k]=x.id});
+  /* útvary ze šablony doplníme, existující nepřepisujeme */
+  let units=0;
+  Object.keys(tpl.units||{}).forEach(u=>{if(!orgUnits[u]){orgUnits[u]=tpl.units[u];units++}});
+  histPush();
+  const t0=c.t0||project.start||pmISO(Date.now());
+  const volny=pmFreeLaneAfter(mine);
+  let radek=volny, pridano=0;
+  const tplId={}, novy={};
+  tpl.procs.forEach(t=>{
+    const k=klic(t.n), byl=idMap['@'+k];
+    if(byl){tplId[t.k]=byl;return}
+    const o={id:nextId('process'),scope:scope,name:pmJoinName(pmNumLabel({name:t.n}),pmNameOf({name:t.n})),
+      desc:t.desc||'',gestor:t.g||'',color:t.color||'',cogestors:[],affected:[],parent:'',
+      state:'koncept',status:'idle',start:pmAdd(t0,t.o),end:pmAdd(t0,t.o+t.d),
+      lane:radek++,links:[],msStart:[],msEnd:[],collapsed:false};
+    processes.push(o); tplId[t.k]=o.id; idMap['@'+k]=o.id; novy[o.id]=1; pridano++;
+  });
+  if(!pridano){toast('Koncept už všechny procesy ze šablony obsahuje');pmFlush();return}
+  /* Rodiče nastavujeme jen u nově vzniklých procesů. Vazby dotahujeme i u těch
+     stávajících, ale výhradně ty, které vedou na nově doplněný proces — jinak
+     by nový předchůdce zůstal viset bez následníka. */
+  tpl.procs.forEach(t=>{
+    const o=pmById(tplId[t.k]); if(!o)return;
+    const jeNovy=novy[o.id];
+    if(jeNovy&&t.p&&tplId[t.p])o.parent=tplId[t.p];
+    (t.dep||[]).forEach(d=>{
+      const kk=typeof d==='string'?d:d.k, from=tplId[kk];
+      if(!from||(!jeNovy&&!novy[from]))return;
+      if((o.links||[]).some(l=>l.from===from))return;
+      o.links.push({from:from,type:(d&&d.type)||'',lag:(d&&+d.lag)||0,subj:(d&&d.subj)||''});
+    });
+  });
+  processes.filter(x=>x.scope===scope).forEach(x=>pmQueue(x));
+  pmFlush(); computePositions(); renderPMap();
+  toast(`Doplněno ${pridano} procesů${units?', '+units+' nových útvarů':''} — najdete je pod stávajícími`);
+}
+/* První pruh pod vším, co koncept zabírá — doplněné procesy nikomu nepřepíšou řádek */
+function pmFreeLaneAfter(list){
+  return list.reduce((m,x)=>Math.max(m,(x.lane||0)+1),0);
+}
 /* Jednorázové založení šablony do dat. Spouští se i samo po přihlášení,
    aby koncept existoval bez nutnosti klikat — zápis do Supabase je
    povolen jen přihlášenému správci (RLS), proto až v té chvíli. */
@@ -5310,7 +5442,11 @@ function pmBuildTemplate(silent,tplIn){
   tpl.procs.forEach(t=>{
     const o=pmById(idMap[t.k]);
     if(t.p)o.parent=idMap[t.p];
-    (t.dep||[]).forEach(d=>{if(idMap[d])o.links.push({from:idMap[d],type:'',lag:0})});
+    (t.dep||[]).forEach(d=>{
+      const key=typeof d==='string'?d:d.k;
+      if(!idMap[key])return;
+      o.links.push({from:idMap[key],type:(d&&d.type)||'',lag:(d&&+d.lag)||0,subj:(d&&d.subj)||''});
+    });
   });
   processes.filter(x=>x.scope==='concept:'+c.id).forEach(x=>pmQueue(x));
   if(added)persistMeta();
