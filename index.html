@@ -743,11 +743,24 @@ body.editing .pmb.dragging{cursor:grabbing}
 .pm-addbtn{align-self:flex-start;background:var(--panel2);border:1px dashed var(--border2);color:var(--text2);border-radius:7px;padding:5px 11px;font:600 11.5px 'Inter',sans-serif;cursor:pointer}
 /* vazba bez vybraného předchůdce nikam nevede — ať to není vidět až na plátně */
 .pm-subrow.undone select:first-child{border-color:var(--risk)}
+.pm-subrow.wrap{flex-wrap:wrap}
+.pm-subj{flex:1 1 100%;min-width:160px}
+.pm-draft{border:1px dashed var(--accent);border-radius:9px;background:rgba(255,82,0,.05);padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.pm-draft-h{font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)}
+.pm-search{width:100%}
+.pm-opts{display:flex;flex-direction:column;gap:2px;max-height:132px;overflow:auto}
+.pm-opt{text-align:left;background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  padding:4px 8px;font:500 12px 'Inter',sans-serif;color:var(--text2);cursor:pointer}
+.pm-opt:hover{border-color:var(--accent);color:var(--text)}
+.pm-pick{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border2);
+  border-radius:6px;padding:5px 9px}
+.pm-pick b{font-size:12px;font-weight:500;color:var(--text)}
 .pm-subrow.draft{padding:5px 7px;border:1px dashed var(--accent);border-radius:8px;background:rgba(255,82,0,.05)}
 .pm-okbtn{flex:none;background:var(--accent);border:none;color:#fff;border-radius:6px;padding:5px 11px;
   font:600 11.5px 'Inter',sans-serif;cursor:pointer;white-space:nowrap}
 .pm-okbtn:disabled{background:var(--panel2);color:var(--text3);cursor:not-allowed}
 .pm-linkwarn{flex:none;font:600 9.5px var(--mono);color:var(--risk);white-space:nowrap}
+#pm-rel.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 /* číslo procesu vedle názvu — jen ke čtení, mění ho přečíslování */
 .pm-namerow{display:flex;gap:8px;align-items:center}
 .pm-namerow input{flex:1;min-width:0}
@@ -1236,6 +1249,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       <button class="btn ghost sm ed-only" id="pm-tplvar" onclick="pmTemplateConcept()" title="Založit variantu z připravené šablony — přezkoušení a uvádění ETCS L1 LS do provozu podle T200">＋ Ze šablony</button>
       <button class="btn ghost sm ed-only" id="pm-editvar" onclick="pmEditConcept()" title="Upravit název, osu a T0 této varianty">✎ Varianta</button>
       <button class="btn ghost sm ed-only" onclick="pmNewProcess()" title="Přidat nový proces na volný pruh">＋ Proces</button>
+      <button class="btn ghost sm" id="pm-rel" onclick="pmToggleRel()" title="Zvýrazní všechny souvislosti právě vybraného procesu nebo vazby — vazby i procesy na jejich druhém konci">🔗 Souvislosti</button>
       <button class="btn ghost sm" id="pm-mapexp" onclick="pmMapDialog()" title="Vytisknout nebo uložit mapu se všemi procesy a vazbami do PDF">⎙ Mapa do PDF</button>
       <button class="btn ghost sm ed-only" id="pm-splitbtn" onclick="pmToggleSplit()" title="Zapněte a klikejte na procesy v místě, kde je chcete rozdělit">✂ Rozdělit</button>
       <button class="btn ghost sm ed-only" id="pm-recalc" onclick="pmRecalc()" title="Posunout procesy tak, aby seděly na typované vazby">↻ Přepočítat návaznosti</button>
@@ -2463,7 +2477,7 @@ let processes=[
 
 const PM={mode:'concept',conceptId:'K-01',unit:'month',sel:[],splitMode:false,tab:'zaklad',panelLock:false,zoom:1,snapX:null,
   filter:[],legHidden:false,ribCollapsed:false,extra:0,gallery:true,print:false,link:null,solo:null,viewBack:null,cursor:null,rowZoom:1,linkFocus:null,
-  padL:0,padR:0,padTop:1,revealed:null};
+  padL:0,padR:0,padTop:1,revealed:null,rel:false};
 /* Výběr je pole; poslední vybraný je „primární“ a zobrazí se v pásu karet. */
 const pmSelHas=id=>PM.sel.indexOf(id)>-1;
 const pmPrimary=()=>PM.sel.length?PM.sel[PM.sel.length-1]:null;
@@ -2528,6 +2542,23 @@ function pmNextNum(parentId,scope){
   const par=pmById(parentId), pn=par?pmNumOf(par):'';
   return pn?pn+'.'+(list.filter(x=>x.parent===parentId).length+1):'';
 }
+/* Řazení podle čísla procesu — 2.1.1 patří hned pod 2.1, ne na konec
+   seznamu. Nečíslované položky jdou nakonec. */
+function pmNumCmp(a,b){
+  const na=pmNumOf(a), nb=pmNumOf(b);
+  if(!na||!nb)return na?-1:(nb?1:String(a.name||'').localeCompare(String(b.name||''),'cs'));
+  const pa=na.split('.').map(Number), pb=nb.split('.').map(Number);
+  for(let i=0;i<Math.max(pa.length,pb.length);i++){
+    const x=pa[i], y=pb[i];
+    if(x===undefined)return -1;
+    if(y===undefined)return 1;
+    if(x!==y)return x-y;
+  }
+  return 0;
+}
+const pmByNum=list=>list.slice().sort(pmNumCmp);
+/* porovnání bez diakritiky a velikosti písmen — pro hledání ve vazbách */
+const pmNorm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 function pmDepth(p){let d=0,cur=p,g=0;while(cur&&cur.parent&&g++<8){cur=pmById(cur.parent);if(!cur)break;d++}return d}
 function pmKidsOf(id){return processes.filter(x=>x.parent===id)}
 /* potomci do hloubky — podprocesy i podprocesy podprocesů */
@@ -2634,7 +2665,7 @@ function pmGroupLinks(rootId){
       }
     });
   });
-  return rows;
+  return rows.sort((a,b)=>pmNumCmp({name:a.subName},{name:b.subName})||pmNumCmp({name:a.otherName},{name:b.otherName}));
 }
 function pmBounds(list){
   if(!list.length){const c=pmConcept();const t0=Math.min(Math.max(pmD(c?c.t0:project.start),PM_AXIS_T0),PM_AXIS_T1-PMDAY);return {t0,t1:Math.min(t0+300*PMDAY,PM_AXIS_T1)}}
@@ -2873,11 +2904,16 @@ function renderPMap(){
      proces focusu závisí) nebo N (kdo na focus navazuje) — aby šlo vidět
      nejen že vazba existuje, ale i ve kterém je směru. */
   const focusRoles={};
-  if(PM.linkFocus){
+  /* Zapnuté tlačítko Souvislosti bere ohnisko rovnou z výběru: u procesu
+     jeho vlastní id, u vybrané vazby oba její konce. */
+  const ohniska=PM.linkFocus?[PM.linkFocus]
+    :(PM.rel?(PM.link?PM.link.split('>'):PM.sel.slice()):[]);
+  if(ohniska.length){
+    const je=id=>ohniska.indexOf(id)>-1;
     list.forEach(p=>{(p.links||[]).forEach(l=>{
       const aId=pmAnchorId(l.from); if(!aId||aId===p.id)return;
-      if(p.id===PM.linkFocus&&aId!==PM.linkFocus)focusRoles[aId]='pred';
-      if(aId===PM.linkFocus&&p.id!==PM.linkFocus)focusRoles[p.id]='succ';
+      if(je(p.id)&&!je(aId))focusRoles[aId]='pred';
+      if(je(aId)&&!je(p.id))focusRoles[p.id]='succ';
     })});
   }
   /* vazby — oblouk výhybky */
@@ -2893,7 +2929,7 @@ function renderPMap(){
       const y1=ga.y+ga.h/2, y2=gb.y+gb.h/2;
       const lkId=aId+'>'+p.id;
       const on=PM.link===lkId;
-      const hot=PM.linkFocus&&(aId===PM.linkFocus||p.id===PM.linkFocus);
+      const hot=ohniska.length&&(ohniska.indexOf(aId)>-1||ohniska.indexOf(p.id)>-1);
       const col=(on||hot)?'var(--accent)':(bad?'#ff5c6a':SK.link);
       const dash=l.type?'':'stroke-dasharray="5 4"';
       const d=pmLinkPath(x1,y1,x2,y2);
@@ -2903,8 +2939,13 @@ function renderPMap(){
       s+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="${(on||hot)?2.6:(bad?2:1.5)}" ${dash}
             marker-end="url(#${(on||hot)?'pmArrSel':(bad?'pmArrBad':'pmArr')})"/>`;
       /* široká průhledná stopa — na 1,5px linku se myší nedá trefit */
-      if(!PM.print)s+=`<path class="pmlink" data-lk="${lkId}" data-to="${p.id}" data-from="${aId}"
-            d="${d}" fill="none" stroke="transparent" stroke-width="11" style="cursor:pointer"/>`;
+      if(!PM.print){
+        const popis=(a?a.name:aId)+' → '+p.name
+          +(l.type?' · '+l.type+(+l.lag?(l.lag>0?' +':' ')+l.lag+' d':''):'')
+          +(l.subj?'\n'+l.subj:'');
+        s+=`<path class="pmlink" data-lk="${lkId}" data-to="${p.id}" data-from="${aId}"
+            d="${d}" fill="none" stroke="transparent" stroke-width="11" style="cursor:pointer"><title>${escXml(popis)}</title></path>`;
+      }
       /* popisek jen tam, kde nese informaci — FS bez prodlevy je výchozí stav */
       if(l.type&&(l.type!=='FS'||+l.lag||bad)){
         const mx=(x1+x2)/2, my=Math.min(y1,y2)-9;
@@ -3065,7 +3106,7 @@ function renderPMap(){
       s+=`<circle cx="${g.x-1}" cy="${rcy}" r="6.5" fill="${roleCol}" stroke="${SK.bg}" stroke-width="1.4"/>
           <text x="${g.x-1}" y="${rcy+3.5}" text-anchor="middle" font-size="8" font-weight="700" fill="#0a0d15" font-family="var(--mono)">${role==='pred'?'P':'N'}</text>`;
     }
-    if(p.id===PM.linkFocus&&!on){
+    if(ohniska.indexOf(p.id)>-1&&!on){
       s+=`<path d="${pmRailPath(g.x-3,g.y-3,g.w+6,g.h+6)}" fill="none" stroke="var(--accent)" stroke-width="1.6" opacity=".9"/>`;
     }
     const gestTip=p.gestor?' · gestor: '+pmGestorLabel(p.gestor):'';
@@ -3289,6 +3330,7 @@ function pmGrowSpanOnWheel(e){
 /* ================= OVLÁDACÍ PRVKY ================= */
 function pmSyncControls(){
   const isMap=PM.mode==='map';
+  const rb=$('#pm-rel'); if(rb)rb.classList.toggle('on',!!PM.rel);
   document.querySelectorAll('#pm-mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===PM.mode));
   document.querySelectorAll('#pm-unit button').forEach(b=>b.classList.toggle('on',b.dataset.u===PM.unit));
   const v=$('#pm-variant'), ax=$('#pm-axis');
@@ -3544,7 +3586,7 @@ function pmRenderLegend(){
 
   /* fáze podle kořenových procesů, které barvu opravdu používají */
   PM.filter=PM.filter||[];
-  const roots=list.filter(p=>!p.parent&&pmColorOf(p));
+  const roots=pmByNum(list.filter(p=>!p.parent&&pmColorOf(p)));
   const seen={}, faze=[];
   roots.forEach(r=>{const c=pmColorOf(r); if(!seen[c]){seen[c]=1;
     const lab=r.name.replace(/^([A-Z]\d?\.|Paralelní)\s*/,'').slice(0,30);
@@ -3815,12 +3857,12 @@ function pmRibbonField(p,k){
    karta dopočítá a vypíše zvlášť — jen ke čtení, upravit ho lze u toho
    procesu, který na tenhle navazuje. */
 function pmSuccHTML(p){
-  const succ=processes.filter(q=>q.scope===p.scope&&(q.links||[]).some(l=>l.from===p.id));
+  const succ=pmByNum(processes.filter(q=>q.scope===p.scope&&(q.links||[]).some(l=>l.from===p.id)));
   const rows=succ.map(q=>{
     const l=(q.links||[]).find(x=>x.from===p.id)||{};
     const typ=(l.type||'neutrální')+(+l.lag?(l.lag>0?' +':' ')+l.lag+' d':'');
     return `<div class="pm-succ-row" title="Otevřít tento proces" onclick="pmGoTo('${q.id}')">
-      <span class="t">${escXml(typ)} →</span><span class="n">${escXml(q.name)}</span>
+      <span class="t">${escXml(typ)} →</span><span class="n">${escXml(q.name)}${l.subj?' · <i>'+escXml(l.subj)+'</i>':''}</span>
       ${pmViolated(l,q)?'<span class="bad">porušená</span>':''}</div>`;
   }).join('');
   return `<div class="pm-succ"><div class="pm-succ-h">Navazující procesy (${succ.length})</div>
@@ -3930,6 +3972,13 @@ function pmRenderRibbon(host,p){
 /* Zvýrazní na plátně všechny vazby procesu najednou (na rozdíl od kliku
    na jednu vazbu) — barevně odliší, které procesy na něm závisí (P) a
    které na něj navazují (N). */
+/* Souvislosti zapíná tlačítko v liště a platí pro to, co je zrovna vybrané. */
+function pmToggleRel(){
+  PM.rel=!PM.rel;
+  if(PM.rel)PM.linkFocus=null;      // ruční zvýraznění z karty Vazby ustupuje
+  renderPMap();
+  if(PM.rel&&!PM.sel.length&&!PM.link)toast('Vyberte proces nebo vazbu — souvislosti se zvýrazní kolem výběru');
+}
 function pmToggleLinkFocus(id){
   PM.linkFocus=PM.linkFocus===id?null:id;
   renderPMap();
@@ -4885,8 +4934,8 @@ SCHEMAS.process={title:'Proces',entity:'process',arr:()=>processes,idf:'id',pref
      const me=subCtx&&subCtx.obj?subCtx.obj:null;
      /* nabízí se vše, co smí mít potomka; vlastní větev je vyloučená, aby nevznikl kruh */
      return [['','— kořenová úroveň']].concat(
-       processes.filter(p=>p.scope===pmScope()&&pmDepth(p)<PM_MAX_DEPTH-1
-         &&(!me||(p.id!==me.id&&!pmIsAncestor(me.id,p)))).map(p=>[p.id,p.id+' · '+p.name]));
+       pmByNum(processes.filter(p=>p.scope===pmScope()&&pmDepth(p)<PM_MAX_DEPTH-1
+         &&(!me||(p.id!==me.id&&!pmIsAncestor(me.id,p))))).map(p=>[p.id,p.name]));
    }},
   {k:'cogestors',l:'Spolugestoři (osoby i útvary) a jejich odpovědnost',t:'roles',full:1},
   {k:'affected',l:'Dotčení / konzultovaní (osoby i útvary)',t:'peoplerefs',full:1},
@@ -5769,7 +5818,7 @@ function pmMapRun(){
   } else {
     const papName=MEX.split==='a4'?'A4':'A3';
     const roots=processes.filter(x=>x.scope===pmScopeOf(c.id)&&!x.parent)
-      .sort((a,b)=>pmD(a.start)-pmD(b.start));
+      .sort(pmNumCmp);
     if(!roots.length){toast('Varianta nemá žádné hlavní procesy');return}
     const f=PM_PAPERS.find(x=>x[0]===papName); W=f[1]; H=f[2];
     roots.forEach(r=>{
@@ -5851,7 +5900,7 @@ function pmExport(id,full){
   /* --- strana 2: mapa --- */
   /* Pod mapou výčet fází — vysvětluje barvy a zaplní místo, které mapa
      s málo pruhy a dlouhou osou na stránce nechává volné. */
-  const faze=S.roots.slice().sort((a,b)=>pmD(a.start)-pmD(b.start)).map(r=>{
+  const faze=pmByNum(S.roots).map(r=>{
     const kids=S.subs.filter(x=>{const rt=pmRootOf(x);return rt&&rt.id===r.id}).length;
     const c=pmTone(pmColorOf(r)||'#8b97b1',true);   // stejný odstín jako v mapě
     return `<tr><td class="sw">${chSw(c,15,11)}</td>
@@ -5898,8 +5947,8 @@ function pmExport(id,full){
       ${deti.map(k=>radek(k,pmTone(pmColorOf(k)||pmColorOf(hlava)||'#8b97b1',true),false)).join('')}
     </tbody></table></div>`;
 
-  const poFazich=S.roots.slice().sort((a,b)=>pmD(a.start)-pmD(b.start)).map(r=>{
-    const deti=S.subs.filter(x=>{const rt=pmRootOf(x);return rt&&rt.id===r.id}).sort((a,b)=>pmD(a.start)-pmD(b.start));
+  const poFazich=pmByNum(S.roots).map(r=>{
+    const deti=pmByNum(S.subs.filter(x=>{const rt=pmRootOf(x);return rt&&rt.id===r.id}));
     return skupina(r.name,pmTone(pmColorOf(r)||'#8b97b1',true),r,deti);
   });
   /* podprocesy, jejichž rodič ve variantě není — jinak by v přehledu chyběly */
@@ -6041,31 +6090,51 @@ function pmSubRender(k){
     h+=`<button type="button" class="pm-addbtn" onclick="subCtx.obj.cogestors.push({who:'',resp:''});pmSubRender('cogestors')">＋ Spolugestor</button>`;
   }
   else if(k==='links'){
-    const cand=processes.filter(p=>p.scope===o.scope&&p.id!==o.id);
-    const whoOpts=sel=>[['','— vyberte předchůdce']].concat(cand.map(p=>[p.id,p.id+' · '+p.name]))
+    const cand=pmByNum(processes.filter(p=>p.scope===o.scope&&p.id!==o.id));
+    const whoOpts=sel=>[['','— vyberte předchůdce']].concat(cand.map(p=>[p.id,p.name]))
       .map(([v,t])=>`<option value="${v}" ${v===sel?'selected':''}>${esc(t)}</option>`).join('');
     const typOpts=sel=>[['','neutrální'],['FS','FS konec→začátek'],['SS','SS začátek→začátek'],['FF','FF konec→konec']]
       .map(([v,t])=>`<option value="${v}" ${v===(sel||'')?'selected':''}>${t}</option>`).join('');
-    h=o[k].map((l,i)=>`<div class="pm-subrow${l.from?'':' undone'}">
+    h=o[k].map((l,i)=>`<div class="pm-subrow wrap${l.from?'':' undone'}">
         <select onchange="pmLinkFrom(${i},this.value)">${whoOpts(l.from)}</select>
         <select style="max-width:140px" onchange="subCtx.obj.links[${i}].type=this.value;subFire()">${typOpts(l.type)}</select>
-        <input type="number" style="max-width:90px" value="${+l.lag||0}" title="prodleva ve dnech" oninput="subCtx.obj.links[${i}].lag=+this.value||0;subFire()">
-        <button type="button" class="x" onclick="subCtx.obj.links.splice(${i},1);pmSubRender('links');subFire()">✕</button>
-        ${l.from?'':'<span class="pm-linkwarn" title="Bez vybraného předchůdce vazba neexistuje — na plátně se nekreslí a u druhého procesu se neukáže">nedokončená</span>'}</div>`).join('');
-    /* Nová vazba se do procesu nezapíše hned — nejdřív se vybere předchůdce
-       a teprve tlačítko ji potvrdí. Rozdělaná vazba tak nemůže zůstat
-       viset v datech jako prázdný řádek. */
+        <input type="number" style="max-width:80px" value="${+l.lag||0}" title="prodleva ve dnech" oninput="subCtx.obj.links[${i}].lag=+this.value||0;subFire()">
+        <button type="button" class="x" onclick="subCtx.obj.links.splice(${i},1);pmSubRender('links');subFire();pmRibRefresh()">✕</button>
+        ${l.from?'':'<span class="pm-linkwarn" title="Bez vybraného předchůdce vazba neexistuje — na plátně se nekreslí a u druhého procesu se neukáže">nedokončená</span>'}
+        <input class="pm-subj" value="${esc(l.subj||'')}" placeholder="co je výstupem předchůdce, tedy vstupem pro tento proces"
+          oninput="subCtx.obj.links[${i}].subj=this.value;subFire()"></div>`).join('');
+    /* Nová vazba se do procesu nezapíše hned — nejdřív se vybere protistrana
+       a teprve tlačítko ji potvrdí. Vazba jde založit na obě strany. */
     const d=subCtx.draft;
-    const dBad=d&&d.from?pmLinkBad(o,d.from,-1):'';
-    h+=d
-      ? `<div class="pm-subrow draft">
-          <select onchange="pmLinkDraftSet('from',this.value)">${whoOpts(d.from)}</select>
-          <select style="max-width:140px" onchange="pmLinkDraftSet('type',this.value)">${typOpts(d.type)}</select>
-          <input type="number" style="max-width:90px" value="${+d.lag||0}" title="prodleva ve dnech" oninput="pmLinkDraftSet('lag',this.value)">
-          <button type="button" class="pm-okbtn" ${d.from&&!dBad?'':'disabled'} onclick="pmLinkAdd()">✓ Přidat vazbu</button>
-          <button type="button" class="x" title="Zrušit přidávání" onclick="pmLinkDraft(false)">✕</button>
-          ${dBad?`<span class="pm-linkwarn">${esc(dBad)}</span>`:''}</div>`
-      : `<button type="button" class="pm-addbtn" onclick="pmLinkDraft(true)">＋ Vazba</button>`;
+    if(d){
+      const bad=d.from?pmDraftBad(o,d):'';
+      const zvoleny=d.from?pmById(d.from):null;
+      const q=pmNorm(d.q);
+      const najdi=q?cand.filter(x=>pmNorm(x.name).indexOf(q)>-1).slice(0,8):cand.slice(0,8);
+      const smer=d.dir==='succ'?'následníka':'předchůdce';
+      h+=`<div class="pm-draft">
+        <div class="pm-draft-h">Nová vazba na ${smer}</div>
+        ${zvoleny
+          ? `<div class="pm-pick"><b>${escXml(zvoleny.name)}</b>
+              <button type="button" class="x" title="Vybrat jiný" onclick="pmLinkDraftSet('from','')">✕</button></div>`
+          : `<input class="pm-search" placeholder="hledejte podle čísla nebo názvu — např. „2.1“ nebo „laborka“"
+               value="${esc(d.q||'')}" oninput="pmLinkDraftSet('q',this.value)">
+             <div class="pm-opts">${najdi.length
+               ? najdi.map(x=>`<button type="button" class="pm-opt" onclick="pmLinkDraftPick('${x.id}')">${escXml(x.name)}</button>`).join('')
+               : '<div class="pm-succ-none">Nic neodpovídá.</div>'}</div>`}
+        <div class="pm-subrow wrap">
+          <select style="max-width:150px" onchange="pmLinkDraftSet('type',this.value)">${typOpts(d.type)}</select>
+          <input type="number" style="max-width:80px" value="${+d.lag||0}" title="prodleva ve dnech" oninput="pmLinkDraftSet('lag',this.value)">
+          <button type="button" class="pm-okbtn" ${d.from&&!bad?'':'disabled'} onclick="pmLinkAdd()">✓ Přidat vazbu</button>
+          <button type="button" class="x" title="Zrušit přidávání" onclick="pmLinkDraft(null)">✕</button>
+          ${bad?`<span class="pm-linkwarn">${esc(bad)}</span>`:''}
+          <input class="pm-subj" value="${esc(d.subj||'')}" placeholder="co je výstupem předchůdce, tedy vstupem pro následníka"
+            oninput="pmLinkDraftSet('subj',this.value)"></div></div>`;
+    } else {
+      h+=`<div class="pm-subrow">
+        <button type="button" class="pm-addbtn" onclick="pmLinkDraft('pred')">＋ Vazba na předchůdce</button>
+        <button type="button" class="pm-addbtn" onclick="pmLinkDraft('succ')">＋ Vazba na následníka</button></div>`;
+    }
     h+=`<div class="pm-hint" style="margin-top:2px">V konceptu vazby nic neposouvají — typ se doplní až při zpevnění.</div>`;
   }
   else if(k==='affected'){
@@ -6098,33 +6167,65 @@ function pmLinkBad(o,v,skipIdx){
   if((o.links||[]).some((l,i)=>i!==skipIdx&&l.from===v))return 'Tahle vazba už existuje';
   return '';
 }
-/* rozdělaná (zatím nepotvrzená) vazba */
-function pmLinkDraft(on){
+/* Rozdělaná (zatím nepotvrzená) vazba. `dir` říká, na kterou stranu se
+   zakládá: 'pred' = tenhle proces navazuje na vybraný, 'succ' = vybraný
+   navazuje na tenhle (vazba se pak uloží u něj, protože se drží u následníka). */
+function pmLinkDraft(dir){
   if(!subCtx)return;
-  subCtx.draft=on?{from:'',type:'',lag:0}:null;
+  subCtx.draft=dir?{from:'',type:'',lag:0,subj:'',q:'',dir:dir}:null;
   pmSubRender('links');
 }
 function pmLinkDraftSet(k,v){
   if(!subCtx||!subCtx.draft)return;
   subCtx.draft[k]=k==='lag'?(+v||0):v;
-  if(k==='from')pmSubRender('links');     // výběrem předchůdce se odemkne potvrzení
+  if(k==='from'||k==='q')pmSubRender('links');
+}
+/* Přibyla nebo zmizela vazba — překreslí celý pás karet, aby se srovnal
+   i seznam navazujících procesů, který stojí mimo editovaný blok. */
+function pmRibRefresh(){
+  if(!subCtx||!subCtx.host)return;
+  PM.panelLock=false; pmRenderInspector();
+}
+function pmLinkDraftPick(id){
+  if(!subCtx||!subCtx.draft)return;
+  subCtx.draft.from=id; subCtx.draft.q='';
+  pmSubRender('links');
+}
+/* Co brání rozdělané vazbě — počítá se podle jejího směru. */
+function pmDraftBad(o,d){
+  if(!d.from)return 'Vyberte proces';
+  if(d.dir==='succ'){
+    const t=pmById(d.from);
+    return t?pmLinkBad(t,o.id,-1):'Proces nenalezen';
+  }
+  return pmLinkBad(o,d.from,-1);
 }
 function pmLinkAdd(){
   if(!subCtx||!subCtx.draft)return;
   const o=subCtx.obj, d=subCtx.draft;
-  const bad=pmLinkBad(o,d.from,-1);
+  const bad=pmDraftBad(o,d);
   if(bad){toast(bad);return}
-  if(!Array.isArray(o.links))o.links=[];
-  o.links.push({from:d.from,type:d.type||'',lag:+d.lag||0});
+  const zapis={type:d.type||'',lag:+d.lag||0,subj:(d.subj||'').trim()};
+  if(d.dir==='succ'){
+    /* vazba se ukládá u následníka, takže do vybraného procesu */
+    const t=pmById(d.from);
+    if(!Array.isArray(t.links))t.links=[];
+    t.links.push(Object.assign({from:o.id},zapis));
+    if(t.scope==='map')t.mapEdited=true;
+    pmQueue(t);
+  } else {
+    if(!Array.isArray(o.links))o.links=[];
+    o.links.push(Object.assign({from:d.from},zapis));
+  }
   subCtx.draft=null;
-  pmSubRender('links'); subFire();
-  toast('Vazba přidána');
+  pmSubRender('links'); subFire(); pmRibRefresh();
+  toast(d.dir==='succ'?'Vazba na následníka přidána':'Vazba přidána');
 }
 function pmLinkFrom(i,v){
   const o=subCtx.obj;
   const bad=v?pmLinkBad(o,v,i):'';
   if(bad){toast(bad);pmSubRender('links');return}
-  o.links[i].from=v; subFire();
+  o.links[i].from=v; subFire(); pmRibRefresh();
 }
 
 /* ================= NAPOJENÍ NA ZBYTEK APLIKACE ================= */
