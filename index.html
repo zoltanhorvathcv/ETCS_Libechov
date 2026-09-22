@@ -704,7 +704,8 @@ body.pm-full #view-pmap.active{padding:10px 14px 12px}
 body.editing .pmb{cursor:grab}
 body.editing .pmb.dragging{cursor:grabbing}
 #pm-splitbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-.pm-canvas.pm-splitting{cursor:crosshair}
+.pm-canvas.pm-splitting,.pm-canvas.pm-placing{cursor:crosshair}
+.pm-canvas.pm-placing{box-shadow:inset 0 0 0 2px rgba(255,82,0,.5)}
 .pm-canvas.panready{cursor:grab}
 .pm-canvas.panning{cursor:grabbing}
 .pm-seg button:disabled{opacity:.3;cursor:not-allowed}
@@ -2462,7 +2463,7 @@ let processes=[
 
 const PM={mode:'concept',conceptId:'K-01',unit:'month',sel:[],splitMode:false,tab:'zaklad',panelLock:false,zoom:1,snapX:null,
   filter:[],legHidden:false,ribCollapsed:false,extra:0,gallery:true,print:false,link:null,solo:null,viewBack:null,cursor:null,rowZoom:1,linkFocus:null,
-  padL:0,padR:0};
+  padL:0,padR:0,padTop:1,revealed:null};
 /* Výběr je pole; poslední vybraný je „primární“ a zobrazí se v pásu karet. */
 const pmSelHas=id=>PM.sel.indexOf(id)>-1;
 const pmPrimary=()=>PM.sel.length?PM.sel[PM.sel.length-1]:null;
@@ -2537,7 +2538,7 @@ function pmDescOf(id){
 function pmIsAncestor(ancId,p){let cur=p,g=0;while(cur&&cur.parent&&g++<8){if(cur.parent===ancId)return true;cur=pmById(cur.parent)}return false}
 /* kořenová fáze, pod kterou proces spadá (sám sebou, nemá-li rodiče) */
 function pmRootOf(p){let cur=p,g=0;while(cur&&cur.parent&&g++<8){const par=pmById(cur.parent);if(!par)break;cur=par}return cur}
-const PM_LANE=50, PM_PAD=26;
+const PM_LANE=62, PM_PAD=26;
 const pmRowH=()=>PM_LANE*(PM.rowZoom||1);   // výška pruhu po svislém přizpůsobení
 const PMDAY=86400000;
 /* Časová osa konceptu i procesní mapy je omezená na roky 2000–2045 —
@@ -2668,9 +2669,11 @@ function pmGeom(p,b){
   const x=PM_PAD+(pmD(p.start)-b.t0)/PMDAY*px;
   const w=Math.max(16,(pmD(p.end)-pmD(p.start))/PMDAY*px);
   const h=[26,19,15][Math.min(2,pmDepth(p))]*rz, head=pmHeadH();
-  const y=head+(p.lane||0)*rowH+(rowH-h)/2;
+  /* padTop = prázdné řádky nad prvním procesem, aby šlo posunout i nad něj */
+  const y=head+((p.lane||0)+pmPadTop())*rowH+(rowH-h)/2;
   return {x,y,w,h};
 }
+const pmPadTop=()=>PM.print?0:(PM.padTop||0);
 const pmHeadH=()=>pmAxisMode()==='off'?10:36;
 function pmRailPath(x,y,w,h){
   const c=Math.min(5,h/3);   // menší zkosení = delší svislá hrana pro proužek stavu
@@ -2788,13 +2791,14 @@ function renderPMap(){
     return;
   }
   pmSyncControls();
+  host.classList.toggle('pm-placing',!!PM.placing);
   const list=pmVisible(), b=pmBounds(list), px=pmPx(), head=pmHeadH();
   /* pruhy i mřížka vyplní celou viditelnou plochu, ne jen výšku obsahu */
   const need=Math.max(3,(list.length?Math.max(...list.map(p=>p.lane||0)):0)+2);
   const avail=PM.print?0:Math.max(260,(host.clientHeight||420)-2);
   /* vždy zásoba prázdných pruhů pod obsahem, aby šlo rolovat a zakládat do volna;
      PM.extra přibývá, jakmile se doroluje ke spodní hraně — svisle tedy bez konce */
-  const lanes=PM.print?need:Math.max(need,Math.floor((avail-head)/pmRowH()))+6+(PM.extra||0);
+  const lanes=PM.print?need:Math.max(need+pmPadTop(),Math.floor((avail-head)/pmRowH()))+6+(PM.extra||0)+pmPadTop();
   const W=PM.print?PM_PAD*2+(b.t1-b.t0)/PMDAY*px:Math.max(PM_PAD*2+(b.t1-b.t0)/PMDAY*px, host.clientWidth-2);
   const H=Math.max(head+lanes*pmRowH(), avail);
 
@@ -2924,10 +2928,9 @@ function renderPMap(){
     const tx0=g.x+(hasKids?22:10), tw=p.name.length*fs*0.53;
     const inside=g.w-(tx0-g.x)-8;
     if(tw<=inside){plan[p.id]={x:tx0,y:g.y+g.h/2+4,fs,fill:SK.ink,loc:'in'};return}
-    const nxt=(laneNext[p.lane||0]||[]).find(o=>o.x>g.x+g.w-1);
-    const freeRight=(nxt?nxt.x:W)-(g.x+g.w)-14;
-    if(tw<=freeRight){plan[p.id]={x:g.x+g.w+8,y:g.y+g.h/2+4,fs,fill:SK.ink,loc:'right'};return}
-    const rows=[['a',g.y-4],['b',g.y+g.h+11]];
+    /* Nevejde-li se dovnitř, jde popisek nad objekt (a teprve pak pod něj) —
+       vedle objektu se čte hůř a plete se to s popiskem souseda. */
+    const rows=[['a',g.y-5],['b',g.y+g.h+12]];
     for(let i=0;i<rows.length;i++){
       const key=(p.lane||0)+rows[i][0], arr=occ[key]=occ[key]||[];
       if(!arr.some(iv=>g.x<iv[1]+8&&g.x+tw>iv[0]-8)){
@@ -2936,6 +2939,9 @@ function renderPMap(){
         return;
       }
     }
+    const nxt=(laneNext[p.lane||0]||[]).find(o=>o.x>g.x+g.w-1);
+    const freeRight=(nxt?nxt.x:W)-(g.x+g.w)-14;
+    if(tw<=freeRight){plan[p.id]={x:g.x+g.w+8,y:g.y+g.h/2+4,fs,fill:SK.ink,loc:'right'};return}
     const max=Math.max(1,Math.floor(inside/(fs*0.53)));
     plan[p.id]={x:tx0,y:g.y+g.h/2+4,fs,fill:SK.ink,cut:max,loc:'cut'};
   });
@@ -3064,7 +3070,8 @@ function renderPMap(){
     }
     const gestTip=p.gestor?' · gestor: '+pmGestorLabel(p.gestor):'';
     s+=`<title>${escXml(p.id+' · '+p.name+gestTip)}</title>`;
-    s+=`<rect class="pmgrip" data-grip="${p.id}" x="${g.x+g.w-7}" y="${g.y}" width="9" height="${g.h}" fill="transparent" style="cursor:ew-resize"/>`;
+    s+=`<rect class="pmgrip" data-grip="${p.id}" data-edge="end" x="${g.x+g.w-7}" y="${g.y}" width="9" height="${g.h}" fill="transparent" style="cursor:ew-resize"/>`;
+    s+=`<rect class="pmgrip" data-grip="${p.id}" data-edge="start" x="${g.x-2}" y="${g.y}" width="9" height="${g.h}" fill="transparent" style="cursor:ew-resize"/>`;
     s+=`</g>`;
 
     /* milníky = návěstidla na hranicích */
@@ -3090,6 +3097,23 @@ function renderPMap(){
   $('#pm-count').textContent=`${pmAll().length} procesů`;
   pmRenderInspector();
   pmKeepView(host,rBefore);
+  pmRevealSel(host,b);
+}
+/* Vysunutý pás karet ukrojí plátnu horní část a právě vybraný proces se
+   může schovat za ním. Pohled se proto po změně výběru dorovná jen o tolik,
+   aby byl vybraný objekt vidět — a jen jednou, ne při každém překreslení. */
+function pmRevealSel(host,b){
+  if(PM.print||PM.gallery)return;
+  const id=PM.sel.length===1?PM.sel[0]:null;
+  if(!id){PM.revealed=null;return}
+  if(PM.revealed===id)return;
+  PM.revealed=id;
+  const p=pmById(id); if(!p)return;
+  const g=pmGeom(p,b), head=pmHeadH(), top=host.scrollTop, h=host.clientHeight;
+  if(!h)return;
+  const pad=12;
+  if(g.y-pad<top+head)host.scrollTop=Math.max(0,g.y-head-pad);
+  else if(g.y+g.h+pad>top+h)host.scrollTop=g.y+g.h+pad-h;
 }
 /* Dorovná posun plátna způsobený změnou výšky pásu karet, aby obsah
    zůstal očima i kurzorem na stejném místě. V tisku a v rozcestníku
@@ -3236,11 +3260,26 @@ function pmGrowSpan(side){
   if(dpx)host.scrollLeft+=dpx;
   return dpx;
 }
+/* Svislý protějšek: nad prvním procesem přibudou prázdné řádky, aby se
+   dalo posunout i nad něj. Pohled se o přidaný kus dorovná, aby obsah
+   zůstal stát. Vrací, o kolik pixelů obsah sjel dolů. */
+let pmGrowingY=false;
+function pmGrowTop(){
+  const host=$('#pm-canvas');
+  if(!host||pmGrowingY||PM.print||PM.gallery||!host.querySelector('svg'))return 0;
+  const add=3, dpx=add*pmRowH();
+  PM.padTop=(PM.padTop||0)+add;
+  pmGrowingY=true;
+  try{renderPMap()}finally{pmGrowingY=false}
+  host.scrollTop+=dpx;
+  return dpx;
+}
 /* Kolečko či trackpad do strany: čas přibude jen tehdy, když se uživatel
    opravdu snaží jet za kraj. Pouhé dorolování ke kraji plátno neroztahuje —
    jinak by se obsah pod rukou posouval i při obyčejném návratu na začátek. */
 function pmGrowSpanOnWheel(e){
   const host=$('#pm-canvas'); if(!host)return;
+  if(e.deltaY<0&&!e.shiftKey&&host.scrollTop<=0){pmGrowTop();return}
   const dx=e.deltaX||(e.shiftKey?e.deltaY:0); if(!dx)return;
   const max=host.scrollWidth-host.clientWidth;
   if(dx<0&&host.scrollLeft<=0)pmGrowSpan('left');
@@ -3287,7 +3326,7 @@ function pmZoomReset(){PM.zoom=1;PM.rowZoom=1;renderPMap()}
 function pmFitAll(){
   const host=$('#pm-canvas'); if(!host)return;
   const list=pmVisible(); if(!list.length){toast('Plátno je prázdné');return}
-  PM.padL=PM.padR=0;                       // přizpůsobit se má obsahu, ne dorolovanému prázdnu
+  PM.padL=PM.padR=0; PM.padTop=1;          // přizpůsobit se má obsahu, ne dorolovanému prázdnu
   const b=pmBounds(list);
   const days=(b.t1-b.t0)/PMDAY;
   const needPx=days*PM_PXD[PM.unit];
@@ -3760,8 +3799,15 @@ function pmRibbonField(p,k){
     const attrs=f.people?` data-prev="${esc(v)}" onchange="pmRibPerson(this,'${k}')"`:` onchange="pmRibSet('${k}',this.value)"`;
     input=`<select${attrs}>${opts.map(([val,lab])=>`<option value="${esc(val)}" ${String(val)===String(v)?'selected':''}>${esc(lab)}</option>`).join('')}${extra}</select>`;
   }
-  else{const mm=f.t==='date'&&f.min?` min="${f.min}" max="${f.max}"`:'';
-    input=`<input type="${f.t==='number'?'number':f.t==='date'?'date':'text'}" data-k="${k}" value="${esc(v)}" onkeydown="pmRibKey(event)" onchange="pmRibSet('${k}',this.value)"${mm}>`;}
+  else if(f.t==='date'){
+    /* Datum se zapisuje až celé. Prohlížeč hlásí změnu po každé číslici,
+       takže rozepsaný rok („2“ → rok 0002) by proces rovnou odstěhoval na
+       začátek osy a druhý termín by se podle něj zbytečně srovnal. */
+    const mm=f.min?` min="${f.min}" max="${f.max}"`:'';
+    input=`<input type="date" data-k="${k}" value="${esc(v)}" onkeydown="pmRibKey(event)"
+      onchange="pmRibDate(this,'${k}')" onblur="pmRibDate(this,'${k}',true)"${mm}>`;
+  }
+  else{input=`<input type="${f.t==='number'?'number':'text'}" data-k="${k}" value="${esc(v)}" onkeydown="pmRibKey(event)" onchange="pmRibSet('${k}',this.value)">`;}
   return `<div class="${cls}"><label>${f.l}</label>${input}</div>`;
 }
 /* Vazby se ukládají jen u následníka (pole `links` = na koho navazuji),
@@ -3784,6 +3830,17 @@ function pmGoTo(id){
   if(!pmById(id))return;
   PM.sel=[id]; PM.link=null; renderPMap();
 }
+/* Klik kamkoli jinam (typicky na plátno) překreslí pás karet a rozepsané
+   pole by zmizelo dřív, než prohlížeč stihne ohlásit změnu — úprava názvu
+   by se ztratila. Proto se rozepsané pole potvrdí ještě před tím. */
+function pmRibCommit(){
+  const el=document.activeElement;
+  if(el&&el.closest&&el.closest('#pm-inspector')&&/^(INPUT|TEXTAREA)$/.test(el.tagName))el.blur();
+}
+document.addEventListener('pointerdown',e=>{
+  if(e.target.closest&&e.target.closest('#pm-inspector'))return;
+  pmRibCommit();
+},true);
 /* Enter v poli pásu karet hodnotu jen potvrdí. Kurzor musí zůstat v panelu:
    po překreslení pásu by spadl na plátno, kde Delete maže proces a šipky
    s ním hýbou — a smazaný proces vzápětí schová celý panel. */
@@ -3877,6 +3934,19 @@ function pmToggleLinkFocus(id){
   PM.linkFocus=PM.linkFocus===id?null:id;
   renderPMap();
 }
+/* Datum bere jen hotové a smysluplné: rozepsaný rok se ignoruje a proces
+   se pohne až ve chvíli, kdy je datum kompletní. */
+function pmRibDate(el,k,onBlur){
+  const v=el.value;
+  const p=pmById(pmPrimary());
+  if(!v){ if(onBlur&&p)el.value=p[k]||''; return }
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(v)||+v.slice(0,4)<1900){
+    if(onBlur&&p)el.value=p[k]||'';     // rozepsané datum se při odchodu vrátí
+    return;
+  }
+  if(p&&p[k]===pmClampDate(v))return;   // beze změny nepřekreslujeme
+  pmRibSet(k,v);
+}
 function pmRibSet(k,v){
   const p=pmById(pmPrimary()); if(!p)return;
   /* Zařazení pod vlastního potomka by uzavřelo kruh, hlubší zanoření
@@ -3909,18 +3979,42 @@ function pmRibPerson(sel,k){
   if(sel.value===NEW_PERSON){addPersonInline(sel,code=>pmRibSet(k,code));return}
   sel.dataset.prev=sel.value; pmRibSet(k,sel.value);
 }
-/* Podproces — zanoření je povolené do tří úrovní. */
+/* Podproces — zanoření je povolené do tří úrovní. Nevzniká naslepo dole
+   na plátně: tlačítko jen zapne vkládání a proces se založí tam, kam se
+   klikne, tedy v místě, kde se uživatel zrovna dívá. */
 function pmNewSub(id){
   const p=pmById(id); if(!p)return;
   if(pmDepth(p)>=PM_MAX_DEPTH-1){toast('Zanoření je omezené na tři úrovně');return}
-  const list=pmAll();
+  PM.placing=id; renderPMap();
+  toast('Klikněte na plátno, kam podproces patří — Esc vkládání zruší');
+}
+/* Řádek pro nový objekt co nejblíž místu kliknutí: nejdřív ten zvolený,
+   pak ten hned pod ním, a když je v daném čase obsazený i ten, vloží se
+   pod klik nový prázdný řádek a vše níž se posune o řádek dolů. Objekt
+   tak vznikne tam, kam uživatel ukázal, a nikdy nikoho nepřekryje. */
+function pmFreeLane(lane,start,end){
+  const a=pmD(start), b=pmD(end);
+  const volny=l=>l>=0&&!pmAll().some(q=>(q.lane||0)===l&&pmD(q.start)<b&&a<pmD(q.end));
+  const base=Math.max(0,lane);
+  if(volny(base))return base;
+  if(volny(base+1))return base+1;
+  pmAll().forEach(q=>{if((q.lane||0)>=base+1){q.lane=(q.lane||0)+1;pmQueue(q)}});
+  return base+1;
+}
+function pmPlaceSub(parId,at){
+  const par=pmById(parId); if(!par)return;
+  if(pmDepth(par)>=PM_MAX_DEPTH-1){toast('Zanoření je omezené na tři úrovně');return}
   histPush();
-  const lane=(list.length?Math.max(...list.map(x=>x.lane||0)):0)+1;
-  const o={id:nextId('process'),scope:p.scope,name:pmJoinName(pmNextNum(p.id,p.scope),pmNameOf(p)+' — dílčí krok'),desc:'',
-    gestor:p.gestor,cogestors:[],affected:[],parent:p.id,state:p.state,status:'idle',
-    start:p.start,end:p.end,lane,links:[],msStart:[],msEnd:[],collapsed:false};
+  const start=pmClampDate(at?pmISO(at.day):par.start);
+  const dur=Math.max(10,Math.round(pmDays(par.start,par.end)/3));
+  const end=pmClampDate(pmAdd(start,dur));
+  const lane=pmFreeLane(at?at.lane:(par.lane||0)+1,start,end);
+  const o={id:nextId('process'),scope:par.scope,
+    name:pmJoinName(pmNextNum(par.id,par.scope),pmNameOf(par)+' — dílčí krok'),desc:'',
+    gestor:par.gestor,cogestors:[],affected:[],parent:par.id,state:par.state,status:'idle',
+    start,end,lane,links:[],msStart:[],msEnd:[],collapsed:false};
   processes.push(o);
-  p.collapsed=false; pmQueue(p);
+  par.collapsed=false; pmQueue(par);
   PM.sel=[o.id]; PM.tab='zaklad';
   persist('process',o,processes.length-1);
   renderPMap(); toast('Podproces přidán — upravte mu název a termíny');
@@ -3978,6 +4072,12 @@ function pmLocal(cx,cy){
 }
 function pmPointerDown(e){
   const host=$('#pm-canvas');
+  if(PM.placing){                       // probíhá vkládání podprocesu
+    e.preventDefault();
+    const par=PM.placing; PM.placing=null;
+    pmPlaceSub(par,pmPointToPlacement(e.clientX,e.clientY));
+    return;
+  }
   const tog=e.target.closest('.pmtog');
   if(tog){const p=pmById(tog.dataset.tog);if(p){p.collapsed=!p.collapsed;pmQueue(p);renderPMap()}return}
   const gest=e.target.closest('.pmgest');
@@ -4048,7 +4148,8 @@ function pmPointerDown(e){
   else PM.sel=PM.sel.filter(x=>x!==p.id).concat(p.id);
 
   if(!edit){renderPMap();return}
-  const resize=!!e.target.closest('.pmgrip');
+  const grip=e.target.closest('.pmgrip');
+  const resize=grip?(grip.dataset.edge||'end'):null;   // 'start' = tažení začátku, 'end' = konce
   const group=resize?[p]:pmSelProcs();
   pmDrag={p,resize,x:e.clientX,y:e.clientY,moved:false,
           orig:group.map(q=>({q,start:q.start,end:q.end,lane:q.lane||0}))};
@@ -4097,6 +4198,7 @@ function pmPointerMove(e){
     const want=pmPan.sl-(e.clientX-pmPan.x), max=host.scrollWidth-host.clientWidth;
     if(want<-4)pmPan.sl+=pmGrowSpan('left');
     else if(want>max+4)pmGrowSpan('right');
+    if(pmPan.st-(e.clientY-pmPan.y)<-4)pmPan.st+=pmGrowTop();
     host.scrollLeft=pmPan.sl-(e.clientX-pmPan.x);
     host.scrollTop=pmPan.st-(e.clientY-pmPan.y);
     return;
@@ -4133,17 +4235,30 @@ function pmPointerMove(e){
 
   if(pmDrag.resize){
     const o=pmDrag.orig[0], dur=pmDays(o.start,o.end);
-    o.q.end=pmClampDate(pmAdd(o.end,Math.max(dd,1-dur)));
+    /* posouvá se jen tažená hrana, druhá zůstává — a proces nesmí zmizet */
+    if(pmDrag.resize==='start')o.q.start=pmClampDate(pmAdd(o.start,Math.min(dd,dur-1)));
+    else o.q.end=pmClampDate(pmAdd(o.end,Math.max(dd,1-dur)));
   } else {
     pmDrag.orig.forEach(o=>{
       o.q.start=pmClampDate(pmAdd(o.start,dd));
       o.q.end=pmClampDate(pmAdd(o.end,dd));
-      o.q.lane=Math.max(0,o.lane+dl);
+      /* nad první proces se smí jen do prázdných řádků, které jsou nahoře */
+      o.q.lane=Math.max(-pmPadTop(),o.lane+dl);
     });
   }
   if(!pmDrag.raf)pmDrag.raf=requestAnimationFrame(()=>{pmDrag&&(pmDrag.raf=0);PM.panelLock=true;renderPMap();PM.panelLock=false});
 }
 
+/* Proces vytažený nad první řádek dostane zápornou pozici — celá varianta
+   se proto posune o tolik řádků dolů a o stejný kus ubude prázdné místo
+   nahoře, takže se na plátně nic viditelně nepohne. */
+function pmNormalizeLanes(){
+  const list=pmAll();
+  const min=list.length?Math.min(...list.map(x=>x.lane||0)):0;
+  if(min>=0)return;
+  list.forEach(x=>{x.lane=(x.lane||0)-min;pmQueue(x)});
+  PM.padTop=Math.max(0,(PM.padTop||0)+min);
+}
 /* Táhnu-li proces (nebo gumičku) k okraji plátna, plátno se samo rozjede
    za kurzorem — jinak by šlo posunout proces jen po viditelnou hranu.
    O ujetý kus se posune i výchozí bod tažení, aby proces zůstal pod myší. */
@@ -4196,6 +4311,7 @@ function pmPointerUp(){
       if(q.scope==='map')q.mapEdited=true;
       pmSyncMilestones(q); pmQueue(q);
     });
+    pmNormalizeLanes();
     computePositions();
     toast(ONLINE?'Uloženo · Supabase':'Změněno · DEMO (neuloží se)');
   }
@@ -4464,7 +4580,7 @@ function pmPointToPlacement(clientX,clientY){
   const host=$('#pm-canvas'), svg=host&&host.querySelector('svg'); if(!svg)return null;
   const rect=svg.getBoundingClientRect();
   const day=pmDayAt(clientX);
-  const lane=Math.max(0,Math.round((clientY-rect.top-pmHeadH())/pmRowH()));
+  const lane=Math.max(0,Math.round((clientY-rect.top-pmHeadH())/pmRowH())-pmPadTop());
   return day==null?null:{day,lane};
 }
 function pmNewProcess(){
@@ -5211,11 +5327,11 @@ function pmCenterToday(){
   host.scrollLeft=Math.min(maxScroll,Math.max(0,todayX-host.clientWidth/2));
 }
 function pmOpenConcept(id){
-  PM.gallery=false; PM.mode='concept'; PM.conceptId=id; PM.sel=[]; PM.link=null; PM.extra=0; PM.padL=PM.padR=0;
+  PM.gallery=false; PM.mode='concept'; PM.conceptId=id; PM.sel=[]; PM.link=null; PM.extra=0; PM.padL=PM.padR=0; PM.padTop=1;
   pmFitHeight(); pmCenterToday();
 }
 function pmOpenMap(){
-  PM.gallery=false; PM.mode='map'; PM.sel=[]; PM.link=null; PM.extra=0; PM.padL=PM.padR=0;
+  PM.gallery=false; PM.mode='map'; PM.sel=[]; PM.link=null; PM.extra=0; PM.padL=PM.padR=0; PM.padTop=1;
   pmFitHeight(); pmCenterToday();
 }
 function pmRenderGallery(){
@@ -6062,6 +6178,7 @@ function pmNormalize(){
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){
   closeDrawer();closeModal();closeEditor();closeLogin();closeNewPassword();closePeople();
   if($('#pm-helpbox')&&$('#pm-helpbox').classList.contains('on'))pmToggleHelp(false);
+  else if(PM.placing){PM.placing=null;renderPMap();toast('Vkládání podprocesu zrušeno')}
   else if(PM.splitMode)pmSetSplit(false);
   else if(PM.sel.length||PM.link){PM.sel=[];PM.link=null;renderPMap()}
   if(document.body.classList.contains('pm-full'))pmToggleFull();
