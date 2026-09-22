@@ -658,6 +658,24 @@ body.pm-full #view-pmap.active{padding:10px 14px 12px}
 #printdoc.mapmode .mh span{font-size:9.5px;color:#555}
 #printdoc.mapmode .mapbox{border:1px solid #bbb;padding:2px;background:#fff;max-width:none}
 #printdoc.mapmode .mapbox svg{width:100%;height:auto;display:block}
+#printdoc.mapmode .lnk{margin-top:5px;break-inside:avoid}
+#printdoc.mapmode .lnk .lh{font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:#555;
+  border-bottom:1px solid #bbb;padding-bottom:2px;margin-bottom:3px}
+#printdoc.mapmode .lnone{font-size:9px;color:#888;font-style:italic}
+#printdoc.mapmode table.lt{width:100%;border-collapse:collapse;font-size:8.6px;line-height:1.25}
+#printdoc.mapmode table.lt th{text-align:left;font-weight:600;color:#555;font-size:7.6px;
+  letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid #999;padding:1px 6px 1px 0}
+#printdoc.mapmode table.lt td{padding:1px 6px 1px 0;vertical-align:top;border-bottom:1px solid #eee}
+#printdoc.mapmode table.lt td{color:#111}
+#printdoc.mapmode table.lt td.k{white-space:nowrap;font-weight:700;width:7%;color:#000}
+#printdoc.mapmode table.lt td.s{white-space:nowrap;width:14%;color:#333}
+#printdoc.mapmode table.lt td.s i{color:#777;font-style:normal}
+#printdoc.mapmode table.lt td.c{width:34%}
+#printdoc.mapmode table.lt td.p{color:#333}
+#printdoc.mapmode table.lt tr.succ td.s{color:#0b5f36}
+#printdoc.mapmode table.lt tr.pred td.s{color:#8a3b10}
+#printdoc.mapmode .lcols{column-count:2;column-gap:10mm}
+#printdoc.mapmode .lcols .lnk{margin:0 0 6mm}
 .tplopt{display:flex;flex-direction:column;gap:3px;align-items:flex-start;width:100%;text-align:left;
   background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:11px 14px;margin-bottom:9px;cursor:pointer}
 .tplopt:hover{border-color:var(--accent)}
@@ -870,6 +888,8 @@ body.pm-full .pm-canvas{height:var(--pm-h,60vh)}
       <input type="checkbox" id="mex-light" onchange="pmMapPreview()" style="width:auto"> Světlé barvy pro tisk (vypnuto = jako na obrazovce)</label>
     <label style="display:flex;align-items:center;gap:9px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text2);margin-top:8px">
       <input type="checkbox" id="mex-roots" onchange="pmMapPreview()" style="width:auto"> Jen hlavní procesy, bez podprocesů</label>
+    <label style="display:flex;align-items:center;gap:9px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text2);margin-top:8px">
+      <input type="checkbox" id="mex-links" onchange="pmMapPreview()" style="width:auto"> Pod schématem vypsat vazby vedoucí mimo fázi</label>
     <div class="mex-info" id="mex-info"></div>
     <div class="m-actions">
       <button class="btn ghost" onclick="closeMapExp()">Zrušit</button>
@@ -2944,7 +2964,7 @@ function renderPMap(){
       if(!PM.print){
         const popis=(a?a.name:aId)+' → '+p.name
           +(l.type?' · '+l.type+(+l.lag?(l.lag>0?' +':' ')+l.lag+' d':''):'')
-          +(l.subj?'\n'+l.subj:'');
+          +(l.subj?'\n'+l.subj:'')+(l.note?'\n'+l.note:'');
         s+=`<path class="pmlink" data-lk="${lkId}" data-to="${p.id}" data-from="${aId}"
             d="${d}" fill="none" stroke="transparent" stroke-width="11" style="cursor:pointer"><title>${escXml(popis)}</title></path>`;
       }
@@ -3864,7 +3884,7 @@ function pmSuccHTML(p){
     const l=(q.links||[]).find(x=>x.from===p.id)||{};
     const typ=(l.type||'neutrální')+(+l.lag?(l.lag>0?' +':' ')+l.lag+' d':'');
     return `<div class="pm-succ-row" title="Otevřít tento proces" onclick="pmGoTo('${q.id}')">
-      <span class="t">${escXml(typ)} →</span><span class="n">${escXml(q.name)}${l.subj?' · <i>'+escXml(l.subj)+'</i>':''}</span>
+      <span class="t">${escXml(typ)} →</span><span class="n">${escXml(q.name)}${l.subj?' · <i>'+escXml(l.subj)+'</i>':''}${l.note?' · '+escXml(l.note):''}</span>
       ${pmViolated(l,q)?'<span class="bad">porušená</span>':''}</div>`;
   }).join('');
   return `<div class="pm-succ"><div class="pm-succ-h">Navazující procesy (${succ.length})</div>
@@ -5398,7 +5418,7 @@ function pmTplTopUp(key){
       const kk=typeof d==='string'?d:d.k, from=tplId[kk];
       if(!from||(!jeNovy&&!novy[from]))return;
       if((o.links||[]).some(l=>l.from===from))return;
-      o.links.push({from:from,type:(d&&d.type)||'',lag:(d&&+d.lag)||0,subj:(d&&d.subj)||''});
+      o.links.push({from:from,type:(d&&d.type)||'',lag:(d&&+d.lag)||0,subj:(d&&d.subj)||'',note:(d&&d.note)||''});
     });
   });
   processes.filter(x=>x.scope===scope).forEach(x=>pmQueue(x));
@@ -5445,7 +5465,7 @@ function pmBuildTemplate(silent,tplIn){
     (t.dep||[]).forEach(d=>{
       const key=typeof d==='string'?d:d.k;
       if(!idMap[key])return;
-      o.links.push({from:idMap[key],type:(d&&d.type)||'',lag:(d&&+d.lag)||0,subj:(d&&d.subj)||''});
+      o.links.push({from:idMap[key],type:(d&&d.type)||'',lag:(d&&+d.lag)||0,subj:(d&&d.subj)||'',note:(d&&d.note)||''});
     });
   });
   processes.filter(x=>x.scope==='concept:'+c.id).forEach(x=>pmQueue(x));
@@ -5816,12 +5836,18 @@ function pmPickPaper(wpx,hpx,minName){
   return {name:nm,pw,ph,scale:Math.min(aw/wmm,ah/hmm),wmm,hmm};
 }
 /* Papír pevného formátu (uživatel jej zvolil v dialogu). */
-function pmFixedPaper(name,wpx,hpx){
+function pmFixedPaper(name,wpx,hpx,rezervaMm){
   const f=PM_PAPERS.find(x=>x[0]===name)||PM_PAPERS[1];
-  const [nm,pw,ph]=f, aw=pw-2*PM_MARGIN, ah=ph-2*PM_MARGIN-12;
+  const [nm,pw,ph]=f, aw=pw-2*PM_MARGIN;
+  const cela=ph-2*PM_MARGIN-12;
+  /* seznam vazeb pod schématem si ukrojí kus listu — nejvýš polovinu,
+     aby schéma zůstalo čitelné */
+  const ah=Math.max(20,cela-Math.min(+rezervaMm||0,cela*0.5));
   const wmm=wpx*PX2MM, hmm=hpx*PX2MM;
   return {name:nm,pw,ph,scale:Math.min(1,aw/wmm,ah/hmm),wmm,hmm};
 }
+/* Odhad výšky seznamu: záhlaví a řádek tabulky v milimetrech. */
+const pmLinkReserveMm=n=>n?9+n*3.4:6;
 
 /* Dělení osy se volí podle šířky, která je na papíře k dispozici: bere se
    nejjemnější dělení, které se tam ještě vejde bez zmenšování. Rozsah osy
@@ -5894,7 +5920,52 @@ function pmMapSVG(o){
 }
 
 /* ---- dialog s parametry ---- */
-const MEX={split:'one',paper:'auto',unit:'auto',light:true,rootsOnly:false,autoSplit:true};
+const MEX={split:'one',paper:'auto',unit:'auto',light:true,rootsOnly:false,links:true,autoSplit:true};
+/* Ve schématu je vidět jen tvar vazby, ne co po ní teče. Seznam pod schématem
+   proto vypisuje vazby, které z fáze vedou ven — u každé směr, protistranu,
+   předmět i popis. Vazby uvnitř fáze seznam neopakuje, ty schéma ukazuje samo. */
+function pmLinkRows(rootId,scope){
+  const root=pmById(rootId); if(!root)return [];
+  const rodina={}; [root].concat(pmDescOf(rootId)).forEach(x=>rodina[x.id]=1);
+  const list=processes.filter(x=>x.scope===scope);
+  const radky=[];
+  const pridej=(doma,smer,ciz,l)=>{
+    if(!doma||!ciz)return;
+    radky.push({doma:doma,smer:smer,ciz:ciz,
+      typ:(l.type||'')+(+l.lag?(l.lag>0?' +':' ')+l.lag+' d':''),
+      subj:l.subj||'',note:l.note||''});
+  };
+  list.forEach(q=>{
+    (q.links||[]).forEach(l=>{
+      const a=pmById(l.from); if(!a)return;
+      const qDoma=!!rodina[q.id], aDoma=!!rodina[a.id];
+      if(qDoma===aDoma)return;               // uvnitř fáze nebo úplně mimo
+      if(qDoma)pridej(q,'pred',a,l);         // doma je následník → protistrana je předchůdce
+      else pridej(a,'succ',q,l);             // doma je předchůdce → protistrana je následník
+    });
+  });
+  radky.sort((x,y)=>pmNumCmp(x.doma,y.doma)||(x.smer===y.smer?pmNumCmp(x.ciz,y.ciz):(x.smer==='pred'?-1:1)));
+  return radky;
+}
+function pmLinkListHTML(rootId,scope,nadpis){
+  const radky=pmLinkRows(rootId,scope);
+  const hlava=`<div class="lh">${escXml(nadpis||'Vazby mimo tuto fázi')}</div>`;
+  if(!radky.length)return `<div class="lnk">${hlava}<div class="lnone">Žádná vazba nevede mimo tuto fázi.</div></div>`;
+  let predchozi='';
+  const tr=radky.map(r=>{
+    const klic=pmNumLabel(r.doma)||r.doma.name;
+    const krok=klic===predchozi?'':escXml(klic);
+    predchozi=klic;
+    const smer=r.smer==='pred'?'← předchůdce':'→ následník';
+    const text=[r.subj,r.note].filter(Boolean).map(escXml).join(' · ');
+    return `<tr class="${r.smer}"><td class="k">${krok}</td>
+      <td class="s">${smer}${r.typ?' <i>'+escXml(r.typ)+'</i>':''}</td>
+      <td class="c">${escXml(r.ciz.name)}</td>
+      <td class="p">${text||'<span class="miss">—</span>'}</td></tr>`;
+  }).join('');
+  return `<div class="lnk">${hlava}<table class="lt">
+    <tr><th>Krok</th><th>Směr</th><th>Protistrana</th><th>Předmět vazby a popis</th></tr>${tr}</table></div>`;
+}
 /* Mobilní prohlížeče (tisk ze sdílecí nabídky do PDF) obvykle ignorují
    vlastní @page rozměr velkého listu a vlastní tiskový engine nahradí
    vlastním — velký list se pak roztříští do několika stránek, z nichž
@@ -5907,6 +5978,7 @@ function pmMapDialog(){
   if(MEX.autoSplit&&MEX.split==='one'&&pmIsMobile())MEX.split='a4';
   ['split','paper','unit'].forEach(k=>{const el=$('#mex-'+k);if(el)el.value=MEX[k]});
   $('#mex-light').checked=MEX.light; $('#mex-roots').checked=MEX.rootsOnly;
+  const lb=$('#mex-links'); if(lb)lb.checked=MEX.links;
   $('#mapexp').classList.add('open');
   pmMapPreview();
 }
@@ -5915,6 +5987,7 @@ function pmMapRead(){
   MEX.split=$('#mex-split').value; MEX.paper=$('#mex-paper').value;
   MEX.unit=$('#mex-unit').value; MEX.light=$('#mex-light').checked;
   MEX.rootsOnly=$('#mex-roots').checked;
+  const lb=$('#mex-links'); if(lb)MEX.links=lb.checked;
   $('#mex-paper').disabled=MEX.split!=='one';
   $('#mex-roots').disabled=MEX.split!=='one';
 }
@@ -5931,19 +6004,20 @@ function pmMapPreview(){
     const pct=Math.round(pap.scale*100);
     out.innerHTML=`<b>${pap.name} na šířku</b> · ${m.pocet} procesů · mapa
       ${Math.round(pap.wmm)} × ${Math.round(pap.hmm)} mm · měřítko ${pct} %
-      · dělení osy po ${m.unit}
+      · dělení osy po ${m.unit}${MEX.links?' · seznam vazeb na samostatném listu':''}
       ${pct<70?'<br><span class="warn">Při tomto měřítku bude písmo drobné — zvolte větší formát nebo rozdělení po fázích.</span>':''}
       ${pmIsMobile()?'<br><span class="warn">Na mobilu tisk do PDF velký formát papíru často nerespektuje a mapu rozdělí do několika prázdných stránek — spolehlivě funguje jen rozdělení po fázích.</span>':''}`;
   } else {
     const pap=MEX.split==='a4'?'A4':'A3';
-    const roots=processes.filter(x=>x.scope===pmScopeOf(c.id)&&!x.parent);
+    const sc=pmScopeOf(c.id);
+    const roots=processes.filter(x=>x.scope===sc&&!x.parent);
     let nad=0;
     roots.forEach(r=>{
       const m=pmMapSVG({concept:c.id,solo:r.id,unit:MEX.unit,light:MEX.light,availMm:pmAvailMm(pap)});
-      if(pmFixedPaper(pap,m.w,m.h).scale<0.7)nad++;
+      if(pmFixedPaper(pap,m.w,m.h,MEX.links?pmLinkReserveMm(pmLinkRows(r.id,sc).length):0).scale<0.7)nad++;
     });
     out.innerHTML=`<b>${roots.length} listů ${pap} na šířku</b> — na každém jeden hlavní proces
-      se svými podprocesy${nad?`<br><span class="warn">${nad} z nich se na ${pap} vejde jen ve zmenšení pod 70 % — zvažte ${pap==='A4'?'A3':'jeden velký list'}.</span>`:''}`;
+      se svými podprocesy${MEX.links?', pod schématem seznam vazeb vedoucích mimo fázi':''}${nad?`<br><span class="warn">${nad} z nich se na ${pap} vejde jen ve zmenšení pod 70 % — zvažte ${pap==='A4'?'A3':'jeden velký list'}.</span>`:''}`;
   }
 }
 function pmMapRun(){
@@ -5963,17 +6037,26 @@ function pmMapRun(){
     W=pap.pw; H=pap.ph;
     strany.push(`<section class="page mappage">${zahlavi('Procesní mapa varianty',m,pap)}
       <div class="mapbox" style="width:${(pap.wmm*pap.scale).toFixed(1)}mm">${m.svg}</div></section>`);
+    if(MEX.links){
+      const sc=pmScopeOf(c.id);
+      const rs=processes.filter(x=>x.scope===sc&&!x.parent).sort(pmNumCmp);
+      const bloky=rs.map(r=>pmLinkListHTML(r.id,sc,r.name+' — vazby mimo tuto fázi')).join('');
+      if(bloky)strany.push(`<section class="page mappage">${zahlavi('Vazby mezi fázemi',m,pap)}
+        <div class="lcols">${bloky}</div></section>`);
+    }
   } else {
     const papName=MEX.split==='a4'?'A4':'A3';
     const roots=processes.filter(x=>x.scope===pmScopeOf(c.id)&&!x.parent)
       .sort(pmNumCmp);
     if(!roots.length){toast('Varianta nemá žádné hlavní procesy');return}
     const f=PM_PAPERS.find(x=>x[0]===papName); W=f[1]; H=f[2];
+    const sc=pmScopeOf(c.id);
     roots.forEach(r=>{
       const m=pmMapSVG({concept:c.id,solo:r.id,unit:MEX.unit,light:MEX.light,availMm:pmAvailMm(papName)});
-      const pap=pmFixedPaper(papName,m.w,m.h);
+      const pap=pmFixedPaper(papName,m.w,m.h,MEX.links?pmLinkReserveMm(pmLinkRows(r.id,sc).length):0);
       strany.push(`<section class="page mappage">${zahlavi(r.name,m,pap)}
-        <div class="mapbox" style="width:${(pap.wmm*pap.scale).toFixed(1)}mm">${m.svg}</div></section>`);
+        <div class="mapbox" style="width:${(pap.wmm*pap.scale).toFixed(1)}mm">${m.svg}</div>
+        ${MEX.links?pmLinkListHTML(r.id,sc):''}</section>`);
     });
   }
   /* velikost papíru se do @page vkládá až teď — formát závisí na mapě */
@@ -6250,7 +6333,9 @@ function pmSubRender(k){
         <button type="button" class="x" onclick="subCtx.obj.links.splice(${i},1);pmSubRender('links');subFire();pmRibRefresh()">✕</button>
         ${l.from?'':'<span class="pm-linkwarn" title="Bez vybraného předchůdce vazba neexistuje — na plátně se nekreslí a u druhého procesu se neukáže">nedokončená</span>'}
         <input class="pm-subj" value="${esc(l.subj||'')}" placeholder="co je výstupem předchůdce, tedy vstupem pro tento proces"
-          oninput="subCtx.obj.links[${i}].subj=this.value;subFire()"></div>`).join('');
+          oninput="subCtx.obj.links[${i}].subj=this.value;subFire()">
+        <input class="pm-subj" value="${esc(l.note||'')}" placeholder="popis vazby — poznámka, podmínka, odkaz na předpis"
+          oninput="subCtx.obj.links[${i}].note=this.value;subFire()"></div>`).join('');
     /* Nová vazba se do procesu nezapíše hned — nejdřív se vybere protistrana
        a teprve tlačítko ji potvrdí. Vazba jde založit na obě strany. */
     const d=subCtx.draft;
@@ -6273,7 +6358,9 @@ function pmSubRender(k){
           <button type="button" class="x" title="Zrušit přidávání" onclick="pmLinkDraft(null)">✕</button>
           ${bad?`<span class="pm-linkwarn">${esc(bad)}</span>`:''}
           <input class="pm-subj" value="${esc(d.subj||'')}" placeholder="co je výstupem předchůdce, tedy vstupem pro následníka"
-            oninput="pmLinkDraftSet('subj',this.value)"></div></div>`;
+            oninput="pmLinkDraftSet('subj',this.value)">
+          <input class="pm-subj" value="${esc(d.note||'')}" placeholder="popis vazby — poznámka, podmínka, odkaz na předpis"
+            oninput="pmLinkDraftSet('note',this.value)"></div></div>`;
     } else {
       h+=`<div class="pm-subrow">
         <button type="button" class="pm-addbtn" onclick="pmLinkDraft('pred')">＋ Vazba na předchůdce</button>
@@ -6316,7 +6403,7 @@ function pmLinkBad(o,v,skipIdx){
    navazuje na tenhle (vazba se pak uloží u něj, protože se drží u následníka). */
 function pmLinkDraft(dir){
   if(!subCtx)return;
-  subCtx.draft=dir?{from:'',type:'',lag:0,subj:'',q:'',dir:dir}:null;
+  subCtx.draft=dir?{from:'',type:'',lag:0,subj:'',note:'',q:'',dir:dir}:null;
   pmSubRender('links');
 }
 /* Nabídka protistran — počítá se zvlášť, aby se při psaní dala přepsat
@@ -6368,7 +6455,7 @@ function pmLinkAdd(){
   const o=subCtx.obj, d=subCtx.draft;
   const bad=pmDraftBad(o,d);
   if(bad){toast(bad);return}
-  const zapis={type:d.type||'',lag:+d.lag||0,subj:(d.subj||'').trim()};
+  const zapis={type:d.type||'',lag:+d.lag||0,subj:(d.subj||'').trim(),note:(d.note||'').trim()};
   if(d.dir==='succ'){
     /* vazba se ukládá u následníka, takže do vybraného procesu */
     const t=pmById(d.from);
