@@ -3994,7 +3994,18 @@ function pmRibDate(el,k,onBlur){
     return;
   }
   if(p&&p[k]===pmClampDate(v))return;   // beze změny nepřekreslujeme
+  if(p&&pmDateBad(p,k,pmClampDate(v))){ el.value=p[k]||''; return }
   pmRibSet(k,v);
+}
+/* Termíny se hlídají proti sobě: neplatnou úpravu odmítneme a druhé
+   datum necháme být — dřív se „srovnalo" samo a uživateli zmizel začátek. */
+function pmDateBad(p,k,v){
+  if(!v||(k!=='start'&&k!=='end'))return false;
+  const jiny=k==='start'?p.end:p.start;
+  if(!jiny)return false;
+  if(k==='start'&&v>jiny){toast('Začátek nemůže být po konci — nejdřív posuňte konec');return true}
+  if(k==='end'&&v<jiny){toast('Konec nemůže být dřív než začátek');return true}
+  return false;
 }
 function pmRibSet(k,v){
   const p=pmById(pmPrimary()); if(!p)return;
@@ -4008,13 +4019,14 @@ function pmRibSet(k,v){
       pmRenderInspector(); return;
     }
   }
+  if(k==='start'||k==='end'){
+    v=pmClampDate(v);
+    if(pmDateBad(p,k,v))return;         // druhý termín se kvůli tomuhle nikdy sám neposune
+  }
   histPush();
   if(k==='lane')v=Math.max(0,+v||0);
-  if(k==='start'||k==='end')v=pmClampDate(v);
   if(k==='name')v=pmJoinName(pmNumLabel(p),v);   // číslo drží aplikace, ne pole
   p[k]=v;
-  if(k==='start'&&pmD(p.end)<pmD(p.start))p.end=p.start;
-  if(k==='end'&&pmD(p.end)<pmD(p.start))p.start=p.end;
   if(k==='start'||k==='end')pmSyncMilestones(p);
   if(p.scope==='map')p.mapEdited=true;
   pmQueue(p); computePositions();
@@ -6109,8 +6121,6 @@ function pmSubRender(k){
     if(d){
       const bad=d.from?pmDraftBad(o,d):'';
       const zvoleny=d.from?pmById(d.from):null;
-      const q=pmNorm(d.q);
-      const najdi=q?cand.filter(x=>pmNorm(x.name).indexOf(q)>-1).slice(0,8):cand.slice(0,8);
       const smer=d.dir==='succ'?'následníka':'předchůdce';
       h+=`<div class="pm-draft">
         <div class="pm-draft-h">Nová vazba na ${smer}</div>
@@ -6119,9 +6129,7 @@ function pmSubRender(k){
               <button type="button" class="x" title="Vybrat jiný" onclick="pmLinkDraftSet('from','')">✕</button></div>`
           : `<input class="pm-search" placeholder="hledejte podle čísla nebo názvu — např. „2.1“ nebo „laborka“"
                value="${esc(d.q||'')}" oninput="pmLinkDraftSet('q',this.value)">
-             <div class="pm-opts">${najdi.length
-               ? najdi.map(x=>`<button type="button" class="pm-opt" onclick="pmLinkDraftPick('${x.id}')">${escXml(x.name)}</button>`).join('')
-               : '<div class="pm-succ-none">Nic neodpovídá.</div>'}</div>`}
+             <div class="pm-opts">${pmDraftOptsHTML(d)}</div>`}
         <div class="pm-subrow wrap">
           <select style="max-width:150px" onchange="pmLinkDraftSet('type',this.value)">${typOpts(d.type)}</select>
           <input type="number" style="max-width:80px" value="${+d.lag||0}" title="prodleva ve dnech" oninput="pmLinkDraftSet('lag',this.value)">
@@ -6175,10 +6183,29 @@ function pmLinkDraft(dir){
   subCtx.draft=dir?{from:'',type:'',lag:0,subj:'',q:'',dir:dir}:null;
   pmSubRender('links');
 }
+/* Nabídka protistran — počítá se zvlášť, aby se při psaní dala přepsat
+   samotná nabídka a hledací pole zůstalo i s kurzorem na místě. */
+function pmDraftCand(){
+  const o=subCtx&&subCtx.obj; if(!o)return [];
+  return pmByNum(processes.filter(p=>p.scope===o.scope&&p.id!==o.id));
+}
+function pmDraftOptsHTML(d){
+  const q=pmNorm(d.q);
+  const cand=pmDraftCand();
+  const najdi=(q?cand.filter(x=>pmNorm(x.name).indexOf(q)>-1):cand).slice(0,8);
+  return najdi.length
+    ? najdi.map(x=>`<button type="button" class="pm-opt" onclick="pmLinkDraftPick('${x.id}')">${escXml(x.name)}</button>`).join('')
+    : '<div class="pm-succ-none">Nic neodpovídá.</div>';
+}
 function pmLinkDraftSet(k,v){
   if(!subCtx||!subCtx.draft)return;
   subCtx.draft[k]=k==='lag'?(+v||0):v;
-  if(k==='from'||k==='q')pmSubRender('links');
+  if(k==='q'){                    // psaní jen přefiltruje nabídku, pole se nepřekresluje
+    const box=pmSubHost('links')&&pmSubHost('links').querySelector('.pm-opts');
+    if(box)box.innerHTML=pmDraftOptsHTML(subCtx.draft); else pmSubRender('links');
+    return;
+  }
+  if(k==='from')pmSubRender('links');
 }
 /* Přibyla nebo zmizela vazba — překreslí celý pás karet, aby se srovnal
    i seznam navazujících procesů, který stojí mimo editovaný blok. */
