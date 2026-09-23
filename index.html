@@ -778,7 +778,12 @@ body.editing .pmb.dragging{cursor:grabbing}
   font:600 11.5px 'Inter',sans-serif;cursor:pointer;white-space:nowrap}
 .pm-okbtn:disabled{background:var(--panel2);color:var(--text3);cursor:not-allowed}
 .pm-linkwarn{flex:none;font:600 9.5px var(--mono);color:var(--risk);white-space:nowrap}
+.pm-bi{flex:none;display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text2);white-space:nowrap;cursor:pointer}
+.pm-bi input{width:auto;margin:0}
+.pm-rib-body .pm-bi,.pm-subrow .pm-bi{display:inline-flex;margin:0;text-transform:none;letter-spacing:0;font-size:11.5px;color:var(--text2);overflow:visible}
+.pm-rib-body .pm-bi input,.pm-subrow .pm-bi input{width:auto;flex:none;padding:0}
 #pm-rel.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+#pm-orient.on{border-color:var(--accent);color:var(--accent)}
 /* číslo procesu vedle názvu — jen ke čtení, mění ho přečíslování */
 .pm-namerow{display:flex;gap:8px;align-items:center}
 .pm-namerow input{flex:1;min-width:0}
@@ -1269,6 +1274,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       <button class="btn ghost sm ed-only" id="pm-tplvar" onclick="pmTemplateConcept()" title="Založit variantu z připravené šablony — přezkoušení a uvádění ETCS L1 LS do provozu podle T200">＋ Ze šablony</button>
       <button class="btn ghost sm ed-only" id="pm-editvar" onclick="pmEditConcept()" title="Upravit název, osu a T0 této varianty">✎ Varianta</button>
       <button class="btn ghost sm ed-only" onclick="pmNewProcess()" title="Přidat nový proces na volný pruh">＋ Proces</button>
+      <button class="btn ghost sm" id="pm-orient" onclick="pmToggleOrient()" title="Přepne časovou osu mezi vodorovnou a svislou — svisle plyne čas shora dolů a souběžné procesy stojí ve sloupcích">↕ Svislá osa</button>
       <button class="btn ghost sm" id="pm-rel" onclick="pmToggleRel()" title="Zvýrazní všechny souvislosti právě vybraného procesu nebo vazby — vazby i procesy na jejich druhém konci">🔗 Souvislosti</button>
       <button class="btn ghost sm" id="pm-mapexp" onclick="pmMapDialog()" title="Vytisknout nebo uložit mapu se všemi procesy a vazbami do PDF">⎙ Mapa do PDF</button>
       <button class="btn ghost sm ed-only" id="pm-splitbtn" onclick="pmToggleSplit()" title="Zapněte a klikejte na procesy v místě, kde je chcete rozdělit">✂ Rozdělit</button>
@@ -2717,6 +2723,7 @@ function pmBounds(list){
   return {t0:a,t1:b};
 }
 function pmGeom(p,b){
+  if(pmVert())return pmGeomV(p,b);
   const px=pmPx(), rz=PM.rowZoom||1, rowH=pmRowH();
   const x=PM_PAD+(pmD(p.start)-b.t0)/PMDAY*px;
   const w=Math.max(16,(pmD(p.end)-pmD(p.start))/PMDAY*px);
@@ -2825,7 +2832,392 @@ function pmMsOverrun(p){
   });
 }
 
+/* ================= SVISLÁ OSA =================
+   Čas plyne shora dolů a pruhy se stávají sloupci — tak, jak se procesy
+   kreslí na jednání rukou. Kořenový proces, který má podprocesy, se
+   nekreslí jako box, ale jako záhlaví nad sloupci svých potomků a jemně
+   podbarvený pás. Pruh, ve kterém stojí jen takový kořen, se ve svislém
+   pohledu vynechá — vodorovně navržená varianta se tak dá otočit bez
+   prázdných sloupců a svisle navržená zase vodorovně bez překryvů. */
+const PMV_RAIL=78, PMV_PADX=14, PMV_TOP=12, PMV_BANDH=48;
+const pmVert=()=>PM.mode==='map'?!!project.mapVert:!!(pmConcept()&&pmConcept().orient==='v');
+function pmToggleOrient(){
+  if(PM.mode==='map'){project.mapVert=!project.mapVert;persistMeta()}
+  else{
+    const c=pmConcept(); if(!c)return;
+    c.orient=c.orient==='v'?'h':'v'; c.touched=new Date().toISOString();
+    persist('concept',c,concepts.indexOf(c));
+  }
+  PM.padL=PM.padR=0; PM.extra=0; PM.padTop=1; PM.revealed=null; PM._vl=null;
+  pmCenterToday();
+  toast(pmVert()?'Časová osa svisle — čas plyne shora dolů, souběh ve sloupcích':'Časová osa vodorovně');
+}
+/* Rozvržení sloupců: které pruhy jsou sloupcem, kde leží a nad kterými
+   sloupci stojí záhlaví fází. Počítá se při každém vykreslení a drží se
+   v PM._vl, aby z něj četlo i tažení, gumička a vkládání. */
+function pmVLayout(list,availW){
+  const rz=PM.rowZoom||1;
+  const colW=Math.round(200*rz), gap=Math.max(8,Math.round(18*rz)), pitch=colW+gap;
+  const kidsOf={};
+  list.forEach(p=>{if(p.parent)(kidsOf[p.parent]=kidsOf[p.parent]||[]).push(p)});
+  const isBand={};
+  list.forEach(p=>{if(!p.parent&&kidsOf[p.id])isBand[p.id]=true});
+  const boxLanes=new Set(), bandLanes=new Set();
+  list.forEach(p=>(isBand[p.id]?bandLanes:boxLanes).add(p.lane||0));
+  const lanes=list.map(p=>p.lane||0);
+  const minL=Math.min(0,...lanes), maxL=Math.max(0,...lanes);
+  const cols=[];
+  for(let l=minL;l<=maxL;l++)if(boxLanes.has(l)||!bandLanes.has(l))cols.push(l);
+  const content=cols.length;
+  const colX=i=>PMV_RAIL+PMV_PADX+i*pitch;
+  /* zásoba prázdných sloupců vpravo — aby šlo táhnout a zakládat do volna */
+  let spare=0;
+  if(!PM.print)spare=Math.max(2,Math.ceil(((availW||0)-colX(content))/pitch)+1)+(PM.extra||0);
+  let nx=Math.max(maxL,content?cols[content-1]:maxL);
+  for(let i=0;i<spare;i++)cols.push(++nx);
+  const idxOf={}; cols.forEach((l,i)=>idxOf[l]=i);
+  const desc=id=>{const out=[];const w=i=>(kidsOf[i]||[]).forEach(k=>{out.push(k);w(k.id)});w(id);return out};
+  const bands=list.filter(p=>isBand[p.id]).map(r=>{
+    const ix=desc(r.id).filter(k=>!isBand[k.id]).map(k=>idxOf[k.lane||0]).filter(i=>i!=null);
+    return ix.length?{p:r,c0:Math.min(...ix),c1:Math.max(...ix)}:null;
+  }).filter(Boolean).sort((a,b)=>a.c0-b.c0||b.c1-a.c1);
+  const ends=[];
+  bands.forEach(bd=>{let r=ends.findIndex(e=>bd.c0>e);if(r<0){r=ends.length;ends.push(-1)}ends[r]=bd.c1;bd.row=r});
+  const bandOf={}; bands.forEach(bd=>bandOf[bd.p.id]=bd);
+  const head=ends.length?ends.length*PMV_BANDH+8:30;
+  const laneX=l=>{let i=idxOf[l];if(i==null){i=cols.findIndex(c=>c>l);if(i<0)i=cols.length}return colX(i)};
+  return {cols,content,colW,gap,pitch,head,bands,bandOf,isBand,idxOf,colX,laneX,W:colX(cols.length)+PMV_PADX};
+}
+function pmGeomV(p,b){
+  const L=PM._vl||(PM._vl=pmVLayout(pmVisible(),0));
+  const px=pmPx(), rz=PM.rowZoom||1;
+  const y=L.head+PMV_TOP+(pmD(p.start)-b.t0)/PMDAY*px;
+  const h=Math.max(Math.max(12,24*Math.min(1,rz)),(pmD(p.end)-pmD(p.start))/PMDAY*px);
+  const bd=L.bandOf[p.id];
+  if(bd){const x=L.colX(bd.c0);return {x,y,w:L.colX(bd.c1)+L.colW-x,h}}
+  return {x:L.laneX(p.lane||0),y,w:L.colW,h};
+}
+/* posun o dl sloupců — vynechané pruhy kořenů se přeskakují; za krajem
+   vznikají nové pruhy (záporné se po puštění srovnají) */
+function pmVShift(cols,lane,dl){
+  let i=cols.indexOf(lane);
+  if(i<0){i=cols.findIndex(c=>c>lane);if(i<0)i=cols.length}
+  const t=i+dl;
+  if(t<0)return cols[0]+t;
+  if(t>=cols.length)return cols[cols.length-1]+(t-cols.length+1);
+  return cols[t];
+}
+/* zalomení textu do řádků dané šířky (ve znacích) */
+function pmWrap(text,max){
+  const out=[]; let cur='';
+  String(text||'').split(/\s+/).filter(Boolean).forEach(w=>{
+    while(w.length>max){if(cur){out.push(cur);cur=''}out.push(w.slice(0,max-1)+'-');w=w.slice(max-1)}
+    if(!cur)cur=w; else if((cur+' '+w).length<=max)cur+=' '+w; else{out.push(cur);cur=w}
+  });
+  if(cur)out.push(cur);
+  return out;
+}
+const pmEllip=(l,max)=>(l.length>=max?l.slice(0,Math.max(1,max-1)):l)+'…';
+/* Vedení vazby ve svislé ose: od konce předchůdce (spodní hrana) k začátku
+   následníka (horní hrana). Souběžné procesy vedle sebe — typicky vzájemná
+   výměna podkladů — se spojí bokem, rovnou čarou jako ve schématu. */
+function pmLinkRouteV(ga,gb,type,detour,gap){
+  const ov=Math.min(ga.y+ga.h,gb.y+gb.h)-Math.max(ga.y,gb.y);
+  if(!type&&ov>Math.min(ga.h,gb.h)*0.35&&Math.abs(ga.x-gb.x)>4){
+    const y=Math.max(ga.y,gb.y)+ov/2, ltr=ga.x<gb.x;
+    const x1=ltr?ga.x+ga.w:ga.x, x2=ltr?gb.x:gb.x+gb.w;
+    return {d:`M ${x1} ${y} H ${x2}`,mx:(x1+x2)/2,my:y-5,side:true};
+  }
+  if(detour){            // přes jiné procesy téhož sloupce — bokem v mezeře
+    const xo=ga.x+ga.w+gap*0.45, y1=ga.y+ga.h-Math.min(8,ga.h/3), y2=gb.y+Math.min(8,gb.h/3);
+    return {d:`M ${ga.x+ga.w} ${y1} H ${xo} V ${y2} H ${gb.x+gb.w}`,mx:xo+3,my:(y1+y2)/2,anchor:'start'};
+  }
+  const x1=ga.x+ga.w/2, x2=gb.x+gb.w/2;
+  let y1,y2,d1,d2;
+  if(type==='SS'){y1=ga.y;d1=-1;y2=gb.y;d2=1}
+  else if(type==='FF'){y1=ga.y+ga.h;d1=1;y2=gb.y+gb.h;d2=-1}
+  else{y1=ga.y+ga.h;d1=1;y2=gb.y;d2=1}
+  if(Math.abs(x1-x2)<1&&d1===1&&d2===1&&y2>=y1)return {d:`M ${x1} ${y1} V ${y2}`,mx:x1+6,my:(y1+y2)/2+3,anchor:'start'};
+  const k=Math.max(18,Math.min(90,Math.abs(y2-y1)/2+14)), c1=y1+d1*k, c2=y2-d2*k;
+  const bz=(t,a0,a1,a2,a3)=>{const u=1-t;return u*u*u*a0+3*u*u*t*a1+3*u*t*t*a2+t*t*t*a3};
+  return {d:`M ${x1} ${y1} C ${x1} ${c1}, ${x2} ${c2}, ${x2} ${y2}`,mx:bz(.5,x1,x1,x2,x2),my:bz(.5,y1,c1,c2,y2)};
+}
+function pmSignalV(id,x,y,i,p,isEnd){
+  const m=milestones.find(z=>z.id===id); if(!m)return '';
+  const bad=m.locked&&isEnd&&pmD(p.end)>pmD(m.date);
+  const SK=PM_SKIN(), col=bad?'#ff5c6a':(m.status==='done'?pmTone('#3ddc97'):SK.ink3);
+  const mx=x-9-i*12;
+  return `<g><line x1="${mx+5}" y1="${y}" x2="${x}" y2="${y}" stroke="${bad?'#ff5c6a':SK.ink2}" stroke-width="1.3"/>
+    <circle cx="${mx}" cy="${y}" r="5" fill="${m.status==='done'||bad?col:'var(--panel)'}" stroke="${col}" stroke-width="1.5"/>
+    <title>${escXml(m.id+' · '+m.name+(m.locked?' · zamčený termín '+m.date:''))}</title></g>`;
+}
+function pmRenderV(host,list,SK,rBefore){
+  const L=PM._vl=pmVLayout(list,PM.print?0:host.clientWidth);
+  const b=pmBounds(list), px=pmPx(), rz=PM.rowZoom||1;
+  const top=L.head+PMV_TOP;
+  const Y=t=>top+(t-b.t0)/PMDAY*px;
+  const yx=x=>top+(x-PM_PAD);               // x z modelu osy → y
+  const Hc=Y(b.t1)+24;
+  const W=PM.print?L.W:Math.max(L.W,host.clientWidth-2);
+  const H=PM.print?Hc:Math.max(Hc,host.clientHeight-2);
+  let s=`<svg class="pmv" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  ${PM.print?`<rect width="${W}" height="${H}" fill="#fff"/>`:''}${pmDefsSVG(SK)}`;
+
+  /* sloupce, pásy fází a časová mřížka */
+  L.cols.forEach((l,i)=>{if(i%2)s+=`<rect x="${L.colX(i)-L.gap/2}" y="${L.head}" width="${L.pitch}" height="${H-L.head}" fill="${SK.lane}"/>`});
+  L.bands.forEach(bd=>{
+    const col=pmTone(pmColorOf(bd.p)||'#8b97b1');
+    const x0=L.colX(bd.c0)-L.gap/2+2, x1=L.colX(bd.c1)+L.colW+L.gap/2-2;
+    s+=`<rect x="${x0}" y="${L.head}" width="${x1-x0}" height="${H-L.head}" fill="${col}" opacity="${PM.print?.05:.07}"/>`;
+  });
+  const mo=pmAxisMode()!=='off'?pmAxisModel(b):null;
+  if(mo){
+    mo.cells.forEach(c=>{s+=`<line x1="${PMV_RAIL}" y1="${yx(c.x0)}" x2="${W}" y2="${yx(c.x0)}" stroke="${SK.grid2}"/>`});
+    mo.ctx.forEach(c=>{s+=`<line x1="${PMV_RAIL}" y1="${yx(c.x0)}" x2="${W}" y2="${yx(c.x0)}" stroke="${SK.grid}"/>`});
+  }
+  const ty=Y(pmD(TODAY));
+  if(ty>top&&ty<H)s+=`<line x1="${PMV_RAIL}" y1="${ty}" x2="${W}" y2="${ty}" stroke="rgba(255,82,0,.5)" stroke-width="1.4" stroke-dasharray="4 4"/>
+    <text x="${PMV_RAIL+6}" y="${ty-4}" fill="var(--accent)" font-family="var(--mono)" font-size="10">DNES</text>`;
+
+  /* rámečky vespod */
+  pmGroupsIn().forEach(gr=>{
+    const mem=list.filter(x=>(gr.members||[]).indexOf(x.id)>-1&&!L.isBand[x.id]);
+    if(!mem.length)return;
+    let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+    mem.forEach(x=>{const g=pmGeom(x,b);x0=Math.min(x0,g.x);x1=Math.max(x1,g.x+g.w);y0=Math.min(y0,g.y);y1=Math.max(y1,g.y+g.h)});
+    const col=pmHex(gr.color)||'#8b97b1', pad=9, t0=y0-pad-17;
+    s+=`<g class="pmgrp" data-gid="${gr.id}">
+      <rect x="${x0-pad}" y="${t0}" width="${x1-x0+pad*2}" height="${y1-t0+pad}" rx="11"
+        fill="${col}12" stroke="${col}" stroke-width="1.2" stroke-dasharray="7 5" pointer-events="none"/>
+      <text x="${x0-pad+11}" y="${t0+13}" font-size="10.5" font-weight="600"
+        fill="${col}" font-family="Inter,sans-serif" style="cursor:pointer">${escXml(gr.name||'Rámeček')}</text></g>`;
+  });
+
+  /* ohnisko zvýraznění (stejná pravidla jako vodorovně) */
+  const focusRoles={};
+  const ohniska=PM.linkFocus?[PM.linkFocus]:(PM.rel?(PM.link?PM.link.split('>'):PM.sel.slice()):[]);
+  if(ohniska.length){
+    const je=id=>ohniska.indexOf(id)>-1;
+    list.forEach(p=>{(p.links||[]).forEach(l=>{
+      const aId=pmAnchorId(l.from); if(!aId||aId===p.id)return;
+      if(je(p.id)&&!je(aId))focusRoles[aId]='pred';
+      if(je(aId)&&!je(p.id))focusRoles[p.id]='succ';
+    })});
+  }
+
+  /* vazby */
+  const popisky=[];
+  list.forEach(p=>{
+    (p.links||[]).forEach(l=>{
+      const aId=pmAnchorId(l.from); if(!aId||aId===p.id)return;
+      const a=pmById(aId), ga=pmGeom(a,b), gb=pmGeom(p,b);
+      const bad=pmViolated(l,p), lkId=aId+'>'+p.id, on=PM.link===lkId;
+      const hot=ohniska.length&&(ohniska.indexOf(aId)>-1||ohniska.indexOf(p.id)>-1);
+      const col=(on||hot)?'var(--accent)':(bad?'#ff5c6a':SK.link);
+      const dash=l.type?'':'stroke-dasharray="5 4"';
+      const detour=!l.type&&Math.abs(ga.x-gb.x)<1&&gb.y>ga.y+ga.h&&list.some(q=>{
+        if(q===a||q===p||L.isBand[q.id]||(q.lane||0)!==(p.lane||0))return false;
+        const g=pmGeom(q,b); return g.y>=ga.y+ga.h-1&&g.y+g.h<=gb.y+1;
+      });
+      const r=pmLinkRouteV(ga,gb,l.type,detour,L.gap);
+      const mk=(on||hot)?'pmArrSel':(bad?'pmArrBad':'pmArr');
+      s+=`<path d="${r.d}" fill="none" stroke="${SK.bg}" stroke-width="${bad?5:4}" opacity=".85"/>`;
+      if(on||hot)s+=`<path d="${r.d}" fill="none" stroke="var(--accent)" stroke-width="6" opacity=".22"/>`;
+      s+=`<path d="${r.d}" fill="none" stroke="${col}" stroke-width="${(on||hot)?2.6:(bad?2:1.5)}" ${dash}
+            marker-end="url(#${mk})"${l.bi?` marker-start="url(#${mk})"`:''}/>`;
+      if(!PM.print){
+        const popis=(a?a.name:aId)+(l.bi?' ↔ ':' → ')+p.name
+          +(l.type?' · '+l.type+(+l.lag?(l.lag>0?' +':' ')+l.lag+' d':''):'')
+          +(l.subj?'\n'+l.subj:'')+(l.note?'\n'+l.note:'');
+        s+=`<path class="pmlink" data-lk="${lkId}" data-to="${p.id}" data-from="${aId}"
+            d="${r.d}" fill="none" stroke="transparent" stroke-width="11" style="cursor:pointer"><title>${escXml(popis)}</title></path>`;
+      }
+      const typ=l.type&&(l.type!=='FS'||+l.lag||bad)?l.type+(+l.lag?(l.lag>0?'+':'')+l.lag+' d':''):'';
+      const txt=[typ,l.subj?(l.subj.length>34?pmEllip(l.subj,34):l.subj):''].filter(Boolean).join(' · ');
+      /* v silném oddálení by se popisky slily — zůstávají jen v bublině */
+      /* spojka bokem vede úzkou mezerou mezi sloupci — popisek by přejel boxy */
+      if(txt&&!r.side&&(PM.print||px>=1.3||on||hot))popisky.push({x:r.mx,y:r.my,t:txt,a:r.anchor||'middle',bad,hot:on||hot});
+    });
+  });
+
+  /* procesy */
+  list.forEach(p=>{
+    if(L.isBand[p.id])return;
+    const g=pmGeom(p,b), col=pmTone(PM_STATUSCOL[p.status]||'#8b97b1');
+    const over=pmMsOverrun(p), tint=pmColorOf(p);
+    const stroke=over?'#ff5c6a':pmTone(tint||col);
+    let fill=tint?pmTone(tint)+(PM.print?'1c':'26'):'transparent', dash='';
+    if(p.state==='odvozeny')fill='url(#pmHatch)';
+    else if(p.state==='potvrzeny')fill=tint?pmTone(tint)+(PM.print?'30':'45'):'rgba(61,130,196,.15)';
+    else dash='stroke-dasharray="5 3"';
+    const on=pmSelHas(p.id), dim=!pmPassFilter(p), role=focusRoles[p.id];
+    const roleCol=role==='pred'?'#6d8dff':(role==='succ'?'#3ddc97':null);
+    const shape=pmRailPath(g.x,g.y,g.w,g.h);
+    s+=`<g class="pmb${on?' sel':''}${dim?' dimmed':''}" data-id="${p.id}">
+      ${on?`<path d="${pmRailPath(g.x-3,g.y-3,g.w+6,g.h+6)}" fill="none" stroke="var(--accent)" stroke-width="1.2" opacity=".8"/>`:''}
+      ${roleCol&&!on?`<path d="${pmRailPath(g.x-3,g.y-3,g.w+6,g.h+6)}" fill="none" stroke="${roleCol}" stroke-width="1.4" opacity=".85"/>`:''}
+      <path d="${shape}" fill="${SK.bg}"/>
+      <path d="${shape}" fill="${fill}" stroke="${stroke}" stroke-width="${on?2.4:1.6}" ${dash}/>`;
+    const cc=Math.min(5,g.h/3);
+    s+=`<path d="M ${g.x+2.6} ${g.y+cc} V ${g.y+g.h-cc}" stroke="${over?'#ff5c6a':col}" stroke-width="3.4" stroke-linecap="round"/>`;
+    /* text uvnitř: název, pod ním popis, dole gestor — co se nevejde, zkrátí se */
+    const hasKids=pmAll().some(x=>x.parent===p.id);
+    const fs=Math.min(16,Math.max(6,[12.5,12,11.5][Math.min(2,pmDepth(p))]*rz)), fs2=Math.max(5.5,fs-1.6);
+    const lh=fs*1.22, lh2=fs2*1.24, tx=g.x+10;
+    const per=Math.max(4,Math.floor((g.w-18-(hasKids?14:0))/(fs*0.53)));
+    const per2=Math.max(4,Math.floor((g.w-18)/(fs2*0.52)));
+    const bottom=g.y+g.h-5;
+    let y=g.y+4+fs, t='';
+    const nm=pmWrap(p.name,per);
+    for(let i=0;i<nm.length;i++){
+      if(y>bottom&&i>0)break;
+      const last=i<nm.length-1&&y+lh>bottom;
+      t+=`<tspan x="${tx}" y="${y}">${escXml(last?pmEllip(nm[i],per):nm[i])}</tspan>`;
+      y+=lh; if(last)break;
+    }
+    let text=`<text font-size="${fs}" font-weight="600" fill="${SK.ink}" font-family="Inter,sans-serif">${t}</text>`;
+    const glab=p.gestor?pmGestorLabel(p.gestor):'';
+    const gFits=glab&&bottom-(y-lh+fs*0.3)>=lh2;
+    const dEnd=gFits?bottom-lh2:bottom;
+    if(p.desc){
+      let yd=y-lh+fs*0.3+lh2, td='';
+      const dl=pmWrap(p.desc,per2);
+      for(let i=0;i<dl.length&&yd<=dEnd;i++){
+        const last=i<dl.length-1&&yd+lh2>dEnd;
+        td+=`<tspan x="${tx}" y="${yd}">${escXml(last?pmEllip(dl[i],per2):dl[i])}</tspan>`;
+        yd+=lh2; if(last)break;
+      }
+      if(td)text+=`<text font-size="${fs2}" fill="${SK.ink3}" font-family="Inter,sans-serif">${td}</text>`;
+    }
+    if(gFits){
+      const gl=glab.length>per2?pmEllip(glab,per2):glab;
+      text+=`<text x="${tx}" y="${bottom}" font-size="${fs2}" fill="${SK.ink3}" font-family="Inter,sans-serif" font-style="italic">${escXml(gl)}</text>`;
+    } else if(glab&&!PM.print){
+      const gx=g.x+g.w-(hasKids?26:11), gy=g.y+Math.min(g.h/2,11);
+      text+=`<circle class="pmgest" data-gid="${p.id}" cx="${gx}" cy="${gy}" r="7" fill="${SK.bg}" stroke="${SK.ink3}" stroke-width="1.2" style="cursor:pointer"/>
+        <text class="pmgest" data-gid="${p.id}" x="${gx}" y="${gy+3.5}" text-anchor="middle" font-size="9" font-weight="600" fill="${SK.ink2}" font-family="Inter,sans-serif" style="cursor:pointer">G</text>`;
+    }
+    s+=text;
+    if(hasKids)s+=`<text class="pmtog" data-tog="${p.id}" x="${g.x+g.w-13}" y="${g.y+4+fs}" font-size="${Math.max(6,11*rz)}" fill="${SK.ink2}" style="cursor:pointer">${p.collapsed?'▸':'▾'}</text>`;
+    if(roleCol){
+      s+=`<circle cx="${g.x}" cy="${g.y}" r="6.5" fill="${roleCol}" stroke="${SK.bg}" stroke-width="1.4"/>
+          <text x="${g.x}" y="${g.y+3.5}" text-anchor="middle" font-size="8" font-weight="700" fill="#0a0d15" font-family="var(--mono)">${role==='pred'?'P':'N'}</text>`;
+    }
+    if(ohniska.indexOf(p.id)>-1&&!on)
+      s+=`<path d="${pmRailPath(g.x-3,g.y-3,g.w+6,g.h+6)}" fill="none" stroke="var(--accent)" stroke-width="1.6" opacity=".9"/>`;
+    s+=`<title>${escXml(p.id+' · '+p.name+(glab?' · gestor: '+glab:'')+' · '+pmCz(p.start)+' → '+pmCz(p.end))}</title>`;
+    s+=`<rect class="pmgrip" data-grip="${p.id}" data-edge="start" x="${g.x}" y="${g.y-2}" width="${g.w}" height="8" fill="transparent" style="cursor:ns-resize"/>`;
+    s+=`<rect class="pmgrip" data-grip="${p.id}" data-edge="end" x="${g.x}" y="${g.y+g.h-6}" width="${g.w}" height="8" fill="transparent" style="cursor:ns-resize"/>`;
+    s+=`</g>`;
+    (p.msStart||[]).forEach((id,i)=>{s+=pmSignalV(id,g.x,g.y,i,p,false)});
+    (p.msEnd||[]).forEach((id,i)=>{s+=pmSignalV(id,g.x,g.y+g.h,i,p,true)});
+  });
+
+  /* popisky vazeb nad procesy, s podkladem pro čitelnost */
+  popisky.forEach(q=>{
+    s+=`<text x="${q.x}" y="${q.y}" text-anchor="${q.a}" font-size="9.5" font-family="Inter,sans-serif" font-weight="600"
+      fill="${q.bad?'#ff5c6a':(q.hot?'var(--accent)':SK.ink3)}" stroke="${SK.bg}" stroke-width="3.5" paint-order="stroke" stroke-linejoin="round"
+      pointer-events="none">${escXml(q.t)}</text>`;
+  });
+
+  if(PM.snapX!=null)s+=`<line x1="${PMV_RAIL}" y1="${yx(PM.snapX)}" x2="${W}" y2="${yx(PM.snapX)}" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="3 3"/>`;
+  if(pmMarq){
+    const x=Math.min(pmMarq.x0,pmMarq.x1), y=Math.min(pmMarq.y0,pmMarq.y1);
+    s+=`<rect x="${x}" y="${y}" width="${Math.abs(pmMarq.x1-pmMarq.x0)}" height="${Math.abs(pmMarq.y1-pmMarq.y0)}"
+          fill="rgba(255,82,0,.09)" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3"/>`;
+  }
+
+  /* časová osa vlevo — přilepená při vodorovném posunu */
+  let rl=`<g class="pmvrail"><rect x="0" y="0" width="${PMV_RAIL}" height="${H}" fill="${SK.head}"/>`;
+  if(mo){
+    mo.cells.forEach(c=>{
+      const y0=yx(c.x0), y1=yx(c.x1);
+      rl+=`<line x1="${PMV_RAIL-18}" y1="${y0}" x2="${PMV_RAIL}" y2="${y0}" stroke="${SK.grid}"/>`;
+      if(y1-y0>=13)rl+=`<text x="${PMV_RAIL-6}" y="${y0+12}" text-anchor="end" font-size="9.5" fill="${SK.ink3}" font-family="ui-monospace,Menlo,Consolas,monospace">${escXml(c.lab)}</text>`;
+    });
+    mo.ctx.forEach(c=>{
+      const y0=yx(c.x0), y1=yx(c.x1);
+      rl+=`<line x1="0" y1="${y0}" x2="${PMV_RAIL}" y2="${y0}" stroke="${SK.rule}"/>
+        <text class="pmvctx" data-y0="${y0}" data-y1="${y1}" x="8" y="${y0+14}" font-size="11" font-weight="600" fill="${SK.ink}" font-family="Inter,sans-serif">${escXml(c.lab)}</text>`;
+    });
+  }
+  rl+=`<line x1="${PMV_RAIL}" y1="0" x2="${PMV_RAIL}" y2="${H}" stroke="${SK.rule}"/></g>`;
+
+  /* záhlaví fází nahoře — přilepené při svislém posunu */
+  let hd=`<g class="pmvhead"><rect x="0" y="0" width="${W}" height="${L.head}" fill="${SK.head}"/>`;
+  L.bands.forEach(bd=>{
+    const p=bd.p, x0=L.colX(bd.c0), x1=L.colX(bd.c1)+L.colW, y0=6+bd.row*PMV_BANDH, h=PMV_BANDH-8;
+    const col=pmTone(pmColorOf(p)||'#8b97b1'), on=pmSelHas(p.id)||ohniska.indexOf(p.id)>-1;
+    const fs=12, per=Math.max(6,Math.floor((x1-x0-(PM.print?16:62))/(fs*0.55)));
+    let ln=pmWrap(p.name,per); if(ln.length>2)ln=[ln[0],pmEllip(ln[1],per)];
+    const ty0=ln.length>1?y0+15:y0+h/2+4;
+    hd+=`<g class="pmvh${on?' sel':''}" data-id="${p.id}" style="cursor:pointer">
+      <rect x="${x0}" y="${y0}" width="${x1-x0}" height="${h}" rx="7" fill="${SK.bg}" stroke="${on?'var(--accent)':col}" stroke-width="${on?2.2:1.4}"/>
+      <path d="M ${x0+7} ${y0+h-1.5} H ${x1-7}" stroke="${col}" stroke-width="3" stroke-linecap="round"/>
+      <text font-size="${fs}" font-weight="600" fill="${SK.ink}" font-family="Inter,sans-serif">${ln.map((l,i)=>`<tspan x="${x0+(PM.print?8:24)}" y="${ty0+i*14.5}">${escXml(l)}</tspan>`).join('')}</text>
+      <title>${escXml(p.name+(p.gestor?' · gestor: '+pmGestorLabel(p.gestor):''))}</title></g>`;
+    if(!PM.print){
+      hd+=`<text class="pmtog" data-tog="${p.id}" x="${x0+8}" y="${y0+h/2+4}" font-size="11" fill="${SK.ink2}" style="cursor:pointer">${p.collapsed?'▸':'▾'}</text>`;
+      const n=pmGroupLinks(p.id).length, lw=Math.max(30,String(n).length*7+26), lh0=17;
+      hd+=`<rect class="pmlgrp" data-lgid="${p.id}" x="${x1-lw-6}" y="${y0+h/2-lh0/2}" width="${lw}" height="${lh0}" rx="${lh0/2}"
+            fill="${SK.bg}" stroke="${SK.ink3}" stroke-width="1.1" style="cursor:pointer"/>
+          <text class="pmlgrp" data-lgid="${p.id}" x="${x1-lw/2-6}" y="${y0+h/2+3.5}" text-anchor="middle"
+            font-size="10" font-family="Inter,sans-serif" fill="${SK.ink2}" style="cursor:pointer">🔗 ${n}</text>`;
+    }
+  });
+  hd+=`<line x1="0" y1="${L.head}" x2="${W}" y2="${L.head}" stroke="${SK.rule}"/></g>`;
+  const cn=`<g class="pmvcorner"><rect x="0" y="0" width="${PMV_RAIL}" height="${L.head}" fill="${SK.head}"/>
+    <text x="8" y="${L.head-10}" font-size="9.5" fill="${SK.ink3}" font-family="Inter,sans-serif">čas ↓</text>
+    <line x1="0" y1="${L.head}" x2="${PMV_RAIL}" y2="${L.head}" stroke="${SK.rule}"/>
+    <line x1="${PMV_RAIL}" y1="0" x2="${PMV_RAIL}" y2="${L.head}" stroke="${SK.rule}"/></g>`;
+  s+=rl+hd+cn+`</svg>`;
+
+  const keepL=host.scrollLeft, keepT=host.scrollTop;
+  host.innerHTML=s;
+  host.scrollLeft=keepL; host.scrollTop=keepT;
+  pmSyncSticky(); pmRenderLegend();
+  $('#pm-count').textContent=`${pmAll().length} procesů`;
+  pmRenderInspector();
+  pmKeepView(host,rBefore);
+  pmRevealSel(host,b);
+}
+/* Svislý protějšek přilepení a růstu: osa vlevo drží při vodorovném posunu,
+   záhlaví fází při svislém; u pravého kraje přibudou prázdné sloupce. */
+let pmGrowingV=false;
+function pmSyncStickyV(host){
+  const sl=PM.print?0:host.scrollLeft, st=PM.print?0:host.scrollTop;
+  const r=host.querySelector('.pmvrail'); if(r)r.setAttribute('transform',sl?`translate(${sl},0)`:'');
+  const h=host.querySelector('.pmvhead'); if(h)h.setAttribute('transform',st?`translate(0,${st})`:'');
+  const c=host.querySelector('.pmvcorner'); if(c)c.setAttribute('transform',(sl||st)?`translate(${sl},${st})`:'');
+  const head=PM._vl?PM._vl.head:30;
+  host.querySelectorAll('.pmvctx').forEach(t=>{
+    const y0=+t.dataset.y0, y1=+t.dataset.y1;
+    t.setAttribute('y',Math.min(Math.max(st+head+16,y0+14),Math.max(y0+14,y1-6)));
+  });
+  if(PM.print||pmGrowingV||!PM._vl)return;
+  if(host.scrollLeft+host.clientWidth>host.scrollWidth-PM._vl.pitch){
+    PM.extra=(PM.extra||0)+2;
+    pmGrowingV=true;
+    try{renderPMap()}finally{pmGrowingV=false}
+  }
+}
+
 /* ================= VYKRESLENÍ ================= */
+/* Šrafa a šipky sdílí vodorovná i svislá osa. „auto-start-reverse“ otočí
+   šipku na začátku čáry — tu kreslí obousměrná vazba. */
+function pmDefsSVG(SK){
+  return `<defs>
+    <pattern id="pmHatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="7" stroke="${SK.hatch}" stroke-width="2.4"/>
+    </pattern>
+    <marker id="pmArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="${SK.arrow}"/></marker>
+    <marker id="pmArrBad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#ff5c6a"/></marker>
+    <marker id="pmArrSel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker>
+  </defs>`;
+}
 function renderPMap(){
   const host=$('#pm-canvas'); if(!host)return;
   /* Výběr procesu vysune pás karet a plátno se o jeho výšku posune —
@@ -2864,20 +3256,11 @@ function renderPMap(){
     pmRenderLegend();
     return;
   }
+  if(pmVert()){pmRenderV(host,list,SK,rBefore);return}
 
   let s=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
   ${PM.print?`<rect width="${W}" height="${H}" fill="#fff"/>`:''}
-  <defs>
-    <pattern id="pmHatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-      <line x1="0" y1="0" x2="0" y2="7" stroke="${SK.hatch}" stroke-width="2.4"/>
-    </pattern>
-    <marker id="pmArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-      <path d="M0 0L10 5L0 10z" fill="${SK.arrow}"/></marker>
-    <marker id="pmArrBad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-      <path d="M0 0L10 5L0 10z" fill="#ff5c6a"/></marker>
-    <marker id="pmArrSel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-      <path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker>
-  </defs>`;
+  ${pmDefsSVG(SK)}`;
 
   /* pruhy = souběžné koleje, střídavě jemně podbarvené */
   for(let i=0;i<lanes;i++){
@@ -2958,11 +3341,12 @@ function renderPMap(){
       /* tmavý podklad odděluje vazbu od mřížky i od křížících se vazeb */
       s+=`<path d="${d}" fill="none" stroke="${SK.bg}" stroke-width="${bad?5:4}" opacity=".85"/>`;
       if(on||hot)s+=`<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="6" opacity=".22"/>`;
+      const mk=(on||hot)?'pmArrSel':(bad?'pmArrBad':'pmArr');
       s+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="${(on||hot)?2.6:(bad?2:1.5)}" ${dash}
-            marker-end="url(#${(on||hot)?'pmArrSel':(bad?'pmArrBad':'pmArr')})"/>`;
+            marker-end="url(#${mk})"${l.bi?` marker-start="url(#${mk})"`:''}/>`;
       /* široká průhledná stopa — na 1,5px linku se myší nedá trefit */
       if(!PM.print){
-        const popis=(a?a.name:aId)+' → '+p.name
+        const popis=(a?a.name:aId)+(l.bi?' ↔ ':' → ')+p.name
           +(l.type?' · '+l.type+(+l.lag?(l.lag>0?' +':' ')+l.lag+' d':''):'')
           +(l.subj?'\n'+l.subj:'')+(l.note?'\n'+l.note:'');
         s+=`<path class="pmlink" data-lk="${lkId}" data-to="${p.id}" data-from="${aId}"
@@ -3172,7 +3556,7 @@ function pmRevealSel(host,b){
   if(PM.revealed===id)return;
   PM.revealed=id;
   const p=pmById(id); if(!p)return;
-  const g=pmGeom(p,b), head=pmHeadH(), top=host.scrollTop, h=host.clientHeight;
+  const g=pmGeom(p,b), head=pmVert()&&PM._vl?PM._vl.head:pmHeadH(), top=host.scrollTop, h=host.clientHeight;
   if(!h)return;
   const pad=12;
   if(g.y-pad<top+head)host.scrollTop=Math.max(0,g.y-head-pad);
@@ -3275,6 +3659,7 @@ function pmAxisSVG(mo,W,head){
    celé záhlaví osy pak zůstává přilepené k horní hraně i při svislém posunu */
 function pmSyncSticky(){
   const host=$('#pm-canvas'); if(!host)return;
+  if(pmVert()){pmSyncStickyV(host);return}
   const sl=host.scrollLeft;
   host.querySelectorAll('.pmctx').forEach(t=>{
     const x0=+t.dataset.x0, x1=+t.dataset.x1, w=Math.min(110,x1-x0-8);
@@ -3309,8 +3694,8 @@ let pmGrowingX=false;
 function pmGrowSpan(side){
   const host=$('#pm-canvas');
   if(!host||pmGrowingX||PM.print||PM.gallery||!host.querySelector('svg'))return 0;
-  const px=pmPx(), before=pmBounds(pmVisible());
-  const days=Math.max(20,Math.round((host.clientWidth||600)/Math.max(.001,px)/2));
+  const px=pmPx(), before=pmBounds(pmVisible()), V=pmVert();
+  const days=Math.max(20,Math.round(((V?host.clientHeight:host.clientWidth)||600)/Math.max(.001,px)/2));
   if(side==='left')PM.padL=(PM.padL||0)+days; else PM.padR=(PM.padR||0)+days;
   const after=pmBounds(pmVisible());
   if(after.t0===before.t0&&after.t1===before.t1){        // narazili jsme na mez osy
@@ -3320,7 +3705,7 @@ function pmGrowSpan(side){
   const dpx=(before.t0-after.t0)/PMDAY*px;
   pmGrowingX=true;
   try{renderPMap()}finally{pmGrowingX=false}
-  if(dpx)host.scrollLeft+=dpx;
+  if(dpx){if(V)host.scrollTop+=dpx; else host.scrollLeft+=dpx}
   return dpx;
 }
 /* Svislý protějšek: nad prvním procesem přibudou prázdné řádky, aby se
@@ -3342,6 +3727,12 @@ function pmGrowTop(){
    jinak by se obsah pod rukou posouval i při obyčejném návratu na začátek. */
 function pmGrowSpanOnWheel(e){
   const host=$('#pm-canvas'); if(!host)return;
+  if(pmVert()){
+    const maxY=host.scrollHeight-host.clientHeight;
+    if(!e.shiftKey&&e.deltaY<0&&host.scrollTop<=0){pmGrowSpan('left');return}
+    if(!e.shiftKey&&e.deltaY>0&&host.scrollTop>=maxY-1){pmGrowSpan('right');return}
+    return;
+  }
   if(e.deltaY<0&&!e.shiftKey&&host.scrollTop<=0){pmGrowTop();return}
   const dx=e.deltaX||(e.shiftKey?e.deltaY:0); if(!dx)return;
   const max=host.scrollWidth-host.clientWidth;
@@ -3353,6 +3744,8 @@ function pmGrowSpanOnWheel(e){
 function pmSyncControls(){
   const isMap=PM.mode==='map';
   const rb=$('#pm-rel'); if(rb)rb.classList.toggle('on',!!PM.rel);
+  const ob=$('#pm-orient');
+  if(ob){const v=pmVert(); ob.classList.toggle('on',v); ob.textContent=v?'↔ Vodorovná osa':'↕ Svislá osa'}
   document.querySelectorAll('#pm-mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===PM.mode));
   document.querySelectorAll('#pm-unit button').forEach(b=>b.classList.toggle('on',b.dataset.u===PM.unit));
   const v=$('#pm-variant'), ax=$('#pm-axis');
@@ -3391,6 +3784,21 @@ function pmFitAll(){
   const host=$('#pm-canvas'); if(!host)return;
   const list=pmVisible(); if(!list.length){toast('Plátno je prázdné');return}
   PM.padL=PM.padR=0; PM.padTop=1;          // přizpůsobit se má obsahu, ne dorolovanému prázdnu
+  if(pmVert()){
+    PM.extra=0; PM.viewBack={sl:host.scrollLeft,st:host.scrollTop};
+    for(let i=0;i<2;i++){
+      const L=pmVLayout(list,0), b=pmBounds(list);
+      const availW=Math.max(120,host.clientWidth-PMV_RAIL-PMV_PADX*2-8);
+      const availH=Math.max(80,host.clientHeight-L.head-PMV_TOP-16);
+      const needW=L.content*(200+18), days=(b.t1-b.t0)/PMDAY;
+      PM.rowZoom=Math.max(.3,Math.min(1.3,availW/Math.max(1,needW)));
+      PM.zoom=Math.max(.04,Math.min(4,availH/Math.max(1,days*PM_PXD[PM.unit])));
+      renderPMap();
+    }
+    host.scrollLeft=0; host.scrollTop=0;
+    toast('Přizpůsobeno celému rozsahu');
+    return;
+  }
   const b=pmBounds(list);
   const days=(b.t1-b.t0)/PMDAY;
   const needPx=days*PM_PXD[PM.unit];
@@ -3884,7 +4292,7 @@ function pmSuccHTML(p){
     const l=(q.links||[]).find(x=>x.from===p.id)||{};
     const typ=(l.type||'neutrální')+(+l.lag?(l.lag>0?' +':' ')+l.lag+' d':'');
     return `<div class="pm-succ-row" title="Otevřít tento proces" onclick="pmGoTo('${q.id}')">
-      <span class="t">${escXml(typ)} →</span><span class="n">${escXml(q.name)}${l.subj?' · <i>'+escXml(l.subj)+'</i>':''}${l.note?' · '+escXml(l.note):''}</span>
+      <span class="t">${escXml(typ)} ${l.bi?'↔':'→'}</span><span class="n">${escXml(q.name)}${l.subj?' · <i>'+escXml(l.subj)+'</i>':''}${l.note?' · '+escXml(l.note):''}</span>
       ${pmViolated(l,q)?'<span class="bad">porušená</span>':''}</div>`;
   }).join('');
   return `<div class="pm-succ"><div class="pm-succ-h">Navazující procesy (${succ.length})</div>
@@ -4184,6 +4592,13 @@ function pmPointerDown(e){
     }
     return;
   }
+  /* záhlaví fáze ve svislé ose — klik fázi vybere (pás karet), netáhne se */
+  const vh=e.target.closest('.pmvh');
+  if(vh){
+    e.preventDefault(); PM.link=null;
+    if(e.shiftKey)pmSelToggle(vh.dataset.id,true); else PM.sel=[vh.dataset.id];
+    renderPMap(); return;
+  }
   const grp=e.target.closest('.pmgrp');
   if(grp&&document.body.classList.contains('editing')){
     e.preventDefault(); pmEditGroup(grp.dataset.gid); return;
@@ -4220,7 +4635,7 @@ function pmPointerDown(e){
   if(PM.splitMode){
     e.preventDefault();
     if(PM.mode!=='concept'){toast('Rychlé dělení funguje jen v konceptu');return}
-    const day=pmDayAt(e.clientX); if(day==null)return;
+    const day=pmDayAt(e.clientX,e.clientY); if(day==null)return;
     pmSplitProcess(p.id,pmISO(day));
     return;
   }
@@ -4233,8 +4648,10 @@ function pmPointerDown(e){
   if(!edit){renderPMap();return}
   const grip=e.target.closest('.pmgrip');
   const resize=grip?(grip.dataset.edge||'end'):null;   // 'start' = tažení začátku, 'end' = konce
-  const group=resize?[p]:pmSelProcs();
-  pmDrag={p,resize,x:e.clientX,y:e.clientY,moved:false,
+  const V=pmVert()&&PM._vl;
+  /* ve svislé ose se záhlaví fáze s boxy netáhne — posunul by se jen pás */
+  const group=resize?[p]:pmSelProcs().filter(q=>!(V&&PM._vl.isBand[q.id]));
+  pmDrag={p,resize,x:e.clientX,y:e.clientY,moved:false,vcols:V?PM._vl.cols.slice():null,
           orig:group.map(q=>({q,start:q.start,end:q.end,lane:q.lane||0}))};
   g.classList.add('dragging');
   host.setPointerCapture&&host.setPointerCapture(e.pointerId);
@@ -4279,9 +4696,17 @@ function pmPointerMove(e){
     /* Tažení za hranu osy nekončí zaražením o první/poslední proces —
        plátnu se přidá čas a tažení plynule pokračuje. */
     const want=pmPan.sl-(e.clientX-pmPan.x), max=host.scrollWidth-host.clientWidth;
-    if(want<-4)pmPan.sl+=pmGrowSpan('left');
-    else if(want>max+4)pmGrowSpan('right');
-    if(pmPan.st-(e.clientY-pmPan.y)<-4)pmPan.st+=pmGrowTop();
+    if(pmVert()){
+      /* svisle přibývá čas nahoře a dole, vpravo sloupce */
+      const wantY=pmPan.st-(e.clientY-pmPan.y), maxY=host.scrollHeight-host.clientHeight;
+      if(wantY<-4)pmPan.st+=pmGrowSpan('left');
+      else if(wantY>maxY+4)pmGrowSpan('right');
+      if(want>max+4){PM.extra=(PM.extra||0)+2;renderPMap()}
+    } else {
+      if(want<-4)pmPan.sl+=pmGrowSpan('left');
+      else if(want>max+4)pmGrowSpan('right');
+      if(pmPan.st-(e.clientY-pmPan.y)<-4)pmPan.st+=pmGrowTop();
+    }
     host.scrollLeft=pmPan.sl-(e.clientX-pmPan.x);
     host.scrollTop=pmPan.st-(e.clientY-pmPan.y);
     return;
@@ -4295,6 +4720,7 @@ function pmPointerMove(e){
     const y0=Math.min(pmMarq.y0,pmMarq.y1), y1=Math.max(pmMarq.y0,pmMarq.y1);
     const hit=pmVisible().filter(q=>{
       if(!pmPassFilter(q))return false;   // ztlumené filtrem se gumičkou nechytají
+      if(pmVert()&&PM._vl&&PM._vl.isBand[q.id])return false;   // záhlaví fáze gumičkou ne
       const g=pmGeom(q,b);
       return g.x<x1&&g.x+g.w>x0&&g.y<y1&&g.y+g.h>y0;
     }).map(q=>q.id);
@@ -4303,9 +4729,10 @@ function pmPointerMove(e){
     return;
   }
   if(!pmDrag)return;
-  const px=pmPx();
-  let dd=Math.round((e.clientX-pmDrag.x)/px);
-  const dl=Math.round((e.clientY-pmDrag.y)/pmRowH());
+  const px=pmPx(), V=!!pmDrag.vcols;
+  /* ve svislé ose jede čas po Y a sloupce po X */
+  let dd=Math.round((V?e.clientY-pmDrag.y:e.clientX-pmDrag.x)/px);
+  const dl=Math.round((V?e.clientX-pmDrag.x:e.clientY-pmDrag.y)/(V?PM._vl.pitch:pmRowH()));
   if(!pmDrag.moved&&(Math.abs(e.clientX-pmDrag.x)>3||Math.abs(e.clientY-pmDrag.y)>3)){
     pmDrag.moved=true; histPush();
   }
@@ -4326,7 +4753,7 @@ function pmPointerMove(e){
       o.q.start=pmClampDate(pmAdd(o.start,dd));
       o.q.end=pmClampDate(pmAdd(o.end,dd));
       /* nad první proces se smí jen do prázdných řádků, které jsou nahoře */
-      o.q.lane=Math.max(-pmPadTop(),o.lane+dl);
+      o.q.lane=V?pmVShift(pmDrag.vcols,o.lane,dl):Math.max(-pmPadTop(),o.lane+dl);
     });
   }
   if(!pmDrag.raf)pmDrag.raf=requestAnimationFrame(()=>{pmDrag&&(pmDrag.raf=0);PM.panelLock=true;renderPMap();PM.panelLock=false});
@@ -4419,6 +4846,19 @@ function pmKeyDown(e){
   const sel=pmSelProcs(); if(!sel.length)return;
   if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();pmDeleteSelected();return}
   const step=e.shiftKey?7:1;
+  /* ve svislé ose posouvají šipky nahoru/dolů v čase a do stran mezi sloupci */
+  if(pmVert()&&PM._vl&&/^Arrow/.test(e.key)){
+    e.preventDefault(); histPush();
+    if(e.key==='ArrowUp'||e.key==='ArrowDown'){
+      const d=e.key==='ArrowDown'?step:-step;
+      sel.forEach(p=>{p.start=pmClampDate(pmAdd(p.start,d));p.end=pmClampDate(pmAdd(p.end,d));pmSyncMilestones(p);pmQueue(p)});
+      computePositions();
+    } else {
+      const cols=PM._vl.cols.slice(), d=e.key==='ArrowRight'?1:-1;
+      sel.filter(p=>!PM._vl.isBand[p.id]).forEach(p=>{p.lane=Math.max(0,pmVShift(cols,p.lane||0,d));pmQueue(p)});
+    }
+    renderPMap(); return;
+  }
   if(e.key==='ArrowLeft'||e.key==='ArrowRight'){
     e.preventDefault(); histPush();
     const d=e.key==='ArrowRight'?step:-step;
@@ -4440,6 +4880,21 @@ function pmWheel(e){
   if(!(e.ctrlKey||e.metaKey)){pmGrowSpanOnWheel(e);return}
   e.preventDefault();
   const host=$('#pm-canvas');
+  if(pmVert()&&PM._vl){
+    /* drží se datum i sloupec pod kurzorem */
+    const rect=host.getBoundingClientRect(), atX=e.clientX-rect.left, atY=e.clientY-rect.top;
+    const b0=pmBounds(pmVisible()), L0=PM._vl;
+    const dayV=b0.t0+(host.scrollTop+atY-L0.head-PMV_TOP)/pmPx()*PMDAY;
+    const colPos=(host.scrollLeft+atX-PMV_RAIL-PMV_PADX)/L0.pitch;
+    const f=e.deltaY<0?1.15:1/1.15;
+    PM.zoom=Math.min(4,Math.max(.04,PM.zoom*f));
+    PM.rowZoom=Math.min(2,Math.max(.25,(PM.rowZoom||1)*f));
+    renderPMap();
+    const b1=pmBounds(pmVisible()), L1=PM._vl;
+    host.scrollTop=Math.max(0,L1.head+PMV_TOP+(dayV-b1.t0)/PMDAY*pmPx()-atY);
+    host.scrollLeft=Math.max(0,PMV_RAIL+PMV_PADX+colPos*L1.pitch-atX);
+    return;
+  }
   const day=pmDayAt(e.clientX);
   const rect=host.getBoundingClientRect();
   const atX=e.clientX-rect.left, atY=e.clientY-rect.top;
@@ -4512,11 +4967,13 @@ function pmSetSplit(on){
 }
 function pmToggleSplit(){pmSetSplit(!PM.splitMode)}
 /* přepočte klientské X na den, se zohledněním posunu plátna scrollem */
-function pmDayAt(clientX){
+function pmDayAt(clientX,clientY){
   const host=$('#pm-canvas'), svg=host&&host.querySelector('svg'); if(!svg)return null;
   const rect=svg.getBoundingClientRect(), localX=clientX-rect.left;
   const b=pmBounds(pmVisible()), px=pmPx();
-  const day=Math.round((b.t0+(localX-PM_PAD)/px*PMDAY)/PMDAY)*PMDAY;
+  /* ve svislé ose se den čte z Y */
+  const pos=pmVert()&&PM._vl&&clientY!=null?clientY-rect.top-PM._vl.head-PMV_TOP:localX-PM_PAD;
+  const day=Math.round((b.t0+pos/px*PMDAY)/PMDAY)*PMDAY;
   return Math.min(Math.max(day,PM_AXIS_T0),PM_AXIS_T1);
 }
 function pmSplitPreview(e){
@@ -4530,6 +4987,12 @@ function pmSplitPreview(e){
   const rect=svg.getBoundingClientRect(), localX=e.clientX-rect.left;
   const geo=pmGeom(p,pmBounds(pmVisible()));
   guide.style.display='block';
+  if(pmVert()){            // svisle je řez vodorovná čára přes box
+    guide.style.left=(geo.x-8)+'px'; guide.style.width=(geo.w+16)+'px';
+    guide.style.top=(e.clientY-rect.top)+'px'; guide.style.height='2px';
+    return;
+  }
+  guide.style.width='';
   guide.style.left=localX+'px';
   guide.style.top=(geo.y-8)+'px';
   guide.style.height=(geo.h+16)+'px';
@@ -4662,6 +5125,12 @@ function pmWouldCycle(fromId,toId){
 function pmPointToPlacement(clientX,clientY){
   const host=$('#pm-canvas'), svg=host&&host.querySelector('svg'); if(!svg)return null;
   const rect=svg.getBoundingClientRect();
+  if(pmVert()&&PM._vl){
+    const L=PM._vl, day=pmDayAt(clientX,clientY);
+    const idx=Math.floor((clientX-rect.left-PMV_RAIL-PMV_PADX+L.gap/2)/L.pitch);
+    const lane=idx<0?L.cols[0]:(idx<L.cols.length?L.cols[idx]:L.cols[L.cols.length-1]+idx-L.cols.length+1);
+    return day==null?null:{day,lane:Math.max(0,lane)};
+  }
   const day=pmDayAt(clientX);
   const lane=Math.max(0,Math.round((clientY-rect.top-pmHeadH())/pmRowH())-pmPadTop());
   return day==null?null:{day,lane};
@@ -4704,8 +5173,13 @@ function pmInferLinks(list){
     if(!list.some(x=>x.id===l.from))return;
     const a=list.find(x=>x.id===l.from);
     const gap=pmDays(a.end,p.start);
-    out.push({from:l.from,to:p.id,type:l.type||'FS',lag:l.type?(+l.lag||0):(Math.abs(gap)<=tol?Math.max(0,gap):0),
-      why:l.type?'existující vazba':'neutrální spojnice',on:true});
+    /* obousměrná vazba spojuje souběžné procesy — FS by je rozjel za sebe,
+       proto se navrhne souběh (SS) */
+    const bi=!!l.bi;
+    out.push({from:l.from,to:p.id,type:l.type||(bi?'SS':'FS'),
+      lag:l.type?(+l.lag||0):(bi?pmDays(a.start,p.start):(Math.abs(gap)<=tol?Math.max(0,gap):0)),
+      why:l.type?'existující vazba':(bi?'obousměrná vazba — souběh':'neutrální spojnice'),on:true,
+      subj:l.subj||'',note:l.note||'',bi});
   }));
 
   list.forEach(a=>list.forEach(b=>{
@@ -4925,7 +5399,9 @@ function pmApplyPromotion(){
     const to=pmById(idMap[l.to]), from=idMap[l.from];
     if(!to||!from)return;
     if(pmWouldCycle(from,to.id))return;
-    to.links.push({from,type:l.type||'FS',lag:+l.lag||0});
+    /* předmět, popis i obousměrnost vazby jdou do mapy s ní */
+    to.links.push(Object.assign({from,type:l.type||'FS',lag:+l.lag||0},
+      l.subj?{subj:l.subj}:{},l.note?{note:l.note}:{},l.bi?{bi:true}:{}));
   });
 
   /* milníky z kroku 4 */
@@ -5358,7 +5834,101 @@ const PM_TPL_LEU={
      desc:'Otevřená otázka: kdo vydává zaváděcí list, co přesně znamená „zavést“ a umožní použití stejné aplikace jinde?'}
   ]
 };
-const PM_TPLS=[PM_TPL_ETCS,PM_TPL_LEU];
+/* Schéma z jednání s O14 (22. 9. 2026) jako koncept se svislou osou:
+   sloupec = fáze (kořenový proces), boxy = podprocesy v jednom pruhu pod
+   ním. Kořen stojí ve vlastním pruhu nad svými boxy, takže vodorovně se
+   varianta čte jako obvyklá mapa a svisle jako sloupce schématu. */
+const PM_TPL_O14={
+  name:'Schéma O14 Liběchov — projekt a schvalovací režimy',
+  axis:'cal', orient:'v',
+  units:{
+    SZ:{name:'SŽ — investor a provozovatel',kind:'Útvar'},
+    O9:{name:'O9 - Odbor přípravy staveb',kind:'Odbor'},
+    O14:{name:'Odbor O14',kind:'Odbor'},
+    ZHO:{name:'Zhotovitel',kind:'Externí'},
+    SIE:{name:'Siemens Mobility',kind:'Externí'},
+    VUZ:{name:'VÚŽ — nezávislý posuzovatel bezpečnosti (ISA)',kind:'Externí'},
+    ASBO:{name:'AsBo — nezávislý posuzovatel',kind:'Externí'},
+    NOBO:{name:'NoBo — oznámený subjekt',kind:'Externí'},
+    PO:{name:'Právnická osoba pro UTZ',kind:'Externí'},
+    AUTO:{name:'Autorizovaná osoba / UTZ',kind:'Externí'},
+    REV:{name:'Revizní technik',kind:'Externí'},
+    DU:{name:'Drážní úřad',kind:'Externí'},
+    DESU:{name:'Drážní a energetický stavební úřad',kind:'Externí'},
+    ERA:{name:'Agentura EU pro železnice (ERA)',kind:'Externí'}
+  },
+  procs:[
+    {k:'A',n:'1. PDPS — projektová dokumentace pro provádění stavby',g:'@O9',color:'slate',o:0,d:90,lane:0},
+    {k:'A1',p:'A',n:'1.1 Čistopis PDPS s rozpočtem',g:'@O9',o:0,d:90,lane:1,
+     desc:'V čase úplně první krok — od něj se odvíjí posouzení NoBo i příprava RDS.'},
+
+    {k:'B',n:'2. RDS + stavba — realizační dokumentace stavby',g:'@ZHO',color:'green',o:90,d:735,lane:2},
+    {k:'B1',p:'B',n:'2.1 Příprava RDS',g:'@ZHO',o:90,d:150,lane:3,dep:['A1'],
+     desc:'Běží souběžně s posouzením PDPS u NoBo. Od tohoto okamžiku se rozbíhají všechny schvalovací sloupce.'},
+    {k:'B2',p:'B',n:'2.2 Čistopis RDS',g:'@ZHO',o:240,d:45,lane:3,dep:['B1']},
+    {k:'B3',p:'B',n:'2.3 Nákupy',g:'@SZ',o:285,d:90,lane:3,dep:['B2']},
+    {k:'B4',p:'B',n:'2.4 Stavba',g:'@ZHO',o:375,d:450,lane:3,dep:['B3'],
+     desc:'Montáž, zapojení a vlastní zkoušky zhotovitele. Trvá až do začátku kolaudace.'},
+
+    {k:'N',n:'3. NoBo a DeBo — ES ověření podle TSI CCS',g:'@NOBO',color:'teal',o:90,d:630,lane:4},
+    {k:'N1',p:'N',n:'3.1 NoBo — posouzení PDPS',g:'@NOBO',o:90,d:90,lane:5,
+     dep:[{k:'A1',subj:'čistopis PDPS'}],
+     desc:'Posouzení projektového návrhu ETCS L1 LS z hlediska shody s TSI CCS; připomínky a požadavky k doplnění dokumentace. Stojí přímo za dokončením PDPS, ne až ve společné závěrečné schvalovací větvi.'},
+    {k:'N2',p:'N',n:'3.2 NoBo — posouzení realizačního řešení',g:'@NOBO',o:285,d:90,lane:5,
+     dep:['N1',{k:'B2',subj:'čistopis RDS'}],
+     desc:'Ověření RDS / realizační dokumentace, použitých prvků interoperability a jejich certifikátů a souladu navrženého řešení s podmínkami ES ověření.'},
+    {k:'N3',p:'N',n:'3.3 NoBo — posouzení realizovaného subsystému',g:'@NOBO',o:615,d:60,lane:5,
+     dep:['N2',{k:'U2',subj:'výsledky zkoušek'}],
+     desc:'Ověření skutečného provedení a relevantních výsledků zkoušek a dalších dokladů potřebných pro prokázání shody subsystému CCS Trackside s TSI.'},
+    {k:'N4',p:'N',n:'3.4 NoBo — závěrečné ES ověření',g:'@NOBO',o:675,d:45,lane:5,dep:['N3'],
+     desc:'Vydání ES certifikátu ověření subsystému CCS Trackside → podklad pro vystavení ES prohlášení o ověření subsystému žadatelem.'},
+
+    {k:'S',n:'4. AsBo — nařízení 402/2013 (CSM)',g:'@ASBO',color:'red',o:180,d:240,lane:6},
+    {k:'S1',p:'S',n:'4.1 Vymezení systému',g:'@ASBO',o:180,d:60,lane:7},
+    {k:'S2',p:'S',n:'4.2 Rizika — pravděpodobnost — opatření',g:'@ASBO',o:240,d:120,lane:7,dep:['S1']},
+    {k:'S3',p:'S',n:'4.3 Zpráva AsBo',g:'@ASBO',o:360,d:60,lane:7,dep:['S2']},
+
+    {k:'I',n:'5. Hodnocení bezpečnosti — ISA podle EN 5012x',g:'@VUZ',color:'purple',o:90,d:375,lane:8},
+    {k:'I1',p:'I',n:'5.1 Oslovení nezávislého posuzovatele bezpečnosti (ISA)',g:'@SZ',o:90,d:30,lane:9,desc:'VÚŽ'},
+    {k:'I2',p:'I',n:'5.2 Podklady: SRAC obou propojovaných zařízení',g:'@SIE',o:120,d:60,lane:9,dep:['I1'],
+     desc:'Aplikační podmínky LEU i AŽD 71 — bez nich nelze porovnávat.'},
+    {k:'I3',p:'I',n:'5.3 Vymezení systému a rozhraní',g:'@VUZ',o:180,d:60,lane:9,
+     dep:['I2',{k:'S1',bi:true,subj:'shodné hranice systému'}],
+     desc:'Hranice musí být stejné jako u AsBo.'},
+    {k:'I4',p:'I',n:'5.4 Porovnání SRAC a posouzení rizik',g:'@VUZ',o:240,d:120,lane:9,
+     dep:['I3',{k:'S2',bi:true,subj:'rizika a opatření'}],
+     desc:'Porovnáním aplikačních podmínek obou zařízení posuzovatel ověří bezpečnost rozhraní.'},
+    {k:'I5',p:'I',n:'5.5 Zpráva ISA',g:'@VUZ',o:360,d:60,lane:9,
+     dep:['I4',{k:'S3',bi:true,subj:'doplňují se, nesmí být duplicitní'}],
+     desc:'Zpráva o posouzení bezpečnosti (Safety Assessment Report).'},
+    {k:'I6',p:'I',n:'5.6 SM008 — souhlas s provozním ověřením',g:'@O14',o:420,d:45,lane:9,dep:['I5'],
+     desc:'Schválení podmínek, O14.'},
+
+    {k:'U',n:'6. UTZ — zák. 266/1994 Sb. + vyhl. 100/1995 Sb.',g:'@PO',color:'gold',o:540,d:135,lane:10},
+    {k:'U1',p:'U',n:'6.1 Revize elektrického zařízení',g:'@REV',o:540,d:30,lane:11,desc:'Výstup: revizní zpráva.'},
+    {k:'U2',p:'U',n:'6.2 Přezkoušení podle T200',g:'@AUTO',o:570,d:45,lane:11,dep:['U1'],
+     desc:'= technicko-bezpečnostní zkouška (TBZ).'},
+    {k:'U3',p:'U',n:'6.3 Protokol právnické osoby',g:'@PO',o:615,d:30,lane:11,
+     dep:['U2',{k:'I6',subj:'souhlas s PO'}]},
+    {k:'U4',p:'U',n:'6.4 Průkaz způsobilosti UTZ',g:'@PO',o:645,d:30,lane:11,
+     dep:['U3',{k:'U1',subj:'revizní zpráva'}]},
+
+    {k:'P',n:'7. Uvedení subsystému do provozu',g:'@SZ',color:'blue',o:90,d:780,lane:12},
+    {k:'P1',p:'P',n:'7.1 Stavební povolení',g:'@DESU',o:90,d:120,lane:13,
+     desc:'U Liběchova se nepředpokládá — drobná stavba.'},
+    {k:'P2',p:'P',n:'7.2 Zkušební provoz',g:'@DESU',o:615,d:45,lane:13,dep:['P1'],
+     desc:'U Liběchova se nepředpokládá — drobná stavba.'},
+    {k:'P3',p:'P',n:'7.3 Aktivace',g:'@SZ',o:660,d:15,lane:13,
+     dep:[{k:'P2',subj:'initial engagement'},{k:'I5',subj:'zpráva ISA'},'I6'],
+     desc:'Vázaná na zprávu ISA i na souhlas s ověřovacím provozem.'},
+    {k:'P4',p:'P',n:'7.4 TA — trackside approval',g:'@ERA',o:720,d:60,lane:13,desc:'ERA'},
+    {k:'P5',p:'P',n:'7.5 Průkaz způsobilosti dráhy',g:'@DU',o:780,d:45,lane:13,
+     dep:[{k:'N4',subj:'ES certifikát'},{k:'P4',subj:'výstup od ERA'},{k:'U4',subj:'průkaz UTZ'}]},
+    {k:'P6',p:'P',n:'7.6 Kolaudace',g:'@DESU',o:825,d:45,lane:13,dep:['P5'],
+     desc:'U Liběchova se nepředpokládá — drobná stavba.'}
+  ]
+};
+const PM_TPLS=[PM_TPL_ETCS,PM_TPL_LEU,PM_TPL_O14];
 /* Šablon je víc — bez upřesnění se nabídne výběr. */
 function pmTemplateConcept(key){
   if(key===undefined&&PM_TPLS.length>1){pmTplPick();return}
@@ -5367,7 +5937,7 @@ function pmTemplateConcept(key){
 function pmTplPick(){
   const host=$('#tplpick-list'); if(!host)return;
   host.innerHTML=PM_TPLS.map((t,i)=>`<button class="tplopt" onclick="closeTplPick();pmTemplateConcept(${i})">
-    <b>${escXml(t.name)}</b><span>${t.procs.length} procesů · osa ${t.axis==='cal'?'kalendářní':'relativní'}</span></button>`).join('');
+    <b>${escXml(t.name)}</b><span>${t.procs.length} procesů · osa ${t.axis==='cal'?'kalendářní':'relativní'}${t.orient==='v'?', svislá':''}</span></button>`).join('');
   $('#tplpick').classList.add('open');
 }
 function closeTplPick(){$('#tplpick').classList.remove('open')}
@@ -5418,7 +5988,7 @@ function pmTplTopUp(key){
       const kk=typeof d==='string'?d:d.k, from=tplId[kk];
       if(!from||(!jeNovy&&!novy[from]))return;
       if((o.links||[]).some(l=>l.from===from))return;
-      o.links.push({from:from,type:(d&&d.type)||'',lag:(d&&+d.lag)||0,subj:(d&&d.subj)||'',note:(d&&d.note)||''});
+      o.links.push(Object.assign({from:from,type:(d&&d.type)||'',lag:(d&&+d.lag)||0,subj:(d&&d.subj)||'',note:(d&&d.note)||''},d&&d.bi?{bi:true}:{}));
     });
   });
   processes.filter(x=>x.scope===scope).forEach(x=>pmQueue(x));
@@ -5447,7 +6017,7 @@ function pmBuildTemplate(silent,tplIn){
   Object.keys(tpl.units).forEach(u=>{if(!orgUnits[u]){orgUnits[u]=tpl.units[u];added++}});
   const t0=project.start||pmISO(Date.now());
   const now=new Date().toISOString();
-  const c=Object.assign({},NEW_DEFAULT.concept,{id:nextId('concept'),name:tpl.name,t0,axis:tpl.axis||'rel',src:false,created:now,touched:now});
+  const c=Object.assign({},NEW_DEFAULT.concept,{id:nextId('concept'),name:tpl.name,t0,axis:tpl.axis||'rel',orient:tpl.orient||'h',src:false,created:now,touched:now});
   concepts.push(c);
   persist('concept',c,concepts.length-1);
 
@@ -5465,7 +6035,7 @@ function pmBuildTemplate(silent,tplIn){
     (t.dep||[]).forEach(d=>{
       const key=typeof d==='string'?d:d.k;
       if(!idMap[key])return;
-      o.links.push({from:idMap[key],type:(d&&d.type)||'',lag:(d&&+d.lag)||0,subj:(d&&d.subj)||'',note:(d&&d.note)||''});
+      o.links.push(Object.assign({from:idMap[key],type:(d&&d.type)||'',lag:(d&&+d.lag)||0,subj:(d&&d.subj)||'',note:(d&&d.note)||''},d&&d.bi?{bi:true}:{}));
     });
   });
   processes.filter(x=>x.scope==='concept:'+c.id).forEach(x=>pmQueue(x));
@@ -5535,6 +6105,15 @@ function pmCenterToday(){
   const list=pmVisible(); if(!list.length)return;
   const b=pmBounds(list);
   const totalDays=Math.max(1,(b.t1-b.t0)/PMDAY);
+  if(pmVert()){
+    const availH=Math.max(80,host.clientHeight-(PM._vl?PM._vl.head:40)-PMV_TOP-8);
+    PM.zoom=Math.max(.04,Math.min(4,availH/(Math.max(1,totalDays*0.75)*PM_PXD[PM.unit])));
+    renderPMap();
+    const L=PM._vl, ty=L.head+PMV_TOP+(pmD(TODAY)-pmBounds(pmVisible()).t0)/PMDAY*pmPx();
+    host.scrollTop=Math.min(Math.max(0,host.scrollHeight-host.clientHeight),Math.max(0,ty-host.clientHeight/2));
+    host.scrollLeft=0;
+    return;
+  }
   const availW=Math.max(80,host.clientWidth-PM_PAD*2-8);
   const visibleDays=Math.max(1,totalDays*0.75);
   PM.zoom=Math.max(.04,Math.min(4,availW/(visibleDays*PM_PXD[PM.unit])));
@@ -5823,28 +6402,42 @@ const PX2MM=25.4/96;
 
 /* Nejmenší papír, na který se mapa vejde bez zmenšení; když ani největší
    nestačí, vrátí ten největší se spočítaným měřítkem. */
+/* Svislou mapu jde tisknout na výšku i na šířku — vybere se orientace,
+   ve které vyjde větší měřítko (při shodě na výšku). Vodorovná mapa
+   zůstává vždy na šířku. Tisk po fázích sdílí jednu velikost stránky
+   pro všechny listy, proto se tam svislá mapa tiskne jen na výšku. */
+const pmPaperOpts=(f,jenVysku)=>!pmVert()?[f]:(jenVysku?[[f[0],f[2],f[1]]]:[[f[0],f[2],f[1]],f]);
+const pmPaperDims=f=>pmVert()?[f[0],f[2],f[1]]:f;
 function pmPickPaper(wpx,hpx,minName){
   const wmm=wpx*PX2MM, hmm=hpx*PX2MM;
   const from=minName?PM_PAPERS.findIndex(x=>x[0]===minName):0;
   for(let i=Math.max(0,from);i<PM_PAPERS.length;i++){
-    const [nm,pw,ph]=PM_PAPERS[i];
-    const aw=pw-2*PM_MARGIN, ah=ph-2*PM_MARGIN-12;   // 12 mm na záhlaví listu
-    if(wmm<=aw&&hmm<=ah)return {name:nm,pw,ph,scale:1,wmm,hmm};
+    for(const [nm,pw,ph] of pmPaperOpts(PM_PAPERS[i])){
+      const aw=pw-2*PM_MARGIN, ah=ph-2*PM_MARGIN-12;   // 12 mm na záhlaví listu
+      if(wmm<=aw&&hmm<=ah)return {name:nm,pw,ph,scale:1,wmm,hmm};
+    }
   }
-  const [nm,pw,ph]=PM_PAPERS[PM_PAPERS.length-1];
-  const aw=pw-2*PM_MARGIN, ah=ph-2*PM_MARGIN-12;
-  return {name:nm,pw,ph,scale:Math.min(aw/wmm,ah/hmm),wmm,hmm};
+  let best=null;
+  pmPaperOpts(PM_PAPERS[PM_PAPERS.length-1]).forEach(([nm,pw,ph])=>{
+    const sc=Math.min((pw-2*PM_MARGIN)/wmm,(ph-2*PM_MARGIN-12)/hmm);
+    if(!best||sc>best.scale+1e-9)best={name:nm,pw,ph,scale:sc,wmm,hmm};
+  });
+  return best;
 }
 /* Papír pevného formátu (uživatel jej zvolil v dialogu). */
-function pmFixedPaper(name,wpx,hpx,rezervaMm){
+function pmFixedPaper(name,wpx,hpx,rezervaMm,jenVysku){
   const f=PM_PAPERS.find(x=>x[0]===name)||PM_PAPERS[1];
-  const [nm,pw,ph]=f, aw=pw-2*PM_MARGIN;
-  const cela=ph-2*PM_MARGIN-12;
-  /* seznam vazeb pod schématem si ukrojí kus listu — nejvýš polovinu,
-     aby schéma zůstalo čitelné */
-  const ah=Math.max(20,cela-Math.min(+rezervaMm||0,cela*0.5));
   const wmm=wpx*PX2MM, hmm=hpx*PX2MM;
-  return {name:nm,pw,ph,scale:Math.min(1,aw/wmm,ah/hmm),wmm,hmm};
+  let best=null;
+  pmPaperOpts(f,jenVysku).forEach(([nm,pw,ph])=>{
+    const aw=pw-2*PM_MARGIN, cela=ph-2*PM_MARGIN-12;
+    /* seznam vazeb pod schématem si ukrojí kus listu — nejvýš polovinu,
+       aby schéma zůstalo čitelné */
+    const ah=Math.max(20,cela-Math.min(+rezervaMm||0,cela*0.5));
+    const sc=Math.min(1,aw/wmm,ah/hmm);
+    if(!best||sc>best.scale+1e-9)best={name:nm,pw,ph,scale:sc,wmm,hmm};
+  });
+  return best;
 }
 /* Odhad výšky seznamu: záhlaví a řádek tabulky v milimetrech. */
 const pmLinkReserveMm=n=>n?9+n*3.4:6;
@@ -5898,10 +6491,35 @@ function pmMapSVG(o){
   all.forEach(x=>{if(all.some(y=>y.parent===x.id))x.collapsed=!!o.rootsOnly});
   /* pruhy stáhnout k sobě — po sbalení či v solo režimu zbývají prázdné */
   const vis=pmVisible();
-  vis.slice().sort((a,b)=>(a.lane||0)-(b.lane||0)).forEach((x,i)=>x.lane=i);
+  if(pmVert()){
+    /* svisle sdílí sloupec víc boxů za sebou — stahují se jen prázdné pruhy */
+    const ls=[...new Set(vis.map(x=>x.lane||0))].sort((a,b)=>a-b), m={};
+    ls.forEach((l,i)=>m[l]=i); vis.forEach(x=>x.lane=m[x.lane||0]);
+  }
+  else vis.slice().sort((a,b)=>(a.lane||0)-(b.lane||0)).forEach((x,i)=>x.lane=i);
   let avail=o.availMm;
   if(avail==='auto')avail=pmAvailMm(pmPaperByHeight(vis.length+2));
-  PM.unit=o.unit==='auto'?pmPickUnit(vis,avail||pmAvailMm('A1')):o.unit;
+  /* svisle nerozhoduje šířka papíru, čas jde do výšky — stačí měsíce */
+  PM.unit=o.unit==='auto'?(pmVert()?'month':pmPickUnit(vis,avail||pmAvailMm('A1'))):o.unit;
+  if(pmVert()){
+    /* Délka času se natáhne tak, aby mapa měla poměr listu na výšku:
+       u pevného papíru přesně na jeho výšku, u automatického na poměr
+       stran řady A podle šířky sloupců. */
+    PM.print=o.light!==false; PM._vl=null;
+    const L=pmVLayout(vis,0), b=pmBounds(vis), days=Math.max(1,(b.t1-b.t0)/PMDAY);
+    let targetH=L.W*1.414;
+    if(o.availMm!=='auto'&&avail){
+      const f=PM_PAPERS.find(x=>x[1]-2*PM_MARGIN===avail)||['',avail+2*PM_MARGIN,(avail+2*PM_MARGIN)/1.414];
+      const Wmm=L.W*PX2MM;
+      let best=null;
+      pmPaperOpts(f,!!o.solo).forEach(([,pw,ph])=>{
+        const sc=Math.min(1,(pw-2*PM_MARGIN)/Wmm), hmm=(ph-2*PM_MARGIN-12)/sc;
+        if(!best||sc>best.sc+1e-9)best={sc,hmm};
+      });
+      targetH=best.hmm/PX2MM;
+    }
+    PM.zoom=Math.max(.1,Math.min(2,(targetH-L.head-PMV_TOP-30)/(days*PM_PXD[PM.unit])));
+  }
 
   renderPMap();
   const svg=$('#pm-canvas svg');
@@ -5933,7 +6551,7 @@ function pmLinkRows(rootId,scope){
     if(!doma||!ciz)return;
     radky.push({doma:doma,smer:smer,ciz:ciz,
       typ:(l.type||'')+(+l.lag?(l.lag>0?' +':' ')+l.lag+' d':''),
-      subj:l.subj||'',note:l.note||''});
+      subj:l.subj||'',note:l.note||'',bi:!!l.bi});
   };
   list.forEach(q=>{
     (q.links||[]).forEach(l=>{
@@ -5956,7 +6574,7 @@ function pmLinkListHTML(rootId,scope,nadpis){
     const klic=pmNumLabel(r.doma)||r.doma.name;
     const krok=klic===predchozi?'':escXml(klic);
     predchozi=klic;
-    const smer=r.smer==='pred'?'← předchůdce':'→ následník';
+    const smer=r.bi?'↔ obousměrná':(r.smer==='pred'?'← předchůdce':'→ následník');
     const text=[r.subj,r.note].filter(Boolean).map(escXml).join(' · ');
     return `<tr class="${r.smer}"><td class="k">${krok}</td>
       <td class="s">${smer}${r.typ?' <i>'+escXml(r.typ)+'</i>':''}</td>
@@ -6002,7 +6620,7 @@ function pmMapPreview(){
     if(!m.pocet){out.innerHTML='<b>Varianta nemá žádné procesy.</b>';return}
     const pap=MEX.paper==='auto'?pmPickPaper(m.w,m.h):pmFixedPaper(MEX.paper,m.w,m.h);
     const pct=Math.round(pap.scale*100);
-    out.innerHTML=`<b>${pap.name} na šířku</b> · ${m.pocet} procesů · mapa
+    out.innerHTML=`<b>${pap.name} ${pap.pw<pap.ph?'na výšku':'na šířku'}</b> · ${m.pocet} procesů · mapa
       ${Math.round(pap.wmm)} × ${Math.round(pap.hmm)} mm · měřítko ${pct} %
       · dělení osy po ${m.unit}${MEX.links?' · seznam vazeb na samostatném listu':''}
       ${pct<70?'<br><span class="warn">Při tomto měřítku bude písmo drobné — zvolte větší formát nebo rozdělení po fázích.</span>':''}
@@ -6014,9 +6632,9 @@ function pmMapPreview(){
     let nad=0;
     roots.forEach(r=>{
       const m=pmMapSVG({concept:c.id,solo:r.id,unit:MEX.unit,light:MEX.light,availMm:pmAvailMm(pap)});
-      if(pmFixedPaper(pap,m.w,m.h,MEX.links?pmLinkReserveMm(pmLinkRows(r.id,sc).length):0).scale<0.7)nad++;
+      if(pmFixedPaper(pap,m.w,m.h,MEX.links?pmLinkReserveMm(pmLinkRows(r.id,sc).length):0,true).scale<0.7)nad++;
     });
-    out.innerHTML=`<b>${roots.length} listů ${pap} na šířku</b> — na každém jeden hlavní proces
+    out.innerHTML=`<b>${roots.length} listů ${pap} ${pmVert()?'na výšku':'na šířku'}</b> — na každém jeden hlavní proces
       se svými podprocesy${MEX.links?', pod schématem seznam vazeb vedoucích mimo fázi':''}${nad?`<br><span class="warn">${nad} z nich se na ${pap} vejde jen ve zmenšení pod 70 % — zvažte ${pap==='A4'?'A3':'jeden velký list'}.</span>`:''}`;
   }
 }
@@ -6049,11 +6667,11 @@ function pmMapRun(){
     const roots=processes.filter(x=>x.scope===pmScopeOf(c.id)&&!x.parent)
       .sort(pmNumCmp);
     if(!roots.length){toast('Varianta nemá žádné hlavní procesy');return}
-    const f=PM_PAPERS.find(x=>x[0]===papName); W=f[1]; H=f[2];
+    const f=pmPaperDims(PM_PAPERS.find(x=>x[0]===papName)); W=f[1]; H=f[2];
     const sc=pmScopeOf(c.id);
     roots.forEach(r=>{
       const m=pmMapSVG({concept:c.id,solo:r.id,unit:MEX.unit,light:MEX.light,availMm:pmAvailMm(papName)});
-      const pap=pmFixedPaper(papName,m.w,m.h,MEX.links?pmLinkReserveMm(pmLinkRows(r.id,sc).length):0);
+      const pap=pmFixedPaper(papName,m.w,m.h,MEX.links?pmLinkReserveMm(pmLinkRows(r.id,sc).length):0,true);
       strany.push(`<section class="page mappage">${zahlavi(r.name,m,pap)}
         <div class="mapbox" style="width:${(pap.wmm*pap.scale).toFixed(1)}mm">${m.svg}</div>
         ${MEX.links?pmLinkListHTML(r.id,sc):''}</section>`);
@@ -6330,6 +6948,7 @@ function pmSubRender(k){
         <select onchange="pmLinkFrom(${i},this.value)">${whoOpts(l.from)}</select>
         <select style="max-width:140px" onchange="subCtx.obj.links[${i}].type=this.value;subFire()">${typOpts(l.type)}</select>
         <input type="number" style="max-width:80px" value="${+l.lag||0}" title="prodleva ve dnech" oninput="subCtx.obj.links[${i}].lag=+this.value||0;subFire()">
+        <label class="pm-bi" title="Obousměrná vazba — šipka na obou koncích, např. vzájemná výměna podkladů"><input type="checkbox" ${l.bi?'checked':''} onchange="subCtx.obj.links[${i}].bi=this.checked;subFire()"> ↔ obousměrná</label>
         <button type="button" class="x" onclick="subCtx.obj.links.splice(${i},1);pmSubRender('links');subFire();pmRibRefresh()">✕</button>
         ${l.from?'':'<span class="pm-linkwarn" title="Bez vybraného předchůdce vazba neexistuje — na plátně se nekreslí a u druhého procesu se neukáže">nedokončená</span>'}
         <input class="pm-subj" value="${esc(l.subj||'')}" placeholder="co je výstupem předchůdce, tedy vstupem pro tento proces"
@@ -6360,7 +6979,8 @@ function pmSubRender(k){
           <input class="pm-subj" value="${esc(d.subj||'')}" placeholder="co je výstupem předchůdce, tedy vstupem pro následníka"
             oninput="pmLinkDraftSet('subj',this.value)">
           <input class="pm-subj" value="${esc(d.note||'')}" placeholder="popis vazby — poznámka, podmínka, odkaz na předpis"
-            oninput="pmLinkDraftSet('note',this.value)"></div></div>`;
+            oninput="pmLinkDraftSet('note',this.value)">
+          <label class="pm-bi" title="Obousměrná vazba — šipka na obou koncích"><input type="checkbox" ${d.bi?'checked':''} onchange="pmLinkDraftSet('bi',this.checked)"> ↔ obousměrná</label></div></div>`;
     } else {
       h+=`<div class="pm-subrow">
         <button type="button" class="pm-addbtn" onclick="pmLinkDraft('pred')">＋ Vazba na předchůdce</button>
@@ -6455,7 +7075,7 @@ function pmLinkAdd(){
   const o=subCtx.obj, d=subCtx.draft;
   const bad=pmDraftBad(o,d);
   if(bad){toast(bad);return}
-  const zapis={type:d.type||'',lag:+d.lag||0,subj:(d.subj||'').trim(),note:(d.note||'').trim()};
+  const zapis=Object.assign({type:d.type||'',lag:+d.lag||0,subj:(d.subj||'').trim(),note:(d.note||'').trim()},d.bi?{bi:true}:{});
   if(d.dir==='succ'){
     /* vazba se ukládá u následníka, takže do vybraného procesu */
     const t=pmById(d.from);
