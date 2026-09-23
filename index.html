@@ -5971,19 +5971,27 @@ const PM_TPL_O14={
     {k:'P2',p:'P',n:'7.2 Zkušební provoz',g:'@DESU',o:615,d:45,lane:13,dep:['P1'],
      desc:'U Liběchova se nepředpokládá — drobná stavba.'},
     {k:'P3',p:'P',n:'7.3 Aktivace',g:'@SZ',o:660,d:15,lane:13,
-     dep:[{k:'P2',subj:'initial engagement'},{k:'I5',subj:'zpráva ISA'},'I6'],
+     dep:['P2',{k:'I5',subj:'zpráva ISA'},'I6'],
      desc:'Vázaná na zprávu ISA i na souhlas s podmínkami ověřovacího provozu.'},
     {k:'P8',p:'P',n:'7.4 Ověřovací provoz',g:'@SZ',o:675,d:180,lane:14,
      dep:[{k:'P3',subj:'aktivované zařízení'},{k:'I6',subj:'schválené podmínky ověřovacího provozu'}],
      desc:'Provoz podle schválených podmínek O14 — sběr dat a průběžné vyhodnocení.'},
-    {k:'P4',p:'P',n:'7.5 TA — trackside approval',g:'@ERA',o:720,d:60,lane:13,desc:'ERA'},
-    {k:'P5',p:'P',n:'7.6 Průkaz způsobilosti dráhy',g:'@DU',o:780,d:45,lane:13,
-     dep:[{k:'N4',subj:'ES certifikát'},{k:'P4',subj:'výstup od ERA'},{k:'U4',subj:'průkaz UTZ'}]},
-    {k:'P6',p:'P',n:'7.7 Kolaudace',g:'@DESU',o:825,d:45,lane:13,dep:['P5'],
+    {k:'P5',p:'P',n:'7.5 Průkaz způsobilosti dráhy',g:'@DU',o:780,d:45,lane:13,
+     dep:[{k:'N4',subj:'ES certifikát'},{k:'T2',subj:'výstup od ERA'},{k:'U4',subj:'průkaz UTZ'}]},
+    {k:'P6',p:'P',n:'7.6 Kolaudace',g:'@DESU',o:825,d:45,lane:13,dep:['P5'],
      desc:'U Liběchova se nepředpokládá — drobná stavba.'},
-    {k:'P9',p:'P',n:'7.8 Vyhodnocení ověřovacího provozu',g:'@SZ',o:855,d:30,lane:14,
+    {k:'P9',p:'P',n:'7.7 Vyhodnocení ověřovacího provozu',g:'@SZ',o:855,d:30,lane:14,
      dep:[{k:'P8',subj:'data a průběžná vyhodnocení z OP'}],
-     desc:'Kladné → zaváděcí list, záporné → konec.'}
+     desc:'Kladné → zaváděcí list, záporné → konec.'},
+
+    /* Trackside Approval běží u ERA po celou dobu projektu — od zahajovacího
+       jednání hned po PDPS až do vyhodnocení ověřovacího provozu */
+    {k:'T',n:'8. Trackside Approval — ERA',g:'@ERA',color:'cyan',o:75,d:810,lane:15},
+    {k:'T1',p:'T',n:'8.1 Trackside Approval — Initial Engagement',g:'@ERA',o:75,d:15,lane:16,
+     desc:'Zahajovací jednání s ERA — mezi dokončením PDPS a začátkem přípravy RDS.'},
+    {k:'T2',p:'T',n:'8.2 Trackside Approval',g:'@ERA',o:90,d:795,lane:16,dep:['T1'],
+     alias:['TA — trackside approval'],relocate:true,
+     desc:'Probíhá souběžně se všemi ostatními procesy až do vyhodnocení ověřovacího provozu. Výstup od ERA je podkladem pro průkaz způsobilosti dráhy.'}
   ]
 };
 const PM_TPLS=[PM_TPL_ETCS,PM_TPL_LEU,PM_TPL_O14];
@@ -6019,12 +6027,13 @@ function pmTplTopUp(key){
   mine.forEach(x=>{const k=klic(x.name); if(!idMap['@'+k])idMap['@'+k]=x.id});
   /* Krok, který šablona mezitím přejmenovala, se pozná podle dřívějšího
      názvu — nedoplní se podruhé, jen dostane nový název. */
-  let prejmenovano=0;
+  let prejmenovano=0; const presun={};
   tpl.procs.forEach(t=>{
     if(idMap['@'+klic(t.n)]||!t.alias)return;
     const hit=t.alias.map(a=>idMap['@'+pmNorm(a)]).find(Boolean);
     if(!hit)return;
     const x=pmById(hit); x.name=pmJoinName(pmNumLabel(x),pmNameOf({name:t.n})); pmQueue(x);
+    if(t.relocate)presun[hit]=t;      // šablona krok přesunula jinam — přesune se i tady
     idMap['@'+klic(t.n)]=hit; prejmenovano++;
   });
   /* útvary ze šablony doplníme, existující nepřepisujeme */
@@ -6053,6 +6062,11 @@ function pmTplTopUp(key){
      by nový předchůdce zůstal viset bez následníka. */
   tpl.procs.forEach(t=>{
     const o=pmById(tplId[t.k]); if(!o)return;
+    if(presun[o.id]&&t.p&&tplId[t.p]){
+      o.parent=tplId[t.p]; o.start=pmAdd(t0,t.o); o.end=pmAdd(t0,t.o+t.d);
+      const obsazeno=processes.some(q=>q.scope===scope&&q!==o&&(q.lane||0)===t.lane&&pmD(q.start)<pmD(o.end)&&pmD(o.start)<pmD(q.end));
+      if(!obsazeno)o.lane=t.lane;
+    }
     const jeNovy=novy[o.id];
     if(jeNovy&&t.p&&tplId[t.p])o.parent=tplId[t.p];
     (t.dep||[]).forEach(d=>{
