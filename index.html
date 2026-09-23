@@ -5952,31 +5952,38 @@ const PM_TPL_O14={
     {k:'I5',p:'I',n:'5.5 Zpráva ISA',g:'@VUZ',o:360,d:60,lane:9,
      dep:['I4',{k:'S3',bi:true,subj:'doplňují se, nesmí být duplicitní'}],
      desc:'Zpráva o posouzení bezpečnosti (Safety Assessment Report).'},
-    {k:'I6',p:'I',n:'5.6 SM008 — souhlas s provozním ověřením',g:'@O14',o:420,d:45,lane:9,dep:['I5'],
-     desc:'Schválení podmínek, O14.'},
+    {k:'I6',p:'I',n:'5.6 Souhlas s podmínkami ověřovacího provozu',g:'@O14',o:420,d:45,lane:9,dep:['I5'],
+     alias:['SM008 — souhlas s provozním ověřením'],
+     desc:'Schvaluje O14 podle SM008. Je podmínkou aktivace i vstupem do protokolu právnické osoby.'},
 
     {k:'U',n:'6. UTZ — zák. 266/1994 Sb. + vyhl. 100/1995 Sb.',g:'@PO',color:'gold',o:540,d:135,lane:10},
     {k:'U1',p:'U',n:'6.1 Revize elektrického zařízení',g:'@REV',o:540,d:30,lane:11,desc:'Výstup: revizní zpráva.'},
     {k:'U2',p:'U',n:'6.2 Přezkoušení podle T200',g:'@AUTO',o:570,d:45,lane:11,dep:['U1'],
      desc:'= technicko-bezpečnostní zkouška (TBZ).'},
     {k:'U3',p:'U',n:'6.3 Protokol právnické osoby',g:'@PO',o:615,d:30,lane:11,
-     dep:['U2',{k:'I6',subj:'souhlas s PO'}]},
+     dep:['U2',{k:'I6',subj:'souhlas s podmínkami OP'}]},
     {k:'U4',p:'U',n:'6.4 Průkaz způsobilosti UTZ',g:'@PO',o:645,d:30,lane:11,
      dep:['U3',{k:'U1',subj:'revizní zpráva'}]},
 
-    {k:'P',n:'7. Uvedení subsystému do provozu',g:'@SZ',color:'blue',o:90,d:780,lane:12},
+    {k:'P',n:'7. Uvedení subsystému do provozu',g:'@SZ',color:'blue',o:90,d:795,lane:12},
     {k:'P1',p:'P',n:'7.1 Stavební povolení',g:'@DESU',o:90,d:120,lane:13,
      desc:'U Liběchova se nepředpokládá — drobná stavba.'},
     {k:'P2',p:'P',n:'7.2 Zkušební provoz',g:'@DESU',o:615,d:45,lane:13,dep:['P1'],
      desc:'U Liběchova se nepředpokládá — drobná stavba.'},
     {k:'P3',p:'P',n:'7.3 Aktivace',g:'@SZ',o:660,d:15,lane:13,
      dep:[{k:'P2',subj:'initial engagement'},{k:'I5',subj:'zpráva ISA'},'I6'],
-     desc:'Vázaná na zprávu ISA i na souhlas s ověřovacím provozem.'},
-    {k:'P4',p:'P',n:'7.4 TA — trackside approval',g:'@ERA',o:720,d:60,lane:13,desc:'ERA'},
-    {k:'P5',p:'P',n:'7.5 Průkaz způsobilosti dráhy',g:'@DU',o:780,d:45,lane:13,
+     desc:'Vázaná na zprávu ISA i na souhlas s podmínkami ověřovacího provozu.'},
+    {k:'P8',p:'P',n:'7.4 Ověřovací provoz',g:'@SZ',o:675,d:180,lane:14,
+     dep:[{k:'P3',subj:'aktivované zařízení'},{k:'I6',subj:'schválené podmínky ověřovacího provozu'}],
+     desc:'Provoz podle schválených podmínek O14 — sběr dat a průběžné vyhodnocení.'},
+    {k:'P4',p:'P',n:'7.5 TA — trackside approval',g:'@ERA',o:720,d:60,lane:13,desc:'ERA'},
+    {k:'P5',p:'P',n:'7.6 Průkaz způsobilosti dráhy',g:'@DU',o:780,d:45,lane:13,
      dep:[{k:'N4',subj:'ES certifikát'},{k:'P4',subj:'výstup od ERA'},{k:'U4',subj:'průkaz UTZ'}]},
-    {k:'P6',p:'P',n:'7.6 Kolaudace',g:'@DESU',o:825,d:45,lane:13,dep:['P5'],
-     desc:'U Liběchova se nepředpokládá — drobná stavba.'}
+    {k:'P6',p:'P',n:'7.7 Kolaudace',g:'@DESU',o:825,d:45,lane:13,dep:['P5'],
+     desc:'U Liběchova se nepředpokládá — drobná stavba.'},
+    {k:'P9',p:'P',n:'7.8 Vyhodnocení ověřovacího provozu',g:'@SZ',o:855,d:30,lane:14,
+     dep:[{k:'P8',subj:'data a průběžná vyhodnocení z OP'}],
+     desc:'Kladné → zaváděcí list, záporné → konec.'}
   ]
 };
 const PM_TPLS=[PM_TPL_ETCS,PM_TPL_LEU,PM_TPL_O14];
@@ -6010,6 +6017,16 @@ function pmTplTopUp(key){
   const klic=n=>pmNorm(pmNameOf({name:n}));
   const idMap={};
   mine.forEach(x=>{const k=klic(x.name); if(!idMap['@'+k])idMap['@'+k]=x.id});
+  /* Krok, který šablona mezitím přejmenovala, se pozná podle dřívějšího
+     názvu — nedoplní se podruhé, jen dostane nový název. */
+  let prejmenovano=0;
+  tpl.procs.forEach(t=>{
+    if(idMap['@'+klic(t.n)]||!t.alias)return;
+    const hit=t.alias.map(a=>idMap['@'+pmNorm(a)]).find(Boolean);
+    if(!hit)return;
+    const x=pmById(hit); x.name=pmJoinName(pmNumLabel(x),pmNameOf({name:t.n})); pmQueue(x);
+    idMap['@'+klic(t.n)]=hit; prejmenovano++;
+  });
   /* útvary ze šablony doplníme, existující nepřepisujeme */
   let units=0;
   Object.keys(tpl.units||{}).forEach(u=>{if(!orgUnits[u]){orgUnits[u]=tpl.units[u];units++}});
@@ -6024,10 +6041,13 @@ function pmTplTopUp(key){
     const o={id:nextId('process'),scope:scope,name:pmJoinName(pmNumLabel({name:t.n}),pmNameOf({name:t.n})),
       desc:t.desc||'',gestor:t.g||'',color:t.color||'',cogestors:[],affected:[],parent:'',
       state:'koncept',status:'idle',start:pmAdd(t0,t.o),end:pmAdd(t0,t.o+t.d),
-      lane:radek++,links:[],msStart:[],msEnd:[],collapsed:false};
+      lane:0,links:[],msStart:[],msEnd:[],collapsed:false};
+    /* pruh ze šablony, je-li v tu dobu volný — jinak nový pod vším */
+    const volnyPruh=l=>!processes.some(q=>q.scope===scope&&q!==o&&(q.lane||0)===l&&pmD(q.start)<pmD(o.end)&&pmD(o.start)<pmD(q.end));
+    o.lane=(t.lane!=null&&volnyPruh(t.lane))?t.lane:radek++;
     processes.push(o); tplId[t.k]=o.id; idMap['@'+k]=o.id; novy[o.id]=1; pridano++;
   });
-  if(!pridano){toast('Koncept už všechny procesy ze šablony obsahuje');pmFlush();return}
+  if(!pridano){toast(prejmenovano?`Přejmenováno ${prejmenovano} kroků podle šablony, nic nechybělo`:'Koncept už všechny procesy ze šablony obsahuje');pmFlush();renderPMap();return}
   /* Rodiče nastavujeme jen u nově vzniklých procesů. Vazby dotahujeme i u těch
      stávajících, ale výhradně ty, které vedou na nově doplněný proces — jinak
      by nový předchůdce zůstal viset bez následníka. */
@@ -6043,8 +6063,10 @@ function pmTplTopUp(key){
     });
   });
   processes.filter(x=>x.scope===scope).forEach(x=>pmQueue(x));
-  pmFlush(); computePositions(); renderPMap();
-  toast(`Doplněno ${pridano} procesů${units?', '+units+' nových útvarů':''} — najdete je pod stávajícími`);
+  pmFlush(); computePositions();
+  pmRenumber();          // doplněné kroky mají čísla ze šablony — srovnat s konceptem
+  renderPMap();
+  toast(`Doplněno ${pridano} procesů${prejmenovano?', přejmenováno '+prejmenovano:''}${units?', '+units+' nových útvarů':''}`);
 }
 /* První pruh pod vším, co koncept zabírá — doplněné procesy nikomu nepřepíšou řádek */
 function pmFreeLaneAfter(list){
