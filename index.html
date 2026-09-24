@@ -925,6 +925,14 @@ body.pm-view #pm-viewbar{display:flex;position:fixed;z-index:50;gap:6px;
   </div>
 </div>
 
+<div class="modal-veil" id="streampick" onclick="if(event.target===this)closeStreamPick()">
+  <div class="modal" style="width:480px">
+    <h3>Do jakého streamu? <span style="font-weight:400;color:var(--text3);font-size:13px">— nový proces se přidá na konec vybraného streamu</span></h3>
+    <div id="streampick-list"></div>
+    <div class="m-actions"><button class="btn ghost" onclick="closeStreamPick()">Zrušit</button></div>
+  </div>
+</div>
+
 <div id="printdoc"></div>
 
 <section id="landing">
@@ -4304,7 +4312,7 @@ function pmRibbonField(p,k){
     const num=pmNumLabel(p);
     return `<div class="wide"><label>${f.l}</label><div class="pm-namerow">
       <span class="pm-num" title="Číslo přiděluje aplikace podle pořadí procesů — narovná ho tlačítko 🔢 Přečíslovat">${num?escXml(num):'—'}</span>
-      <input type="text" data-k="name" value="${esc(pmNameOf(p))}" onkeydown="pmRibKey(event)" onchange="pmRibSet('name',this.value)">
+      <input type="text" data-k="name" placeholder="Doplňte název procesu" value="${esc(pmNameOf(p))}" onkeydown="pmRibKey(event)" onchange="pmRibSet('name',this.value)">
     </div></div>`;
   }
   const v=p[k]==null?'':p[k];
@@ -4433,6 +4441,7 @@ function pmRenderRibbon(host,p){
         <span class="code">${p.id}</span><b title="${escXml(p.name)}">${escXml(p.name)}</b>${chip(p.status)}
         ${pmDepth(p)<PM_MAX_DEPTH-1?`<button class="btn ghost sm" title="Založit podproces pod tímto procesem" onclick="pmNewSub('${p.id}')">＋ Podproces</button>`:''}
         ${PM.mode==='map'&&p.state!=='potvrzeny'?`<button class="btn primary sm" title="Označit termíny a vazby za potvrzené" onclick="pmConfirm('${p.id}')">Potvrdit</button>`:''}
+        ${!p.parent&&pmAll().some(x=>x.parent===p.id)?`<button class="btn ghost sm" title="Smazat celý stream včetně všech podprocesů" onclick="pmDeleteStream('${p.id}')">Smazat stream</button>`:''}
         <button class="btn ghost sm" title="Smazat proces" onclick="pmDeleteProcess('${p.id}')">Smazat</button>
         <button class="btn ghost sm" title="Zavřít pás karet a zrušit výběr" onclick="PM.sel=[];PM.link=null;renderPMap()">✕</button>
       </span>
@@ -4547,19 +4556,19 @@ function pmFreeLane(lane,start,end){
   pmAll().forEach(q=>{if((q.lane||0)>=base+1){q.lane=(q.lane||0)+1;pmQueue(q)}});
   return base+1;
 }
-function pmPlaceSub(parId,at){
+function pmPlaceSub(parId,at,fromBtn){
   const par=pmById(parId); if(!par)return;
   if(pmDepth(par)>=PM_MAX_DEPTH-1){toast('Zanoření je omezené na tři úrovně');return}
   histPush();
   const start=pmClampDate(at?pmISO(at.day):par.start);
-  const dur=Math.max(10,Math.round(pmDays(par.start,par.end)/3));
+  const dur=pmVert()?30:Math.max(10,Math.round(pmDays(par.start,par.end)/3));
   const end=pmClampDate(pmAdd(start,dur));
   const V=pmVert(), root=pmRootOf(par);
   const lane=V?pmLaneInStream(root,start,end,at?at.lane:null,null)
               :pmFreeLane(at?at.lane:(par.lane||0)+1,start,end);
   const o={id:nextId('process'),scope:par.scope,
-    name:pmJoinName(pmNextNum(par.id,par.scope),pmNameOf(par)+' — dílčí krok'),desc:'',
-    gestor:par.gestor,cogestors:[],affected:[],parent:par.id,state:par.state,status:'idle',
+    name:pmJoinName(pmNextNum(par.id,par.scope),''),desc:'',
+    gestor:'',cogestors:[],affected:[],parent:par.id,state:par.state,status:'idle',
     start,end,lane,links:[],msStart:[],msEnd:[],collapsed:false};
   processes.push(o);
   par.collapsed=false; pmQueue(par);
@@ -4567,7 +4576,8 @@ function pmPlaceSub(parId,at){
   persist('process',o,processes.length-1);
   if(V)pmFitRoot(root);
   pmRenumberScope(o.scope); pmFlush();       // číslo podle pořadí v čase uvnitř procesu
-  renderPMap(); toast(`Podproces ${pmNumLabel(o)} přidán — upravte mu název a termíny`);
+  renderPMap(); toast(`Proces ${pmNumLabel(o)} přidán do „${pmNameOf(root)||pmNameOf(par)}" — doplňte název, gestora a termíny`);
+  setTimeout(()=>{const i=$('#pm-inspector input[data-k="name"]');if(i)i.focus()},30);
 }
 function pmDeleteProcess(id){
   const p=pmById(id); if(!p)return;
@@ -5293,7 +5303,7 @@ function pmNewStream(placed){
   const r=Object.assign({},zaklad,{id:nextId('process'),name:pmJoinName(pmNextNum('',scope),'Nový stream'),
     parent:'',color:barva,lane});
   processes.push(r);
-  const k=Object.assign({},zaklad,{id:nextId('process'),name:pmJoinName(pmNextNum(r.id,scope),'Nový podproces'),
+  const k=Object.assign({},zaklad,{id:nextId('process'),name:pmJoinName(pmNextNum(r.id,scope),''),
     parent:r.id,lane:lane+1,cogestors:[],affected:[],links:[],msStart:[],msEnd:[]});
   processes.push(k);
   persist('process',r,processes.length-2); persist('process',k,processes.length-1);
@@ -5301,6 +5311,54 @@ function pmNewStream(placed){
   PM.sel=[r.id]; PM.tab='zaklad'; PM._vl=null;
   renderPMap();
   toast(`Přidán stream ${pmNumLabel(r)} — přejmenujte jej; podprocesy přidáte tlačítkem ＋ Proces ve sloupci streamu`);
+}
+/* Proces do streamu: za označený podproces (jeho konec), jinak na konec
+   streamu. Vzniká vždy bez názvu a gestora a nikdy nepřekryje existující
+   proces — dostane volné místo ve sloupcích streamu. */
+function pmAddToStream(rootId,after){
+  const root=pmById(rootId); if(!root)return;
+  const kids=pmDescOf(root.id);
+  let day;
+  if(after&&after!==root)day=pmD(after.end);
+  else day=kids.length?Math.max(...kids.map(k=>pmD(k.end))):pmD(root.start);
+  const pref=after&&after!==root?(after.lane||0):null;
+  pmPlaceSub(root.id,{day,lane:pref},true);
+}
+function pmStreamPick(){
+  const roots=pmByNum(pmAll().filter(p=>!p.parent));
+  const host=$('#streampick-list'); if(!host)return;
+  host.innerHTML=roots.map(r=>{
+    const c=pmColorOf(r)||'var(--text3)';
+    return `<button class="tplopt" onclick="closeStreamPick();pmAddToStream('${r.id}')">
+      <b><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${c};margin-right:8px"></span>${escXml(r.name)}</b>
+      <span>${pmDescOf(r.id).length} podprocesů</span></button>`}).join('')
+    +`<button class="tplopt" onclick="closeStreamPick();pmNewStream(null)"><b>＋ Nový stream</b><span>nový sloupec vpravo</span></button>`;
+  $('#streampick').classList.add('open');
+}
+function closeStreamPick(){const m=$('#streampick');if(m)m.classList.remove('open')}
+/* Smazání celého streamu — kořen i všechny podprocesy, vazby na ně
+   a jejich prázdné sloupce. Zbytek konceptu se přečísluje. */
+function pmDeleteStream(id){
+  const r=pmById(id); if(!r)return;
+  const vetev=[r].concat(pmDescOf(r.id));
+  if(!confirm(`Smazat stream „${r.name}" včetně ${vetev.length-1} podprocesů?\nVazby ostatních procesů na ně se odstraní.`))return;
+  histPush();
+  const ids=new Set(vetev.map(q=>q.id));
+  const zbytek=processes.filter(q=>q.scope===r.scope&&!ids.has(q.id));
+  const pouzite=new Set(zbytek.map(q=>q.lane||0));
+  const volne=[...new Set(vetev.map(q=>q.lane||0))].filter(l=>!pouzite.has(l));
+  zbytek.forEach(q=>{
+    const before=(q.links||[]).length;
+    q.links=(q.links||[]).filter(l=>!ids.has(l.from));
+    const dl=volne.filter(l=>l<(q.lane||0)).length;
+    if(dl)q.lane=(q.lane||0)-dl;
+    if(dl||q.links.length!==before)pmQueue(q);
+  });
+  vetev.forEach(q=>{processes.splice(processes.indexOf(q),1);persistDelete('process',q)});
+  pmgroups.forEach((g,i)=>{if((g.members||[]).some(m=>ids.has(m))){g.members=g.members.filter(m=>!ids.has(m));persist('pmgroup',g,i)}});
+  pmRenumberScope(r.scope);
+  PM.sel=[]; PM._vl=null; pmFlush(); renderPMap();
+  toast(`Stream smazán (${vetev.length} položek)`);
 }
 function pmNewProcess(){
   if(PM.mode==='map'&&!processes.some(p=>p.scope==='map')){
@@ -5310,12 +5368,12 @@ function pmNewProcess(){
   /* Nový proces vznikne tam, kde je myš nad plátnem; není-li nad plátnem,
      na středu právě viditelné části plátna — ne vždy až za posledním. */
   const placed=pmPlacementNow();
-  /* ve svislé ose patří nový proces do streamu, ve kterém sloupci vznikl;
-     mimo streamy založí stream nový */
-  if(pmVert()&&placed){
-    const st=pmStreamAt(placed.lane,null);
-    if(st){pmPlaceSub(st.id,placed);return}
-    pmNewStream(placed);return;
+  /* ve svislé ose patří nový proces do označeného streamu; když není nic
+     označeno, aplikace se zeptá, do kterého */
+  if(pmVert()){
+    const sel=pmById(pmPrimary());
+    if(sel){pmAddToStream(pmRootOf(sel).id,sel);return}
+    pmStreamPick();return;
   }
   const lane=placed?placed.lane:(list.length?Math.max(...list.map(p=>p.lane||0))+1:0);
   const start=placed?pmISO(placed.day):(list.length?list[list.length-1].end:(pmConcept()?pmConcept().t0:project.start));
@@ -7398,7 +7456,7 @@ function pmNormalize(){
 
 /* ================= INIT ================= */
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){
-  closeDrawer();closeModal();closeEditor();closeLogin();closeNewPassword();closePeople();
+closeStreamPick();
   if($('#pm-helpbox')&&$('#pm-helpbox').classList.contains('on'))pmToggleHelp(false);
   else if(PM.placing){PM.placing=null;renderPMap();toast('Vkládání podprocesu zrušeno')}
   else if(PM.splitMode)pmSetSplit(false);
