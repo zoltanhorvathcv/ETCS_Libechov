@@ -1287,7 +1287,8 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       <button class="btn ghost sm ed-only" id="pm-newvar" onclick="pmNewConcept()" title="Založit novou prázdnou variantu konceptu">＋ Varianta</button>
       <button class="btn ghost sm ed-only" id="pm-tplvar" onclick="pmTemplateConcept()" title="Založit variantu z připravené šablony — přezkoušení a uvádění ETCS L1 LS do provozu podle T200">＋ Ze šablony</button>
       <button class="btn ghost sm ed-only" id="pm-editvar" onclick="pmEditConcept()" title="Upravit název, osu a T0 této varianty">✎ Varianta</button>
-      <button class="btn ghost sm ed-only" onclick="pmNewProcess()" title="Přidat nový proces na volný pruh">＋ Proces</button>
+      <button class="btn ghost sm ed-only" onclick="pmNewProcess()" title="Přidat nový proces na volný pruh — ve svislé ose se ve sloupci streamu založí jako jeho podproces">＋ Proces</button>
+      <button class="btn ghost sm ed-only" id="pm-newstream" onclick="pmNewStream()" title="Přidat nový stream — nový sloupec s vlastní barvou a číslem, vpravo za ostatními">＋ Stream</button>
       <button class="btn ghost sm" id="pm-orient" onclick="pmToggleOrient()" title="Přepne časovou osu mezi vodorovnou a svislou — svisle plyne čas shora dolů a souběžné procesy stojí ve sloupcích">↕ Svislá osa</button>
       <button class="btn ghost sm" id="pm-rel" onclick="pmToggleRel()" title="Zvýrazní všechny souvislosti právě vybraného procesu nebo vazby — vazby i procesy na jejich druhém konci">🔗 Souvislosti</button>
       <button class="btn ghost sm" id="pm-mapexp" onclick="pmMapDialog()" title="Vytisknout nebo uložit mapu se všemi procesy a vazbami do PDF">⎙ Mapa do PDF</button>
@@ -3767,6 +3768,7 @@ function pmSyncControls(){
   const rb=$('#pm-rel'); if(rb)rb.classList.toggle('on',!!PM.rel);
   const ob=$('#pm-orient');
   if(ob){const v=pmVert(); ob.classList.toggle('on',v); ob.textContent=v?'↔ Vodorovná osa':'↕ Svislá osa'}
+  const sb2=$('#pm-newstream'); if(sb2)sb2.style.display=pmVert()?'':'none';
   document.querySelectorAll('#pm-mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===PM.mode));
   document.querySelectorAll('#pm-unit button').forEach(b=>b.classList.toggle('on',b.dataset.u===PM.unit));
   const v=$('#pm-variant'), ax=$('#pm-axis');
@@ -4507,7 +4509,9 @@ function pmRibSet(k,v){
   histPush();
   if(k==='lane')v=Math.max(0,+v||0);
   if(k==='name')v=pmJoinName(pmNumLabel(p),v);   // číslo drží aplikace, ne pole
+  const oldRoot=k==='parent'?pmRootOf(p):null;
   p[k]=v;
+  if(k==='parent'){pmAfterReparent(p,oldRoot);PM._vl=null;pmRenderInspector();}
   if(k==='start'||k==='end')pmSyncMilestones(p);
   if(p.scope==='map')p.mapEdited=true;
   pmQueue(p); computePositions();
@@ -4550,7 +4554,9 @@ function pmPlaceSub(parId,at){
   const start=pmClampDate(at?pmISO(at.day):par.start);
   const dur=Math.max(10,Math.round(pmDays(par.start,par.end)/3));
   const end=pmClampDate(pmAdd(start,dur));
-  const lane=pmFreeLane(at?at.lane:(par.lane||0)+1,start,end);
+  const V=pmVert(), root=pmRootOf(par);
+  const lane=V?pmLaneInStream(root,start,end,at?at.lane:null,null)
+              :pmFreeLane(at?at.lane:(par.lane||0)+1,start,end);
   const o={id:nextId('process'),scope:par.scope,
     name:pmJoinName(pmNextNum(par.id,par.scope),pmNameOf(par)+' — dílčí krok'),desc:'',
     gestor:par.gestor,cogestors:[],affected:[],parent:par.id,state:par.state,status:'idle',
@@ -4559,7 +4565,9 @@ function pmPlaceSub(parId,at){
   par.collapsed=false; pmQueue(par);
   PM.sel=[o.id]; PM.tab='zaklad';
   persist('process',o,processes.length-1);
-  renderPMap(); toast('Podproces přidán — upravte mu název a termíny');
+  if(V)pmFitRoot(root);
+  pmRenumberScope(o.scope); pmFlush();       // číslo podle pořadí v čase uvnitř procesu
+  renderPMap(); toast(`Podproces ${pmNumLabel(o)} přidán — upravte mu název a termíny`);
 }
 function pmDeleteProcess(id){
   const p=pmById(id); if(!p)return;
@@ -4865,13 +4873,27 @@ function pmPointerUp(){
   }
   if(pmMarq){pmMarq=null;renderPMap();return}
   if(!pmDrag)return;
-  const moved=pmDrag.moved, group=pmDrag.orig.map(o=>o.q);
+  const moved=pmDrag.moved, group=pmDrag.orig.map(o=>o.q), mezi=!!pmDrag.vcols&&!pmDrag.resize;
   pmDrag=null; PM.snapX=null;
   if(moved){
     group.forEach(q=>{
       if(q.scope==='map')q.mapEdited=true;
       pmSyncMilestones(q); pmQueue(q);
     });
+    /* podproces puštěný do sloupce jiného streamu tam i patří */
+    if(mezi){
+      let prelozeno=0;
+      group.forEach(q=>{
+        if(!q.parent||group.includes(pmById(q.parent)))return;
+        const st=pmStreamAt(q.lane||0,q), old=pmRootOf(q);
+        if(!st||st===old)return;
+        q.parent=st.id; if(q.color)q.color='';
+        pmDescOf(q.id).forEach(d=>{if(!group.includes(d)){d.lane=pmLaneInStream(st,d.start,d.end,null,d);pmQueue(d)}});
+        pmFitRoot(st); prelozeno++;
+      });
+      if(prelozeno){pmRenumberScope(group[0].scope);pmFlush();PM._vl=null;
+        setTimeout(()=>toast(`Přesunuto do jiného streamu — barva a číslování se upravily`),0);}
+    }
     pmNormalizeLanes();
     computePositions();
     toast(ONLINE?'Uloženo · Supabase':'Změněno · DEMO (neuloží se)');
@@ -5095,9 +5117,16 @@ function pmSplitProcess(id,dateStr){
    za číslem je jediná mezera; vlastní název procesu se nemění. */
 function pmRenumber(){
   const scope=pmScope();
-  const list=processes.filter(p=>p.scope===scope);
-  if(!list.length){toast('Není co přečíslovat');return}
+  if(!processes.some(p=>p.scope===scope)){toast('Není co přečíslovat');return}
   histPush();
+  const n=pmRenumberScope(scope);
+  pmFlush(); renderPMap();
+  toast(n?`Přečíslováno ${n} položek`:'Číslování už sedělo');
+}
+/* Totéž potichu — volá se po přesunu podprocesu do jiného procesu,
+   po založení podprocesu nebo streamu. Historii řeší volající. */
+function pmRenumberScope(scope){
+  const list=processes.filter(p=>p.scope===scope);
   let n=0;
   const set=(p,num)=>{
     const nn=pmJoinName(num,pmNameOf(p));
@@ -5116,8 +5145,7 @@ function pmRenumber(){
       kidsOf(c.id).forEach((d,k)=>set(d,y+'.'+(k+1)));
     });
   });
-  pmFlush(); renderPMap();
-  toast(n?`Přečíslováno ${n} položek`:'Číslování už sedělo');
+  return n;
 }
 function pmRecalc(){
   const list=processes.filter(p=>p.scope==='map');
@@ -5186,6 +5214,94 @@ function pmPointToPlacement(clientX,clientY){
   const lane=Math.max(0,Math.round((clientY-rect.top-pmHeadH())/pmRowH())-pmPadTop());
   return day==null?null:{day,lane};
 }
+/* ================= STREAMY (svislá osa) =================
+   Ve svislé ose je každý kořenový proces se svými podprocesy jeden stream:
+   sloupec (nebo několik sloupců) pod společným záhlavím. Podproces dědí
+   číslo a barvu po streamu, do kterého patří. */
+function pmRootOf(p){let cur=p,g=0;while(cur&&cur.parent&&g++<8){const n=pmById(cur.parent);if(!n)break;cur=n}return cur}
+const pmInTree=(skip,q)=>!!skip&&(q===skip||pmIsAncestor(skip.id,q));
+/* stream, jehož sloupce pokrývají pruh — skip (a jeho větev) se nepočítá,
+   aby tažený proces nerozšiřoval svůj původní stream */
+function pmStreamAt(lane,skip){
+  let best=null,bw=1e9;
+  pmAll().filter(r=>!r.parent&&r!==skip).forEach(r=>{
+    const ls=pmDescOf(r.id).filter(d=>!pmInTree(skip,d)).map(d=>d.lane||0);
+    if(!ls.length)return;
+    const a=Math.min(...ls), b=Math.max(...ls);
+    if(lane>=a&&lane<=b&&b-a<bw){best=r;bw=b-a}
+  });
+  return best;
+}
+/* Pruh ve sloupcích streamu, který je v daném čase volný: nejdřív ten
+   zvolený, pak kterýkoli jiný sloupec streamu; když jsou všechny obsazené,
+   přibude streamu nový sloupec vpravo a ostatní streamy se odsunou. */
+function pmLaneInStream(root,start,end,pref,skip){
+  const a=pmD(start), b=pmD(end), all=processes.filter(q=>q.scope===root.scope&&!pmInTree(skip,q));
+  const volny=l=>!all.some(q=>(q.lane||0)===l&&pmD(q.start)<b&&a<pmD(q.end));
+  const lanes=[...new Set(pmDescOf(root.id).filter(q=>!pmInTree(skip,q)).map(q=>q.lane||0))].sort((x,y)=>x-y);
+  if(pref!=null&&lanes.includes(pref)&&volny(pref))return pref;
+  const f=lanes.find(volny); if(f!=null)return f;
+  const nl=lanes.length?lanes[lanes.length-1]+1:(root.lane||0)+1;
+  all.forEach(q=>{if((q.lane||0)>=nl){q.lane=(q.lane||0)+1;pmQueue(q)}});
+  return nl;
+}
+/* záhlaví streamu musí obsáhnout všechny své podprocesy */
+function pmFitRoot(root){
+  if(!root)return;
+  const d=pmDescOf(root.id); if(!d.length)return;
+  const s=d.reduce((m,q)=>q.start<m?q.start:m,root.start), e=d.reduce((m,q)=>q.end>m?q.end:m,root.end);
+  if(s!==root.start||e!==root.end){root.start=s;root.end=e;pmQueue(root)}
+}
+/* Podproces přešel pod jiný proces: barvu převezme po novém streamu,
+   ve svislé ose se přestěhuje do jeho sloupců a koncept se přečísluje. */
+function pmAfterReparent(p,oldRoot){
+  const root=pmRootOf(p);
+  if(p.parent&&p.color){p.color='';}
+  if(pmVert()&&p.parent&&root&&root!==oldRoot){
+    p.lane=pmLaneInStream(root,p.start,p.end,null,p);
+    pmDescOf(p.id).forEach(d=>{d.lane=pmLaneInStream(root,d.start,d.end,null,d);pmQueue(d)});
+  }
+  if(root!==p)pmFitRoot(root);
+  if(p.scope==='map')p.mapEdited=true;
+  pmQueue(p);
+  pmRenumberScope(p.scope);
+  pmFlush();
+}
+/* Bod, kam se zakládá: myš nad plátnem, jinak střed viditelné části. */
+function pmPlacementNow(){
+  const host=$('#pm-canvas'); if(!host)return null;
+  const r=host.getBoundingClientRect(), cur=PM.cursor;
+  const inCanvas=cur&&cur.x>=r.left&&cur.x<=r.right&&cur.y>=r.top&&cur.y<=r.bottom;
+  return pmPointToPlacement(inCanvas?cur.x:r.left+host.clientWidth/2, inCanvas?cur.y:r.top+host.clientHeight/2);
+}
+/* Nový stream = nový kořenový proces v novém sloupci vpravo s první
+   položkou, aby měl hned záhlaví i sloupec. Barvu dostane dosud nepoužitou. */
+function pmNewStream(placed){
+  if(PM.mode==='map'&&!processes.some(p=>p.scope==='map')){toast('Mapa vzniká zpevněním konceptu, ne ručně');return}
+  const scope=pmScope(), list=pmAll();
+  if(placed===undefined)placed=pmPlacementNow();
+  const roots=list.filter(p=>!p.parent);
+  const used=new Set(roots.map(p=>p.color).filter(Boolean));
+  const barva=(PM_COLORS.find(c=>!used.has(c[0]))||PM_COLORS[roots.length%PM_COLORS.length])[0];
+  const maxL=list.length?Math.max(...list.map(p=>p.lane||0)):-1;
+  const lane=placed&&placed.lane>maxL?placed.lane:maxL+1;
+  const start=pmClampDate(placed?pmISO(placed.day):(pmConcept()?pmConcept().t0:project.start));
+  const end=pmClampDate(pmAdd(start,30));
+  histPush();
+  const zaklad={scope,desc:'',gestor:'',cogestors:[],affected:[],state:PM.mode==='map'?'potvrzeny':'koncept',
+    status:'idle',start,end,links:[],msStart:[],msEnd:[],collapsed:false};
+  const r=Object.assign({},zaklad,{id:nextId('process'),name:pmJoinName(pmNextNum('',scope),'Nový stream'),
+    parent:'',color:barva,lane});
+  processes.push(r);
+  const k=Object.assign({},zaklad,{id:nextId('process'),name:pmJoinName(pmNextNum(r.id,scope),'Nový podproces'),
+    parent:r.id,lane:lane+1,cogestors:[],affected:[],links:[],msStart:[],msEnd:[]});
+  processes.push(k);
+  persist('process',r,processes.length-2); persist('process',k,processes.length-1);
+  pmRenumberScope(scope); pmFlush();
+  PM.sel=[r.id]; PM.tab='zaklad'; PM._vl=null;
+  renderPMap();
+  toast(`Přidán stream ${pmNumLabel(r)} — přejmenujte jej; podprocesy přidáte tlačítkem ＋ Proces ve sloupci streamu`);
+}
 function pmNewProcess(){
   if(PM.mode==='map'&&!processes.some(p=>p.scope==='map')){
     toast('Mapa vzniká zpevněním konceptu, ne ručně'); return;
@@ -5193,14 +5309,13 @@ function pmNewProcess(){
   const list=pmAll();
   /* Nový proces vznikne tam, kde je myš nad plátnem; není-li nad plátnem,
      na středu právě viditelné části plátna — ne vždy až za posledním. */
-  const host=$('#pm-canvas');
-  let placed=null;
-  if(host){
-    const r=host.getBoundingClientRect();
-    const cur=PM.cursor;
-    const inCanvas=cur&&cur.x>=r.left&&cur.x<=r.right&&cur.y>=r.top&&cur.y<=r.bottom;
-    placed=pmPointToPlacement(inCanvas?cur.x:r.left+host.clientWidth/2,
-                               inCanvas?cur.y:r.top+host.clientHeight/2);
+  const placed=pmPlacementNow();
+  /* ve svislé ose patří nový proces do streamu, ve kterém sloupci vznikl;
+     mimo streamy založí stream nový */
+  if(pmVert()&&placed){
+    const st=pmStreamAt(placed.lane,null);
+    if(st){pmPlaceSub(st.id,placed);return}
+    pmNewStream(placed);return;
   }
   const lane=placed?placed.lane:(list.length?Math.max(...list.map(p=>p.lane||0))+1:0);
   const start=placed?pmISO(placed.day):(list.length?list[list.length-1].end:(pmConcept()?pmConcept().t0:project.start));
@@ -5718,7 +5833,7 @@ const PM_TPL_LEU={
   axis:'cal',
   units:{
     SZ:{name:'SŽ — investor a provozovatel',kind:'Útvar'},
-    O9:{name:'O9 - Odbor přípravy staveb',kind:'Odbor'},
+    O9:{name:'O9 - Odbor projektování staveb',kind:'Odbor'},
     VUZ:{name:'VÚŽ — hodnotitel bezpečnosti (ISA)',kind:'Externí'},
     AUTO:{name:'Autorizovaná osoba / UTZ',kind:'Externí'},
     PROV:{name:'Provoz SŽ',kind:'Útvar'},
@@ -5894,7 +6009,7 @@ const PM_TPL_O14={
   axis:'cal', orient:'v',
   units:{
     SZ:{name:'SŽ — investor a provozovatel',kind:'Útvar'},
-    O9:{name:'O9 - Odbor přípravy staveb',kind:'Odbor'},
+    O9:{name:'O9 - Odbor projektování staveb',kind:'Odbor'},
     O14:{name:'Odbor O14',kind:'Odbor'},
     ZHO:{name:'Zhotovitel',kind:'Externí'},
     SIE:{name:'Siemens Mobility',kind:'Externí'},
@@ -5908,93 +6023,132 @@ const PM_TPL_O14={
     DESU:{name:'Drážní a energetický stavební úřad',kind:'Externí'},
     ERA:{name:'Agentura EU pro železnice (ERA)',kind:'Externí'}
   },
+  /* Jednorázové úpravy už založených konceptů — provede je „Doplnit ze
+     šablony“, každou jen jednou (koncept si pamatuje c.mig). */
+  mig:[{id:'o14-majetek-2026-09',popis:'1.2 Majetkoprávní vztahy',run:pmMigMajetek}],
   procs:[
-    {k:'A',n:'1. PDPS — projektová dokumentace pro provádění stavby',g:'@O9',color:'slate',o:0,d:90,lane:0},
+    {k:'A',n:'1. PDPS — projektová dokumentace pro provádění stavby',g:'@O9',color:'slate',o:0,d:120,lane:0},
     {k:'A1',p:'A',n:'1.1 Čistopis PDPS s rozpočtem',g:'@O9',o:0,d:90,lane:1,
      desc:'V čase úplně první krok — od něj se odvíjí posouzení NoBo i příprava RDS.'},
+    {k:'A2',p:'A',n:'1.2 Majetkoprávní vztahy',g:'@O9',o:90,d:30,lane:1,dep:['A1'],
+     desc:'Vypořádání majetkoprávních vztahů — trvá měsíc. Žádný další proces nezačne dřív, než skončí.'},
 
-    {k:'B',n:'2. RDS + stavba — realizační dokumentace stavby',g:'@ZHO',color:'green',o:90,d:735,lane:2},
-    {k:'B1',p:'B',n:'2.1 Příprava RDS',g:'@ZHO',o:90,d:150,lane:3,dep:['A1'],
+    {k:'B',n:'2. RDS + stavba — realizační dokumentace stavby',g:'@ZHO',color:'green',o:135,d:735,lane:2},
+    {k:'B1',p:'B',n:'2.1 Příprava RDS',g:'@ZHO',o:135,d:150,lane:3,dep:['A1',{k:'A2',subj:'vypořádané majetkoprávní vztahy'}],
      desc:'Běží souběžně s posouzením PDPS u NoBo. Od tohoto okamžiku se rozbíhají všechny schvalovací sloupce.'},
-    {k:'B2',p:'B',n:'2.2 Čistopis RDS',g:'@ZHO',o:240,d:45,lane:3,dep:['B1']},
-    {k:'B3',p:'B',n:'2.3 Nákupy',g:'@SZ',o:285,d:90,lane:3,dep:['B2']},
-    {k:'B4',p:'B',n:'2.4 Stavba',g:'@ZHO',o:375,d:450,lane:3,dep:['B3'],
+    {k:'B2',p:'B',n:'2.2 Čistopis RDS',g:'@ZHO',o:285,d:45,lane:3,dep:['B1']},
+    {k:'B3',p:'B',n:'2.3 Nákupy',g:'@SZ',o:330,d:90,lane:3,dep:['B2']},
+    {k:'B4',p:'B',n:'2.4 Stavba',g:'@ZHO',o:420,d:450,lane:3,dep:['B3'],
      desc:'Montáž, zapojení a vlastní zkoušky zhotovitele. Trvá až do začátku kolaudace.'},
 
-    {k:'N',n:'3. NoBo a DeBo — ES ověření podle TSI CCS',g:'@NOBO',color:'teal',o:90,d:630,lane:4},
-    {k:'N1',p:'N',n:'3.1 NoBo — posouzení PDPS',g:'@NOBO',o:90,d:90,lane:5,
+    {k:'N',n:'3. NoBo a DeBo — ES ověření podle TSI CCS',g:'@NOBO',color:'teal',o:135,d:630,lane:4},
+    {k:'N1',p:'N',n:'3.1 NoBo — posouzení PDPS',g:'@NOBO',o:135,d:90,lane:5,
      dep:[{k:'A1',subj:'čistopis PDPS'}],
      desc:'Posouzení projektového návrhu ETCS L1 LS z hlediska shody s TSI CCS; připomínky a požadavky k doplnění dokumentace. Stojí přímo za dokončením PDPS, ne až ve společné závěrečné schvalovací větvi.'},
-    {k:'N2',p:'N',n:'3.2 NoBo — posouzení realizačního řešení',g:'@NOBO',o:285,d:90,lane:5,
+    {k:'N2',p:'N',n:'3.2 NoBo — posouzení realizačního řešení',g:'@NOBO',o:330,d:90,lane:5,
      dep:['N1',{k:'B2',subj:'čistopis RDS'}],
      desc:'Ověření RDS / realizační dokumentace, použitých prvků interoperability a jejich certifikátů a souladu navrženého řešení s podmínkami ES ověření.'},
-    {k:'N3',p:'N',n:'3.3 NoBo — posouzení realizovaného subsystému',g:'@NOBO',o:615,d:60,lane:5,
+    {k:'N3',p:'N',n:'3.3 NoBo — posouzení realizovaného subsystému',g:'@NOBO',o:660,d:60,lane:5,
      dep:['N2',{k:'U2',subj:'výsledky zkoušek'}],
      desc:'Ověření skutečného provedení a relevantních výsledků zkoušek a dalších dokladů potřebných pro prokázání shody subsystému CCS Trackside s TSI.'},
-    {k:'N4',p:'N',n:'3.4 NoBo — závěrečné ES ověření',g:'@NOBO',o:675,d:45,lane:5,dep:['N3'],
+    {k:'N4',p:'N',n:'3.4 NoBo — závěrečné ES ověření',g:'@NOBO',o:720,d:45,lane:5,dep:['N3'],
      desc:'Vydání ES certifikátu ověření subsystému CCS Trackside → podklad pro vystavení ES prohlášení o ověření subsystému žadatelem.'},
 
-    {k:'S',n:'4. AsBo — nařízení 402/2013 (CSM)',g:'@ASBO',color:'red',o:180,d:240,lane:6},
-    {k:'S1',p:'S',n:'4.1 Vymezení systému',g:'@ASBO',o:180,d:60,lane:7},
-    {k:'S2',p:'S',n:'4.2 Rizika — pravděpodobnost — opatření',g:'@ASBO',o:240,d:120,lane:7,dep:['S1']},
-    {k:'S3',p:'S',n:'4.3 Zpráva AsBo',g:'@ASBO',o:360,d:60,lane:7,dep:['S2']},
+    {k:'S',n:'4. AsBo — nařízení 402/2013 (CSM)',g:'@ASBO',color:'red',o:225,d:240,lane:6},
+    {k:'S1',p:'S',n:'4.1 Vymezení systému',g:'@ASBO',o:225,d:60,lane:7},
+    {k:'S2',p:'S',n:'4.2 Rizika — pravděpodobnost — opatření',g:'@ASBO',o:285,d:120,lane:7,dep:['S1']},
+    {k:'S3',p:'S',n:'4.3 Zpráva AsBo',g:'@ASBO',o:405,d:60,lane:7,dep:['S2']},
 
-    {k:'I',n:'5. Hodnocení bezpečnosti — ISA podle EN 5012x',g:'@VUZ',color:'purple',o:90,d:375,lane:8},
-    {k:'I1',p:'I',n:'5.1 Oslovení nezávislého posuzovatele bezpečnosti (ISA)',g:'@SZ',o:90,d:30,lane:9,desc:'VÚŽ'},
-    {k:'I2',p:'I',n:'5.2 Podklady: SRAC obou propojovaných zařízení',g:'@SIE',o:120,d:60,lane:9,dep:['I1'],
+    {k:'I',n:'5. Hodnocení bezpečnosti — ISA podle EN 5012x',g:'@VUZ',color:'purple',o:135,d:375,lane:8},
+    {k:'I1',p:'I',n:'5.1 Oslovení nezávislého posuzovatele bezpečnosti (ISA)',g:'@SZ',o:135,d:30,lane:9,desc:'VÚŽ'},
+    {k:'I2',p:'I',n:'5.2 Podklady: SRAC obou propojovaných zařízení',g:'@SIE',o:165,d:60,lane:9,dep:['I1'],
      desc:'Aplikační podmínky LEU i AŽD 71 — bez nich nelze porovnávat.'},
-    {k:'I3',p:'I',n:'5.3 Vymezení systému a rozhraní',g:'@VUZ',o:180,d:60,lane:9,
+    {k:'I3',p:'I',n:'5.3 Vymezení systému a rozhraní',g:'@VUZ',o:225,d:60,lane:9,
      dep:['I2',{k:'S1',bi:true,subj:'shodné hranice systému'}],
      desc:'Hranice musí být stejné jako u AsBo.'},
-    {k:'I4',p:'I',n:'5.4 Porovnání SRAC a posouzení rizik',g:'@VUZ',o:240,d:120,lane:9,
+    {k:'I4',p:'I',n:'5.4 Porovnání SRAC a posouzení rizik',g:'@VUZ',o:285,d:120,lane:9,
      dep:['I3',{k:'S2',bi:true,subj:'rizika a opatření'}],
      desc:'Porovnáním aplikačních podmínek obou zařízení posuzovatel ověří bezpečnost rozhraní.'},
-    {k:'I5',p:'I',n:'5.5 Zpráva ISA',g:'@VUZ',o:360,d:60,lane:9,
+    {k:'I5',p:'I',n:'5.5 Zpráva ISA',g:'@VUZ',o:405,d:60,lane:9,
      dep:['I4',{k:'S3',bi:true,subj:'doplňují se, nesmí být duplicitní'}],
      desc:'Zpráva o posouzení bezpečnosti (Safety Assessment Report).'},
-    {k:'I6',p:'I',n:'5.6 Souhlas s podmínkami ověřovacího provozu',g:'@O14',o:420,d:45,lane:9,dep:['I5'],
+    {k:'I6',p:'I',n:'5.6 Souhlas s podmínkami ověřovacího provozu',g:'@O14',o:465,d:45,lane:9,dep:['I5'],
      alias:['SM008 — souhlas s provozním ověřením'],
      desc:'Schvaluje O14 podle SM008. Je podmínkou aktivace i vstupem do protokolu právnické osoby.'},
 
-    {k:'U',n:'6. UTZ — zák. 266/1994 Sb. + vyhl. 100/1995 Sb.',g:'@PO',color:'gold',o:540,d:135,lane:10},
-    {k:'U1',p:'U',n:'6.1 Revize elektrického zařízení',g:'@REV',o:540,d:30,lane:11,desc:'Výstup: revizní zpráva.'},
-    {k:'U2',p:'U',n:'6.2 Přezkoušení podle T200',g:'@AUTO',o:570,d:45,lane:11,dep:['U1'],
+    {k:'U',n:'6. UTZ — zák. 266/1994 Sb. + vyhl. 100/1995 Sb.',g:'@PO',color:'gold',o:585,d:135,lane:10},
+    {k:'U1',p:'U',n:'6.1 Revize elektrického zařízení',g:'@REV',o:585,d:30,lane:11,desc:'Výstup: revizní zpráva.'},
+    {k:'U2',p:'U',n:'6.2 Přezkoušení podle T200',g:'@AUTO',o:615,d:45,lane:11,dep:['U1'],
      desc:'= technicko-bezpečnostní zkouška (TBZ).'},
-    {k:'U3',p:'U',n:'6.3 Protokol právnické osoby',g:'@PO',o:615,d:30,lane:11,
+    {k:'U3',p:'U',n:'6.3 Protokol právnické osoby',g:'@PO',o:660,d:30,lane:11,
      dep:['U2',{k:'I6',subj:'souhlas s podmínkami OP'}]},
-    {k:'U4',p:'U',n:'6.4 Průkaz způsobilosti UTZ',g:'@PO',o:645,d:30,lane:11,
+    {k:'U4',p:'U',n:'6.4 Průkaz způsobilosti UTZ',g:'@PO',o:690,d:30,lane:11,
      dep:['U3',{k:'U1',subj:'revizní zpráva'}]},
 
-    {k:'P',n:'7. Uvedení subsystému do provozu',g:'@SZ',color:'blue',o:90,d:795,lane:12},
-    {k:'P1',p:'P',n:'7.1 Stavební povolení',g:'@DESU',o:90,d:120,lane:13,
+    {k:'P',n:'7. Uvedení subsystému do provozu',g:'@SZ',color:'blue',o:135,d:795,lane:12},
+    {k:'P1',p:'P',n:'7.1 Stavební povolení',g:'@DESU',o:135,d:120,lane:13,
      desc:'U Liběchova se nepředpokládá — drobná stavba.'},
-    {k:'P2',p:'P',n:'7.2 Zkušební provoz',g:'@DESU',o:615,d:45,lane:13,dep:['P1'],
+    {k:'P2',p:'P',n:'7.2 Zkušební provoz',g:'@DESU',o:660,d:45,lane:13,dep:['P1'],
      desc:'U Liběchova se nepředpokládá — drobná stavba.'},
-    {k:'P3',p:'P',n:'7.3 Aktivace',g:'@SZ',o:660,d:15,lane:13,
+    {k:'P3',p:'P',n:'7.3 Aktivace',g:'@SZ',o:705,d:15,lane:13,
      dep:['P2',{k:'I5',subj:'zpráva ISA'},'I6'],
      desc:'Vázaná na zprávu ISA i na souhlas s podmínkami ověřovacího provozu.'},
-    {k:'P8',p:'P',n:'7.4 Ověřovací provoz',g:'@SZ',o:675,d:180,lane:14,
+    {k:'P8',p:'P',n:'7.4 Ověřovací provoz',g:'@SZ',o:720,d:180,lane:14,
      dep:[{k:'P3',subj:'aktivované zařízení'},{k:'I6',subj:'schválené podmínky ověřovacího provozu'}],
      desc:'Provoz podle schválených podmínek O14 — sběr dat a průběžné vyhodnocení.'},
-    {k:'P5',p:'P',n:'7.5 Průkaz způsobilosti dráhy',g:'@DU',o:780,d:45,lane:13,
+    {k:'P5',p:'P',n:'7.5 Průkaz způsobilosti dráhy',g:'@DU',o:825,d:45,lane:13,
      dep:[{k:'N4',subj:'ES certifikát'},{k:'T2',subj:'výstup od ERA'},{k:'U4',subj:'průkaz UTZ'}]},
-    {k:'P6',p:'P',n:'7.6 Kolaudace',g:'@DESU',o:825,d:45,lane:13,dep:['P5'],
+    {k:'P6',p:'P',n:'7.6 Kolaudace',g:'@DESU',o:870,d:45,lane:13,dep:['P5'],
      desc:'U Liběchova se nepředpokládá — drobná stavba.'},
-    {k:'P9',p:'P',n:'7.7 Vyhodnocení ověřovacího provozu',g:'@SZ',o:855,d:30,lane:14,
+    {k:'P9',p:'P',n:'7.7 Vyhodnocení ověřovacího provozu',g:'@SZ',o:900,d:30,lane:14,
      dep:[{k:'P8',subj:'data a průběžná vyhodnocení z OP'}],
      desc:'Kladné → zaváděcí list, záporné → konec.'},
 
     /* Trackside Approval běží u ERA po celou dobu projektu — od zahajovacího
        jednání hned po PDPS až do vyhodnocení ověřovacího provozu */
-    {k:'T',n:'8. Trackside Approval — ERA',g:'@ERA',color:'cyan',o:75,d:810,lane:15},
-    {k:'T1',p:'T',n:'8.1 Trackside Approval — Initial Engagement',g:'@ERA',o:75,d:15,lane:16,
+    {k:'T',n:'8. Trackside Approval — ERA',g:'@ERA',color:'cyan',o:120,d:810,lane:15},
+    {k:'T1',p:'T',n:'8.1 Trackside Approval — Initial Engagement',g:'@ERA',o:120,d:15,lane:16,
      desc:'Zahajovací jednání s ERA — mezi dokončením PDPS a začátkem přípravy RDS.'},
-    {k:'T2',p:'T',n:'8.2 Trackside Approval',g:'@ERA',o:90,d:795,lane:16,dep:['T1'],
+    {k:'T2',p:'T',n:'8.2 Trackside Approval',g:'@ERA',o:135,d:795,lane:16,dep:['T1'],
      alias:['TA — trackside approval'],relocate:true,
      desc:'Probíhá souběžně se všemi ostatními procesy až do vyhodnocení ověřovacího provozu. Výstup od ERA je podkladem pro průkaz způsobilosti dráhy.'}
   ]
 };
 const PM_TPLS=[PM_TPL_ETCS,PM_TPL_LEU,PM_TPL_O14];
+/* 1.2 Majetkoprávní vztahy (gestor O9): 1.1 trvá do konce listopadu 2026,
+   1.2 celý prosinec a vše ostatní se posune tak, aby nic nezačalo dřív,
+   než 1.2 skončí. Posun je u všech stejný — vzájemné návaznosti zůstanou. */
+function pmMigMajetek(c,scope){
+  const mine=processes.filter(x=>x.scope===scope);
+  const najdi=n=>mine.find(x=>pmNorm(pmNameOf(x))===pmNorm(n));
+  const a1=najdi('Čistopis PDPS s rozpočtem');
+  if(!a1||najdi('Majetkoprávní vztahy'))return false;
+  const root=pmRootOf(a1);
+  const K11='2026-11-30', Z12='2026-12-01', K12='2026-12-31', DALSI='2027-01-01';
+  if(a1.start<=K11){a1.end=K11;pmSyncMilestones(a1);pmQueue(a1)}
+  const o={id:nextId('process'),scope,name:pmJoinName('1.2','Majetkoprávní vztahy'),
+    desc:'Vypořádání majetkoprávních vztahů — trvá měsíc. Žádný další proces nezačne dřív, než skončí.',
+    gestor:'@O9',color:'',cogestors:[],affected:[],parent:root&&root!==a1?root.id:a1.id,state:'koncept',status:'idle',
+    start:Z12,end:K12,lane:a1.lane||0,links:[{from:a1.id,type:'',lag:0,subj:'',note:''}],msStart:[],msEnd:[],collapsed:false};
+  /* ostatní (vše mimo stream 1) — jednotný posun */
+  const vetev=q=>q===root||(root&&pmIsAncestor(root.id,q));
+  const ostatni=mine.filter(q=>!vetev(q));
+  const nejdriv=ostatni.reduce((m,q)=>q.start<m?q.start:m,'9999');
+  const posun=ostatni.length?Math.max(0,pmDays(nejdriv,DALSI)):0;
+  if(posun)ostatni.forEach(q=>{q.start=pmAdd(q.start,posun);q.end=pmAdd(q.end,posun);pmSyncMilestones(q);pmQueue(q)});
+  processes.push(o);
+  const volno=!mine.some(q=>q!==a1&&(q.lane||0)===o.lane&&pmD(q.start)<pmD(o.end)&&pmD(o.start)<pmD(q.end));
+  if(!volno&&root)o.lane=pmLaneInStream(root,o.start,o.end,null,o);
+  pmQueue(o);
+  if(root&&root!==a1){if(root.end<K12){root.end=K12;pmQueue(root)}}
+  const rds=najdi('Příprava RDS');
+  if(rds&&!(rds.links||[]).some(l=>l.from===o.id)){
+    rds.links=(rds.links||[]).concat({from:o.id,type:'',lag:0,subj:'vypořádané majetkoprávní vztahy',note:''});pmQueue(rds);
+  }
+  if(orgUnits.O9&&!/projektov/i.test(orgUnits.O9.name||'')){orgUnits.O9.name='O9 - Odbor projektování staveb';persistMeta()}
+  else if(!orgUnits.O9){orgUnits.O9={name:'O9 - Odbor projektování staveb',kind:'Odbor'};persistMeta()}
+  return `vloženo 1.2 Majetkoprávní vztahy${posun?', ostatní procesy posunuty o '+posun+' dní':''}`;
+}
 /* Šablon je víc — bez upřesnění se nabídne výběr. */
 function pmTemplateConcept(key){
   if(key===undefined&&PM_TPLS.length>1){pmTplPick();return}
@@ -6040,6 +6194,14 @@ function pmTplTopUp(key){
   let units=0;
   Object.keys(tpl.units||{}).forEach(u=>{if(!orgUnits[u]){orgUnits[u]=tpl.units[u];units++}});
   histPush();
+  const upravy=[];
+  (tpl.mig||[]).forEach(m=>{
+    if((c.mig||[]).includes(m.id))return;
+    const r=m.run(c,scope);
+    c.mig=(c.mig||[]).concat(m.id);                     // i když nebylo co dělat — podruhé už ne
+    if(r){upravy.push(r);const x=pmNorm('Majetkoprávní vztahy');const nov=processes.find(q=>q.scope===scope&&pmNorm(pmNameOf(q))===x);if(nov)idMap['@'+klic(nov.name)]=nov.id}
+  });
+  if((tpl.mig||[]).length){c.touched=new Date().toISOString();persist('concept',c,concepts.indexOf(c))}
   const t0=c.t0||project.start||pmISO(Date.now());
   const volny=pmFreeLaneAfter(mine);
   let radek=volny, pridano=0;
@@ -6056,7 +6218,9 @@ function pmTplTopUp(key){
     o.lane=(t.lane!=null&&volnyPruh(t.lane))?t.lane:radek++;
     processes.push(o); tplId[t.k]=o.id; idMap['@'+k]=o.id; novy[o.id]=1; pridano++;
   });
-  if(!pridano){toast(prejmenovano?`Přejmenováno ${prejmenovano} kroků podle šablony, nic nechybělo`:'Koncept už všechny procesy ze šablony obsahuje');pmFlush();renderPMap();return}
+  if(!pridano){
+    if(upravy.length){pmRenumberScope(scope);pmFlush();PM._vl=null;renderPMap();toast('Upraveno podle šablony: '+upravy.join('; '));return}
+    toast(prejmenovano?`Přejmenováno ${prejmenovano} kroků podle šablony, nic nechybělo`:'Koncept už všechny procesy ze šablony obsahuje');pmFlush();renderPMap();return}
   /* Rodiče nastavujeme jen u nově vzniklých procesů. Vazby dotahujeme i u těch
      stávajících, ale výhradně ty, které vedou na nově doplněný proces — jinak
      by nový předchůdce zůstal viset bez následníka. */
@@ -6080,7 +6244,7 @@ function pmTplTopUp(key){
   pmFlush(); computePositions();
   pmRenumber();          // doplněné kroky mají čísla ze šablony — srovnat s konceptem
   renderPMap();
-  toast(`Doplněno ${pridano} procesů${prejmenovano?', přejmenováno '+prejmenovano:''}${units?', '+units+' nových útvarů':''}`);
+  toast(`Doplněno ${pridano} procesů${prejmenovano?', přejmenováno '+prejmenovano:''}${units?', '+units+' nových útvarů':''}${upravy.length?'; '+upravy.join('; '):''}`);
 }
 /* První pruh pod vším, co koncept zabírá — doplněné procesy nikomu nepřepíšou řádek */
 function pmFreeLaneAfter(list){
