@@ -2922,7 +2922,7 @@ function pmVLayout(list,availW){
     const w=colX(bd.c1)+colW-colX(bd.c0);
     const per=Math.max(6,Math.floor((w-(bare?16:62))/(FS*0.55)));
     bd.full=pmWrap(bd.p.name,per);
-    bd.need=Math.max(MINH,bd.full.length*LH+16);
+    bd.need=Math.max(MINH,Math.min(bd.full.length,5)*LH+16);   // při velkém oddálení se sloupce zužují — víc než 5 řádků automaticky ne
   });
   const autoRow=[]; for(let r=0;r<nrow;r++)autoRow[r]=Math.max(MINH,...bands.filter(b=>b.row===r).map(b=>b.need));
   const autoHead=nrow?autoRow.reduce((a,h)=>a+h+8,0)+8:30;
@@ -4480,6 +4480,7 @@ function pmRenderRibbon(host,p){
         <span class="code">${p.id}</span><b title="${escXml(p.name)}">${escXml(p.name)}</b>${chip(p.status)}
         ${pmDepth(p)<PM_MAX_DEPTH-1?`<button class="btn ghost sm" title="Založit podproces pod tímto procesem" onclick="pmNewSub('${p.id}')">＋ Podproces</button>`:''}
         ${PM.mode==='map'&&p.state!=='potvrzeny'?`<button class="btn primary sm" title="Označit termíny a vazby za potvrzené" onclick="pmConfirm('${p.id}')">Potvrdit</button>`:''}
+        ${p.parent?`<button class="btn ghost sm" title="Přidat proces, který běží souběžně s tímto, ve stejném streamu — stejný začátek i konec" onclick="pmAddParallel('${p.id}')">＋ Paralelně</button>`:''}
         ${!p.parent&&(pmVert()||pmAll().some(x=>x.parent===p.id))?pmStreamMoveBtns(p):''}
         ${!p.parent&&pmAll().some(x=>x.parent===p.id)?`<button class="btn ghost sm" title="Smazat celý stream včetně všech podprocesů" onclick="pmDeleteStream('${p.id}')">Smazat stream</button>`:''}
         <button class="btn ghost sm" title="Smazat proces" onclick="pmDeleteProcess('${p.id}')">Smazat</button>
@@ -5408,6 +5409,38 @@ function pmAddToStream(rootId,after){
   else day=kids.length?Math.max(...kids.map(k=>pmD(k.end))):pmD(root.start);
   const pref=after&&after!==root?(after.lane||0):null;
   pmPlaceSub(root.id,{day,lane:pref},true);
+}
+/* Paralelní proces: vznikne vedle označeného procesu ve stejném streamu,
+   se stejným začátkem i koncem a pod stejným nadřazeným procesem. Ve svislé
+   ose stojí ve vedlejším sloupci streamu; je-li tam v té době místo, použije
+   se, jinak streamu přibude nový sloupec hned vedle (ostatní se odsunou). */
+function pmAddParallel(id){
+  const sel=pmById(id||pmPrimary());
+  if(!sel){toast('Nejdřív označte proces, ke kterému má být nový paralelní');return}
+  if(!sel.parent){toast('Paralelní proces patří k podprocesu — pro nový stream použijte ＋ Stream');return}
+  const root=pmRootOf(sel), a=pmD(sel.start), b=pmD(sel.end);
+  const all=processes.filter(q=>q.scope===sel.scope);
+  const volny=l=>!all.some(q=>(q.lane||0)===l&&pmD(q.start)<b&&a<pmD(q.end));
+  const sl=sel.lane||0;
+  const lanes=[...new Set(pmDescOf(root.id).map(q=>q.lane||0))].filter(l=>l!==sl&&volny(l))
+    .sort((x,y)=>Math.abs(x-sl)-Math.abs(y-sl)||y-x);
+  histPush();
+  let lane;
+  if(lanes.length&&Math.abs(lanes[0]-sl)<=1)lane=lanes[0];
+  else{
+    lane=sl+1;
+    all.forEach(q=>{if((q.lane||0)>=lane){q.lane=(q.lane||0)+1;pmQueue(q)}});
+  }
+  const o={id:nextId('process'),scope:sel.scope,name:pmJoinName(pmNextNum(sel.parent,sel.scope),''),desc:'',
+    gestor:'',cogestors:[],affected:[],parent:sel.parent,state:sel.state,status:'idle',
+    start:sel.start,end:sel.end,lane,links:[],msStart:[],msEnd:[],collapsed:false};
+  processes.push(o);
+  persist('process',o,processes.length-1);
+  pmRenumberScope(o.scope); pmFlush();
+  PM.sel=[o.id]; PM.tab='zaklad'; PM._vl=null;
+  renderPMap();
+  toast(`Paralelní proces ${pmNumLabel(o)} přidán vedle ${pmNumLabel(sel)} — doplňte název, gestora a termíny`);
+  setTimeout(()=>{const i=$('#pm-inspector input[data-k="name"]');if(i)i.focus()},30);
 }
 function pmStreamPick(){
   const roots=pmByNum(pmAll().filter(p=>!p.parent));
