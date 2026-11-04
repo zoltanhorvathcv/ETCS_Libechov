@@ -4418,7 +4418,7 @@ function pmRibbonField(p,k){
        začátek osy a druhý termín by se podle něj zbytečně srovnal. */
     const mm=f.min?` min="${f.min}" max="${f.max}"`:'';
     input=`<input type="date" data-k="${k}" value="${esc(v)}" onkeydown="pmRibKey(event)"
-      onchange="pmRibDate(this,'${k}')" onblur="pmRibDate(this,'${k}',true)"${mm}>`;
+      oninput="pmRibDateSoon(this,'${k}')" onchange="pmRibDateSoon(this,'${k}')" onblur="pmRibDateBlur(this,'${k}')"${mm}>`;
   }
   else{input=`<input type="${f.t==='number'?'number':'text'}" data-k="${k}" value="${esc(v)}" onkeydown="pmRibKey(event)" onchange="pmRibSet('${k}',this.value)">`;}
   return `<div class="${cls}"><label>${f.l}${pmI('process.'+k)}</label>${input}</div>`;
@@ -4559,6 +4559,19 @@ function pmToggleLinkFocus(id){
 }
 /* Datum bere jen hotové a smysluplné: rozepsaný rok se ignoruje a proces
    se pohne až ve chvíli, kdy je datum kompletní. */
+/* Datum se při psaní mění po každé číslici: po „1“ v měsíci je už platné
+   datum (leden), a kdyby se hned vyhodnotilo, mohlo by se odmítnout (konec
+   před začátkem) a pole by se přepsalo dřív, než stihnete napsat „0“ →
+   „10“. Proto se psaní vyhodnotí až po krátké pauze, při odchodu z pole
+   nebo po Enteru; rozepsané pole se do té doby nepřepisuje. */
+function pmRibDateSoon(el,k){
+  clearTimeout(el._dt);
+  el._dt=setTimeout(()=>pmRibDate(el,k,false),1000);
+}
+function pmRibDateBlur(el,k){
+  clearTimeout(el._dt);
+  pmRibDate(el,k,true);
+}
 function pmRibDate(el,k,onBlur){
   const v=el.value;
   const p=pmById(pmPrimary());
@@ -4568,7 +4581,7 @@ function pmRibDate(el,k,onBlur){
     return;
   }
   if(p&&p[k]===pmClampDate(v))return;   // beze změny nepřekreslujeme
-  if(p&&pmDateBad(p,k,pmClampDate(v))){ el.value=p[k]||''; return }
+  if(p&&pmDateBad(p,k,pmClampDate(v))){ if(onBlur)el.value=p[k]||''; return }
   pmRibSet(k,v);
 }
 /* Termíny se hlídají proti sobě: neplatnou úpravu odmítneme a druhé
