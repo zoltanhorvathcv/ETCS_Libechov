@@ -38,9 +38,14 @@ body::before{content:'';position:fixed;inset:0;background:
   radial-gradient(800px 500px at -10% 110%, rgba(61,130,196,.05), transparent 60%);
   pointer-events:none;z-index:0}
 ::selection{background:rgba(255,82,0,.35)}
-::-webkit-scrollbar{width:10px;height:10px}
-::-webkit-scrollbar-thumb{background:#232838;border-radius:8px;border:2px solid var(--bg)}
-::-webkit-scrollbar-track{background:transparent}
+/* posuvníky: světlý jezdec na tmavé dráze, při najetí oranžový — jsou dobře vidět */
+*{scrollbar-width:auto;scrollbar-color:#8b97b1 #1b2030}
+::-webkit-scrollbar{width:13px;height:13px}
+::-webkit-scrollbar-thumb{background:#8b97b1;border-radius:8px;border:2px solid #1b2030;min-height:36px;min-width:36px}
+::-webkit-scrollbar-thumb:hover{background:#FF5200}
+::-webkit-scrollbar-thumb:active{background:#ff7a3d}
+::-webkit-scrollbar-track{background:#1b2030}
+::-webkit-scrollbar-corner{background:#1b2030}
 
 /* ================= LANDING ================= */
 #landing{position:relative;min-height:100vh;display:flex;flex-direction:column;background:
