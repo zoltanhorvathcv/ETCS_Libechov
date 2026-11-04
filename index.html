@@ -147,6 +147,10 @@ body.in-app .app{display:grid}
 .chip.replanned{color:var(--replanned);background:rgba(183,140,255,.1)}
 .chip.idle{color:var(--idle);background:rgba(255,255,255,.05)}
 .chip.neutral{color:var(--text2);background:rgba(255,255,255,.05);text-transform:none;letter-spacing:0}
+#sync-badge{position:relative;cursor:help}
+#sync-badge:hover::after,#sync-badge:focus-visible::after{content:attr(data-tip);position:absolute;top:calc(100% + 10px);right:0;width:340px;
+  white-space:pre-line;font:400 12px/1.5 var(--sans,Inter,system-ui,sans-serif);color:var(--text,#e7ecf3);background:var(--panel,#161b23);
+  border:1px solid var(--border);border-radius:10px;padding:10px 12px;box-shadow:0 12px 32px rgba(0,0,0,.45);z-index:200;text-align:left}
 .tag{font-family:var(--mono);font-size:10.5px;color:var(--text3);background:rgba(255,255,255,.04);border:1px solid var(--border);padding:2px 7px;border-radius:6px}
 .section-title{display:flex;align-items:baseline;gap:12px;margin:38px 0 16px}
 .section-title h2{font-size:16px;font-weight:700;letter-spacing:-.01em}
@@ -996,7 +1000,7 @@ body.pm-view #pm-viewbar{display:flex;position:fixed;z-index:50;gap:6px;
     <button class="burger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
     <div class="crumb">Projekty / <b id="crumb-project">Projekt</b> / <span id="crumb-view">Přehled</span></div>
     <div class="search"><span>⌕</span> Hledat otázky, rozhodnutí, důkazy…<kbd>⌘K</kbd></div>
-    <span id="sync-badge" class="tag" style="display:none">DEMO režim</span>
+    <span id="sync-badge" class="tag" tabindex="0" style="display:none">DEMO režim</span>
     <button class="btn ghost sm" id="auth-btn" onclick="openLogin()">Přihlásit</button>
     <button class="btn ghost sm" id="edit-toggle" onclick="setEdit()">✎ Úpravy</button>
     <button class="btn primary sm" onclick="go('ai')">✦ Analyzovat přepis</button>
@@ -2378,18 +2382,42 @@ async function boot(){
       sb=window.supabase.createClient(SUPA.url,SUPA.anonKey);
       const {data,error}=await sb.from('pi_entities').select('*').eq('project_id',SUPA.projectId).order('sort');
       if(error)throw error;
-      if(data&&data.length){ hydrate(data); ONLINE=true; badge('● Supabase','var(--ok)'); }
-      else { ONLINE=true; await persistAll(); badge('● Supabase · nasazeno','var(--ok)'); }
+      if(data&&data.length){ hydrate(data); ONLINE=true; badge('● Supabase','var(--ok)','online'); }
+      else { ONLINE=true; await persistAll(); badge('● Supabase · nasazeno','var(--ok)','nasazeno'); }
       sb.auth.onAuthStateChange((event,session)=>{
         if(event==='PASSWORD_RECOVERY')openNewPassword(session&&session.user&&session.user.email);
         refreshAuth();
       });
       await refreshAuth();
-    }catch(e){ console.warn('Supabase nedostupné → DEMO režim:',e.message||e); badge('DEMO režim (offline)','var(--risk)'); }
-  } else { badge('DEMO režim','var(--text3)'); }
+    }catch(e){ console.warn('Supabase nedostupné → DEMO režim:',e.message||e); badge('DEMO režim (offline)','var(--risk)','offline'); }
+  } else { badge('DEMO režim','var(--text3)','demo'); }
   normalizeData(); renderAll();
 }
-function badge(txt,color){const b=$('#sync-badge');b.textContent=txt;b.style.color=color;b.style.display='inline-flex'}
+/* Stavy indikátoru připojení a jejich význam — zobrazí se po najetí myší. */
+let SYNC_STATE='demo';
+const SYNC_INFO={
+  online:{t:'● Supabase',c:'var(--ok)',h:'Připojeno k databázi Supabase',
+    d:'Aplikace se načetla ze sdílené databáze. Co v ní uložíte, vidí všichni uživatelé a zůstane to i po zavření stránky.'},
+  nasazeno:{t:'● Supabase · nasazeno',c:'var(--ok)',h:'Databáze byla právě naplněna',
+    d:'Databáze byla prázdná, a proto se do ní poprvé nahrála výchozí data aplikace. Od teď funguje stejně jako stav „Připojeno“.'},
+  offline:{t:'DEMO režim (offline)',c:'var(--risk)',h:'Databáze je nedostupná',
+    d:'Spojení se Supabase se nepodařilo (výpadek sítě, špatný klíč nebo nastavení). Aplikace běží jen s ukázkovými daty. Změny se neuloží a po obnovení stránky zmizí. Zkuste stránku znovu načíst.'},
+  demo:{t:'DEMO režim',c:'var(--text3)',h:'Databáze není nastavena',
+    d:'V aplikaci nejsou vyplněné přístupové údaje k databázi Supabase. Běží s ukázkovými daty. Úpravy slouží jen k vyzkoušení a neuloží se.'}
+};
+function badge(txt,color,state){
+  if(state)SYNC_STATE=state;
+  const b=$('#sync-badge');b.textContent=txt;b.style.color=color;b.style.display='inline-flex';
+  syncTip();
+}
+function syncTip(){
+  const b=$('#sync-badge'),i=SYNC_INFO[SYNC_STATE]; if(!b||!i)return;
+  const zapis=SYNC_STATE==='online'||SYNC_STATE==='nasazeno'
+    ?(AUTH?'\n\nPřihlášeno — úpravy se ukládají do databáze.':'\n\nNepřihlášeno — data můžete jen číst. Pro úpravy se přihlaste (Přihlásit).')
+    :'';
+  const t=i.h+'\n'+i.d+zapis+'\n\nMožné stavy: ● Supabase (připojeno) · ● Supabase · nasazeno (první naplnění) · DEMO režim (databáze není nastavena) · DEMO režim (offline) (databáze nedostupná).';
+  b.dataset.tip=t; b.setAttribute('aria-label',t.replace(/\n+/g,' '));
+}
 function hydrate(rows){
   const by={}; rows.forEach(r=>{(by[r.entity]=by[r.entity]||[]).push(r.data)});
   if(by.project&&by.project[0])project=Object.assign({},project,by.project[0]);
@@ -2428,7 +2456,7 @@ async function persistMeta(){ if(ONLINE)try{await sb.from('pi_entities').upsert(
 let AUTH=false;
 async function refreshAuth(){
   if(sb){try{const {data}=await sb.auth.getSession();AUTH=!!(data&&data.session)}catch(e){AUTH=false}}else AUTH=false;
-  applyAuthUI();
+  applyAuthUI(); syncTip();
   if(AUTH&&typeof pmSeedTemplate==='function')pmSeedTemplate();
 }
 function applyAuthUI(){
