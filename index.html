@@ -4441,6 +4441,7 @@ function pmRenderRibbon(host,p){
         <span class="code">${p.id}</span><b title="${escXml(p.name)}">${escXml(p.name)}</b>${chip(p.status)}
         ${pmDepth(p)<PM_MAX_DEPTH-1?`<button class="btn ghost sm" title="Založit podproces pod tímto procesem" onclick="pmNewSub('${p.id}')">＋ Podproces</button>`:''}
         ${PM.mode==='map'&&p.state!=='potvrzeny'?`<button class="btn primary sm" title="Označit termíny a vazby za potvrzené" onclick="pmConfirm('${p.id}')">Potvrdit</button>`:''}
+        ${!p.parent&&(pmVert()||pmAll().some(x=>x.parent===p.id))?pmStreamMoveBtns(p):''}
         ${!p.parent&&pmAll().some(x=>x.parent===p.id)?`<button class="btn ghost sm" title="Smazat celý stream včetně všech podprocesů" onclick="pmDeleteStream('${p.id}')">Smazat stream</button>`:''}
         <button class="btn ghost sm" title="Smazat proces" onclick="pmDeleteProcess('${p.id}')">Smazat</button>
         <button class="btn ghost sm" title="Zavřít pás karet a zrušit výběr" onclick="PM.sel=[];PM.link=null;renderPMap()">✕</button>
@@ -4665,8 +4666,15 @@ function pmPointerDown(e){
   const vh=e.target.closest('.pmvh');
   if(vh){
     e.preventDefault(); PM.link=null;
-    if(e.shiftKey)pmSelToggle(vh.dataset.id,true); else PM.sel=[vh.dataset.id];
-    renderPMap(); return;
+    const id=vh.dataset.id;
+    if(e.shiftKey)pmSelToggle(id,true); else PM.sel=[id];
+    renderPMap();
+    /* v úpravách se záhlaví dá chytit a přesunout mezi ostatní streamy */
+    if(!e.shiftKey&&document.body.classList.contains('editing')&&pmStreamList().length>1){
+      pmSDrag={id:id,x:e.clientX,moved:false,drop:null};
+      host.setPointerCapture&&host.setPointerCapture(e.pointerId);
+    }
+    return;
   }
   const grp=e.target.closest('.pmgrp');
   if(grp&&document.body.classList.contains('editing')){
@@ -4760,6 +4768,11 @@ function pmSnap(dr,dd,px){
 
 function pmPointerMove(e){
   const host=$('#pm-canvas');
+  if(pmSDrag){
+    if(!pmSDrag.moved&&Math.abs(e.clientX-pmSDrag.x)>6){pmSDrag.moved=true;host.classList.add('panning')}
+    if(pmSDrag.moved){pmSDrag.drop=pmStreamDropAt(e.clientX);pmStreamDropShow(pmSDrag.drop);pmEdgeSet(e)}
+    return;
+  }
   if(pmPan){
     if(Math.abs(e.clientX-pmPan.x)>3||Math.abs(e.clientY-pmPan.y)>3)pmPan.moved=true;
     /* Tažení za hranu osy nekončí zaražením o první/poslední proces —
@@ -4859,7 +4872,7 @@ function pmEdgeSet(e){
 function pmEdgeTick(){
   pmEdgeRaf=0;
   const host=$('#pm-canvas');
-  if(!host||!pmEdge||(!pmDrag&&!pmMarq)){pmEdge=null;return}
+  if(!host||!pmEdge||(!pmDrag&&!pmMarq&&!pmSDrag)){pmEdge=null;return}
   const sl=host.scrollLeft, st=host.scrollTop;
   host.scrollLeft=sl+pmEdge.vx;
   host.scrollTop =Math.max(0,st+pmEdge.vy);
@@ -4867,6 +4880,7 @@ function pmEdgeTick(){
   const ev={clientX:pmEdge.cx,clientY:pmEdge.cy};
   if(dx||dy){
     if(pmDrag){pmDrag.x-=dx; pmDrag.y-=dy}
+    if(pmSDrag){pmSDrag.x-=dx}
     pmPointerMove(ev);          // přepočte polohu i bez pohybu myši (ten pak sám plánuje další snímek)
   }
   if(pmEdge&&!pmEdgeRaf)pmEdgeRaf=requestAnimationFrame(pmEdgeTick);
@@ -4875,6 +4889,12 @@ function pmEdgeTick(){
 function pmPointerUp(){
   const host=$('#pm-canvas');
   pmEdge=null;
+  if(pmSDrag){
+    const d=pmSDrag; pmSDrag=null; host&&host.classList.remove('panning');
+    pmStreamDropShow(null);
+    if(d.moved&&d.drop)pmMoveStreamTo(d.id,d.drop.idx);
+    return;
+  }
   if(pmPan){
     const cistyKlik=pmPan.clear&&!pmPan.moved;
     pmPan=null; host&&host.classList.remove('panning');
@@ -4928,6 +4948,11 @@ function pmKeyDown(e){
   if(PM.link&&(e.key==='Delete'||e.key==='Backspace')){e.preventDefault();pmDeleteLink();return}
   const sel=pmSelProcs(); if(!sel.length)return;
   if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();pmDeleteSelected();return}
+  /* Alt + šipka přesune označený stream; vodorovně nahoru/dolů, svisle doleva/doprava */
+  if(e.altKey&&sel.length===1&&!sel[0].parent&&/^Arrow(Left|Right|Up|Down)$/.test(e.key)){
+    const v=pmVert(), d=(e.key==='ArrowLeft'||e.key==='ArrowUp')?-1:1;
+    if((v&&/Left|Right/.test(e.key))||(!v&&/Up|Down/.test(e.key))){e.preventDefault();pmMoveStream(sel[0].id,d);return}
+  }
   const step=e.shiftKey?7:1;
   /* ve svislé ose posouvají šipky nahoru/dolů v čase a do stran mezi sloupci */
   if(pmVert()&&PM._vl&&/^Arrow/.test(e.key)){
@@ -5336,6 +5361,91 @@ function pmStreamPick(){
   $('#streampick').classList.add('open');
 }
 function closeStreamPick(){const m=$('#streampick');if(m)m.classList.remove('open')}
+/* ================= PŘESUN STREAMU =================
+   Pořadí streamů je dáno pruhy (lane), které zabírají jejich procesy;
+   z pořadí kořenů se odvozuje i číslování (1., 2., 3. …). Přesun proto
+   znovu rozdělí pruhy po blocích — každý stream dostane souvislou řadu
+   pruhů a streamy jdou za sebou v novém pořadí — a koncept se přečísluje.
+   Vnitřní uspořádání streamu (sloupce, souběhy, časy, vazby) se nemění. */
+function pmStreamMoveBtns(p){
+  const l=pmStreamList(), i=l.findIndex(g=>g.r.id===p.id);
+  if(i<0||l.length<2)return '';
+  const v=pmVert(), a=v?'◀':'▲', b=v?'▶':'▼', ta=v?'doleva':'nahoru', tb=v?'doprava':'dolů';
+  return `<button class="btn ghost sm" ${i===0?'disabled':''} title="Posunout stream ${ta} — přečísluje koncept (Alt + šipka)" onclick="pmMoveStream('${p.id}',-1)">${a}</button>`
+    +`<button class="btn ghost sm" ${i===l.length-1?'disabled':''} title="Posunout stream ${tb} — přečísluje koncept (Alt + šipka)" onclick="pmMoveStream('${p.id}',1)">${b}</button>`;
+}
+function pmStreamList(){
+  const by={};
+  pmAll().forEach(p=>{const r=pmRootOf(p);(by[r.id]=by[r.id]||{r:r,items:[]}).items.push(p)});
+  return Object.values(by).map(g=>{
+    const lanes=[...new Set(g.items.map(q=>q.lane||0))].sort((a,b)=>a-b);
+    return {r:g.r,items:g.items,lanes:lanes,min:lanes[0]};
+  }).sort((a,b)=>a.min-b.min||(a.r.lane||0)-(b.r.lane||0)||pmD(a.r.start)-pmD(b.r.start));
+}
+const pmNumRe=/(^|[^\d.])(\d+(?:\.\d+)+)(?![\d])/g;
+function pmMoveStreamTo(id,idx){
+  const list=pmStreamList(), i=list.findIndex(g=>g.r.id===id);
+  if(i<0)return false;
+  idx=Math.max(0,Math.min(list.length-1,idx));
+  if(idx===i)return false;
+  const oldNum={}; pmAll().forEach(p=>oldNum[p.id]=pmNumOf(p));
+  histPush();
+  const g=list.splice(i,1)[0]; list.splice(idx,0,g);
+  let cur=Math.min(...pmAll().map(p=>p.lane||0));
+  const mapa=new Map();
+  list.forEach(st=>{
+    const m={}; st.lanes.forEach(l=>m[l]=cur++);
+    st.items.forEach(p=>{const nl=m[p.lane||0];if((p.lane||0)!==nl){p.lane=nl;if(p.scope==='map')p.mapEdited=true;pmQueue(p)}});
+  });
+  const zmeneno=pmRenumberScope(g.r.scope);
+  /* texty, které odkazují na stará čísla (popis, předmět a poznámka vazby), se
+     samy přepsat nedají — upozorníme na ně */
+  const zmenena={}; pmAll().forEach(p=>{const n=pmNumOf(p);if(oldNum[p.id]&&oldNum[p.id].indexOf('.')>0&&n!==oldNum[p.id])zmenena[oldNum[p.id]]=1});
+  let odkazy=0;
+  const kont=t=>{let hit=false;String(t||'').replace(pmNumRe,(m,a,n)=>{if(zmenena[n])hit=true;return m});return hit};
+  pmAll().forEach(p=>{if(kont(p.desc)||(p.links||[]).some(l=>kont(l.subj)||kont(l.note)))odkazy++});
+  pmFlush(); PM._vl=null; PM.sel=[id];
+  renderPMap();
+  const host=$('#pm-canvas'), L=PM._vl, bd=L&&L.bandOf[id];
+  if(host&&L){const x=bd?L.colX(bd.c0):(L.idxOf[g.r.lane||0]!=null?L.colX(L.idxOf[g.r.lane||0]):null);
+    if(x!=null&&pmVert()&&(x<host.scrollLeft+PMV_RAIL||x>host.scrollLeft+host.clientWidth-L.colW))host.scrollLeft=Math.max(0,x-PMV_RAIL-40)}
+  toast(`Stream ${pmNumLabel(g.r)} ${pmNameOf(g.r).slice(0,40)} — nové pořadí (dříve ${(oldNum[id]||'').replace(/\.?$/,'.')}), přečíslováno ${zmeneno} položek`
+    +(odkazy?` · pozor: ${odkazy} popisů nebo vazeb zmiňuje stará čísla`:''));
+  return true;
+}
+function pmMoveStream(id,dir){
+  const list=pmStreamList(), i=list.findIndex(g=>g.r.id===id);
+  if(i<0)return;
+  if(i+dir<0||i+dir>=list.length){toast(dir<0?'Stream už je první':'Stream už je poslední');return}
+  pmMoveStreamTo(id,i+dir);
+}
+/* tažení záhlaví streamu ve svislé ose: kam se vloží, rozhoduje poloha
+   myši vůči středům ostatních streamů */
+let pmSDrag=null;
+function pmStreamEdges(g,L){
+  const bd=L.bandOf[g.r.id];
+  if(bd)return {a:L.colX(bd.c0),b:L.colX(bd.c1)+L.colW};
+  const idx=L.idxOf[g.r.lane||0];
+  if(idx==null)return null;
+  return {a:L.colX(idx),b:L.colX(idx)+L.colW};
+}
+function pmStreamDropAt(clientX){
+  const L=PM._vl; if(!L||!pmSDrag)return null;
+  const x=pmLocal(clientX,0).x;
+  const others=pmStreamList().filter(g=>g.r.id!==pmSDrag.id).map(g=>({g,e:pmStreamEdges(g,L)})).filter(o=>o.e);
+  let idx=0; others.forEach(o=>{if((o.e.a+o.e.b)/2<x)idx++});
+  const lx=!others.length?null:(idx===0?others[0].e.a-L.gap/2:others[idx-1].e.b+L.gap/2);
+  return {idx:idx,x:lx,L:L};
+}
+function pmStreamDropShow(d){
+  const svg=document.querySelector('#pm-canvas svg'); if(!svg)return;
+  let ln=svg.querySelector('#pm-sdrop');
+  if(!d||d.x==null){if(ln)ln.remove();return}
+  if(!ln){ln=document.createElementNS('http://www.w3.org/2000/svg','rect');ln.setAttribute('id','pm-sdrop');
+    ln.setAttribute('fill','#ff5200');ln.setAttribute('opacity','.85');ln.setAttribute('width','4');ln.setAttribute('rx','2');
+    ln.setAttribute('pointer-events','none');svg.appendChild(ln)}
+  ln.setAttribute('x',d.x-2);ln.setAttribute('y',0);ln.setAttribute('height',svg.getAttribute('height')||svg.getBoundingClientRect().height);
+}
 /* Smazání celého streamu — kořen i všechny podprocesy, vazby na ně
    a jejich prázdné sloupce. Zbytek konceptu se přečísluje. */
 function pmDeleteStream(id){
@@ -6273,7 +6383,13 @@ function pmTplTopUp(key){
       lane:0,links:[],msStart:[],msEnd:[],collapsed:false};
     /* pruh ze šablony, je-li v tu dobu volný — jinak nový pod vším */
     const volnyPruh=l=>!processes.some(q=>q.scope===scope&&q!==o&&(q.lane||0)===l&&pmD(q.start)<pmD(o.end)&&pmD(o.start)<pmD(q.end));
-    o.lane=(t.lane!=null&&volnyPruh(t.lane))?t.lane:radek++;
+    /* pruh ze šablony platí jen tehdy, když po případném přesunu streamů
+       stále patří témuž streamu — jinak se položka zařadí do jeho sloupců */
+    const kor=(()=>{let q=t,g=0;while(q&&q.p&&g++<8)q=tpl.procs.find(z=>z.k===q.p);return q&&q!==t?pmById(tplId[q.k]):null})();
+    const cizi=l=>{const st=pmStreamAt(l,o);return !!(st&&kor&&st!==kor)||!!(st&&!kor&&t.p)};
+    if(t.lane!=null&&volnyPruh(t.lane)&&!cizi(t.lane))o.lane=t.lane;
+    else if(kor&&pmDescOf(kor.id).length){o.lane=pmLaneInStream(kor,o.start,o.end,null,o)}
+    else o.lane=radek++;
     processes.push(o); tplId[t.k]=o.id; idMap['@'+k]=o.id; novy[o.id]=1; pridano++;
   });
   if(!pridano){
@@ -6287,7 +6403,8 @@ function pmTplTopUp(key){
     if(presun[o.id]&&t.p&&tplId[t.p]){
       o.parent=tplId[t.p]; o.start=pmAdd(t0,t.o); o.end=pmAdd(t0,t.o+t.d);
       const obsazeno=processes.some(q=>q.scope===scope&&q!==o&&(q.lane||0)===t.lane&&pmD(q.start)<pmD(o.end)&&pmD(o.start)<pmD(q.end));
-      if(!obsazeno)o.lane=t.lane;
+      const stL=pmStreamAt(t.lane,o), kr=pmRootOf(o);
+      if(!obsazeno&&(!stL||stL===kr))o.lane=t.lane;
     }
     const jeNovy=novy[o.id];
     if(jeNovy&&t.p&&tplId[t.p])o.parent=tplId[t.p];
