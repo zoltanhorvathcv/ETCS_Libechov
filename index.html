@@ -2913,9 +2913,45 @@ function pmVLayout(list,availW){
   const ends=[];
   bands.forEach(bd=>{let r=ends.findIndex(e=>bd.c0>e);if(r<0){r=ends.length;ends.push(-1)}ends[r]=bd.c1;bd.row=r});
   const bandOf={}; bands.forEach(bd=>bandOf[bd.p.id]=bd);
-  const head=ends.length?ends.length*PMV_BANDH+8:30;
+  /* Název streamu se zalamuje do tolika řádků, kolik potřebuje, a výška
+     záhlaví tomu odpovídá. Ručně nastavená výška (tažení dolní hrany) ji
+     přebije; text se pak případně zkrátí až do výšky, která zbyla. */
+  const bare=PM.print||document.body.classList.contains('pm-view');
+  const FS=12, LH=14.5, MINH=PMV_BANDH-8, nrow=ends.length;
+  bands.forEach(bd=>{
+    const w=colX(bd.c1)+colW-colX(bd.c0);
+    const per=Math.max(6,Math.floor((w-(bare?16:62))/(FS*0.55)));
+    bd.full=pmWrap(bd.p.name,per);
+    bd.need=Math.max(MINH,bd.full.length*LH+16);
+  });
+  const autoRow=[]; for(let r=0;r<nrow;r++)autoRow[r]=Math.max(MINH,...bands.filter(b=>b.row===r).map(b=>b.need));
+  const autoHead=nrow?autoRow.reduce((a,h)=>a+h+8,0)+8:30;
+  const man=pmHeadManual();
+  const headH=nrow&&man?Math.max(30,Math.min(600,man)):autoHead;
+  let rowH=autoRow.slice();
+  if(nrow&&man){
+    const k=(headH-8-8*nrow)/autoRow.reduce((a,h)=>a+h,0);
+    rowH=autoRow.map(h=>Math.max(24,Math.round(h*k)));
+  }
+  const rowY=[]; let yy=6; for(let r=0;r<nrow;r++){rowY[r]=yy;yy+=rowH[r]+8}
+  const maxLn=h=>Math.max(1,Math.floor((h-8)/LH));
+  bands.forEach(bd=>{
+    bd.y=rowY[bd.row]; bd.h=rowH[bd.row];
+    const m=maxLn(bd.h);
+    bd.ln=bd.full.length>m?bd.full.slice(0,m).map((l,i,a)=>i===a.length-1?pmEllip(l,l.length+1):l):bd.full;
+  });
+  const head=nrow?(man?headH:Math.round(rowY[nrow-1]+rowH[nrow-1]+10)):30;
   const laneX=l=>{let i=idxOf[l];if(i==null){i=cols.findIndex(c=>c>l);if(i<0)i=cols.length}return colX(i)};
-  return {cols,content,colW,gap,pitch,head,bands,bandOf,isBand,idxOf,colX,laneX,W:colX(cols.length)+PMV_PADX};
+  return {cols,content,colW,gap,pitch,head,headAuto:nrow?Math.round(autoHead-0):30,bands,bandOf,isBand,idxOf,colX,laneX,W:colX(cols.length)+PMV_PADX};
+}
+/* ručně nastavená výška záhlaví streamů — u konceptu na konceptu, v mapě v projektu */
+function pmHeadManual(){
+  const v=PM.mode==='map'?project.mapHeadH:(pmConcept()?pmConcept().headH:null);
+  return +v>0?+v:null;
+}
+function pmHeadSave(v){
+  if(PM.mode==='map'){if(v)project.mapHeadH=v;else delete project.mapHeadH;persistMeta()}
+  else{const c=pmConcept();if(!c)return;if(v)c.headH=v;else delete c.headH;persist('concept',c,concepts.indexOf(c))}
 }
 function pmGeomV(p,b){
   const L=PM._vl||(PM._vl=pmVLayout(pmVisible(),0));
@@ -3175,12 +3211,11 @@ function pmRenderV(host,list,SK,rBefore){
   /* záhlaví fází nahoře — přilepené při svislém posunu */
   let hd=`<g class="pmvhead"><rect x="0" y="0" width="${W}" height="${L.head}" fill="${SK.head}"/>`;
   L.bands.forEach(bd=>{
-    const p=bd.p, x0=L.colX(bd.c0), x1=L.colX(bd.c1)+L.colW, y0=6+bd.row*PMV_BANDH, h=PMV_BANDH-8;
+    const p=bd.p, x0=L.colX(bd.c0), x1=L.colX(bd.c1)+L.colW, y0=bd.y, h=bd.h;
     const col=pmTone(pmColorOf(p)||'#8b97b1'), on=pmSelHas(p.id)||ohniska.indexOf(p.id)>-1;
     const bare=PM.print||document.body.classList.contains('pm-view');   // tisk a náhled bez ovládacích prvků
-    const fs=12, per=Math.max(6,Math.floor((x1-x0-(bare?16:62))/(fs*0.55)));
-    let ln=pmWrap(p.name,per); if(ln.length>2)ln=[ln[0],pmEllip(ln[1],per)];
-    const ty0=ln.length>1?y0+15:y0+h/2+4;
+    const fs=12, ln=bd.ln;
+    const ty0=y0+(h-ln.length*14.5)/2+11;
     hd+=`<g class="pmvh${on?' sel':''}" data-id="${p.id}" style="cursor:pointer">
       <rect x="${x0}" y="${y0}" width="${x1-x0}" height="${h}" rx="7" fill="${SK.bg}" stroke="${on?'var(--accent)':col}" stroke-width="${on?2.2:1.4}"/>
       <path d="M ${x0+7} ${y0+h-1.5} H ${x1-7}" stroke="${col}" stroke-width="3" stroke-linecap="round"/>
@@ -3195,11 +3230,15 @@ function pmRenderV(host,list,SK,rBefore){
             font-size="10" font-family="Inter,sans-serif" fill="${SK.ink2}" style="cursor:pointer">🔗 ${n}</text>`;
     }
   });
-  hd+=`<line x1="0" y1="${L.head}" x2="${W}" y2="${L.head}" stroke="${SK.rule}"/></g>`;
+  hd+=`<line x1="0" y1="${L.head}" x2="${W}" y2="${L.head}" stroke="${SK.rule}"/>`;
+  if(!PM.print&&!document.body.classList.contains('pm-view'))
+    hd+=`<rect class="pmvres" x="0" y="${L.head-4}" width="${W}" height="8" fill="transparent" style="cursor:row-resize"><title>Tažením změníte výšku záhlaví, dvojklik ji přizpůsobí textu</title></rect>`;
+  hd+=`</g>`;
   const cn=`<g class="pmvcorner"><rect x="0" y="0" width="${PMV_RAIL}" height="${L.head}" fill="${SK.head}"/>
     <text x="8" y="${L.head-10}" font-size="9.5" fill="${SK.ink3}" font-family="Inter,sans-serif">čas ↓</text>
     <line x1="0" y1="${L.head}" x2="${PMV_RAIL}" y2="${L.head}" stroke="${SK.rule}"/>
-    <line x1="${PMV_RAIL}" y1="0" x2="${PMV_RAIL}" y2="${L.head}" stroke="${SK.rule}"/></g>`;
+    <line x1="${PMV_RAIL}" y1="0" x2="${PMV_RAIL}" y2="${L.head}" stroke="${SK.rule}"/>
+    ${!PM.print&&!document.body.classList.contains('pm-view')?`<rect class="pmvres" x="0" y="${L.head-4}" width="${PMV_RAIL}" height="8" fill="transparent" style="cursor:row-resize"/>`:''}</g>`;
   s+=rl+hd+cn+`</svg>`;
 
   const keepL=host.scrollLeft, keepT=host.scrollTop;
@@ -4663,6 +4702,13 @@ function pmPointerDown(e){
     return;
   }
   /* záhlaví fáze ve svislé ose — klik fázi vybere (pás karet), netáhne se */
+  const vres=e.target.closest('.pmvres');
+  if(vres&&PM._vl){
+    e.preventDefault();
+    pmHDrag={y:e.clientY,h:PM._vl.head,moved:false};
+    host.setPointerCapture&&host.setPointerCapture(e.pointerId);
+    return;
+  }
   const vh=e.target.closest('.pmvh');
   if(vh){
     e.preventDefault(); PM.link=null;
@@ -4768,6 +4814,13 @@ function pmSnap(dr,dd,px){
 
 function pmPointerMove(e){
   const host=$('#pm-canvas');
+  if(pmHDrag){
+    pmHDrag.moved=true;
+    const v=Math.round(Math.max(30,Math.min(600,pmHDrag.h+(e.clientY-pmHDrag.y))));
+    if(PM.mode==='map')project.mapHeadH=v; else if(pmConcept())pmConcept().headH=v;
+    if(!pmHDrag.raf)pmHDrag.raf=requestAnimationFrame(()=>{pmHDrag&&(pmHDrag.raf=0);PM.panelLock=true;renderPMap();PM.panelLock=false});
+    return;
+  }
   if(pmSDrag){
     if(!pmSDrag.moved&&Math.abs(e.clientX-pmSDrag.x)>6){pmSDrag.moved=true;host.classList.add('panning')}
     if(pmSDrag.moved){pmSDrag.drop=pmStreamDropAt(e.clientX);pmStreamDropShow(pmSDrag.drop);pmEdgeSet(e)}
@@ -4889,6 +4942,11 @@ function pmEdgeTick(){
 function pmPointerUp(){
   const host=$('#pm-canvas');
   pmEdge=null;
+  if(pmHDrag){
+    const d=pmHDrag; pmHDrag=null;
+    if(d.moved){pmHeadSave(pmHeadManual());renderPMap()}
+    return;
+  }
   if(pmSDrag){
     const d=pmSDrag; pmSDrag=null; host&&host.classList.remove('panning');
     pmStreamDropShow(null);
@@ -4932,6 +4990,7 @@ function pmPointerUp(){
 }
 
 /* ---- klávesy: Zpět/Znovu, mazání, posun šipkami, mezerník pro posun plátna ---- */
+function pmHeadAuto(){pmHeadSave(null);renderPMap();toast('Výška záhlaví přizpůsobena názvům streamů')}
 function pmKeyDown(e){
   const view=$('#view-pmap');
   if(!view||!view.classList.contains('active'))return;
@@ -5060,6 +5119,7 @@ function pmDeleteSelected(){
   toast(sel.length===1?'Proces smazán':`Smazáno ${sel.length} procesů`);
 }
 function pmDblClick(e){
+  if(e.target.closest('.pmvres')){pmHeadAuto();return}
   const g=e.target.closest('.pmb'); if(!g)return;
   PM.sel=[g.dataset.id]; PM.tab='zaklad'; renderPMap();   // editorem je pás karet pod plátnem
 }
@@ -5421,7 +5481,7 @@ function pmMoveStream(id,dir){
 }
 /* tažení záhlaví streamu ve svislé ose: kam se vloží, rozhoduje poloha
    myši vůči středům ostatních streamů */
-let pmSDrag=null;
+let pmSDrag=null, pmHDrag=null;
 function pmStreamEdges(g,L){
   const bd=L.bandOf[g.r.id];
   if(bd)return {a:L.colX(bd.c0),b:L.colX(bd.c1)+L.colW};
