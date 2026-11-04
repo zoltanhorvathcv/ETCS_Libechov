@@ -148,9 +148,17 @@ body.in-app .app{display:grid}
 .chip.idle{color:var(--idle);background:rgba(255,255,255,.05)}
 .chip.neutral{color:var(--text2);background:rgba(255,255,255,.05);text-transform:none;letter-spacing:0}
 #sync-badge{position:relative;cursor:help}
-#sync-badge:hover::after,#sync-badge:focus-visible::after{content:attr(data-tip);position:absolute;top:calc(100% + 10px);right:0;width:340px;
+#sync-badge:hover::after,#sync-badge:focus-visible::after{content:attr(data-stat);position:absolute;top:calc(100% + 10px);right:0;width:340px;
   white-space:pre-line;font:400 12px/1.5 var(--sans,Inter,system-ui,sans-serif);color:var(--text,#e7ecf3);background:var(--panel,#161b23);
   border:1px solid var(--border);border-radius:10px;padding:10px 12px;box-shadow:0 12px 32px rgba(0,0,0,.45);z-index:200;text-align:left}
+.pm-i{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;margin-left:5px;border:1.2px solid var(--text3);
+  border-radius:50%;font:italic 700 9px/1 Georgia,'Times New Roman',serif;text-transform:none;letter-spacing:0;color:var(--text3);cursor:help;vertical-align:1px;user-select:none}
+.pm-i:hover,.pm-i:focus-visible{color:var(--accent);border-color:var(--accent);outline:none}
+#pm-tip{position:fixed;display:none;z-index:9999;width:max-content;max-width:360px;padding:10px 12px;border-radius:10px;pointer-events:none;
+  background:var(--panel,#161b23);color:var(--text,#e7ecf3);border:1px solid var(--border);box-shadow:0 12px 32px rgba(0,0,0,.5);
+  font:400 12px/1.5 var(--sans,Inter,system-ui,sans-serif);text-transform:none;letter-spacing:0;text-align:left}
+#pm-tip b{display:block;font-size:12.5px;margin-bottom:3px;color:var(--text,#fff)}
+#pm-tip p{margin:4px 0 0;color:var(--text2,#b9c2d0)}
 .tag{font-family:var(--mono);font-size:10.5px;color:var(--text3);background:rgba(255,255,255,.04);border:1px solid var(--border);padding:2px 7px;border-radius:6px}
 .section-title{display:flex;align-items:baseline;gap:12px;margin:38px 0 16px}
 .section-title h2{font-size:16px;font-weight:700;letter-spacing:-.01em}
@@ -892,20 +900,20 @@ body.pm-view #pm-viewbar{display:flex;position:fixed;z-index:50;gap:6px;
 <div class="modal-veil" id="mapexp" onclick="if(event.target===this)closeMapExp()">
   <div class="modal" style="width:560px">
     <h3>Mapa do PDF <span style="font-weight:400;color:var(--text3);font-size:13px">— <span id="mex-name"></span></span></h3>
-    <label>Rozdělení</label>
+    <label>Rozdělení <span data-help="mex.split"></span></label>
     <select id="mex-split" onchange="MEX.autoSplit=false;pmMapPreview()">
       <option value="one">Jeden velký list — celá mapa pohromadě</option>
       <option value="a3">Po fázích na A3 — na listu hlavní proces a jeho podprocesy</option>
       <option value="a4">Po fázích na A4 — na listu hlavní proces a jeho podprocesy</option>
     </select>
     <div class="grid2">
-      <div><label>Formát velkého listu</label>
+      <div><label>Formát velkého listu <span data-help="mex.paper"></span></label>
         <select id="mex-paper" onchange="pmMapPreview()">
           <option value="auto">Automaticky podle velikosti mapy</option>
           <option value="A3">A3</option><option value="A2">A2</option>
           <option value="A1">A1</option><option value="A0">A0</option><option value="2A0">2A0</option>
         </select></div>
-      <div><label>Dělení časové osy</label>
+      <div><label>Dělení časové osy <span data-help="mex.unit"></span></label>
         <select id="mex-unit" onchange="pmMapPreview()">
           <option value="auto">Automaticky</option>
           <option value="week">Týdny</option><option value="month">Měsíce</option>
@@ -913,11 +921,11 @@ body.pm-view #pm-viewbar{display:flex;position:fixed;z-index:50;gap:6px;
         </select></div>
     </div>
     <label style="display:flex;align-items:center;gap:9px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text2)">
-      <input type="checkbox" id="mex-light" onchange="pmMapPreview()" style="width:auto"> Světlé barvy pro tisk (vypnuto = jako na obrazovce)</label>
+      <input type="checkbox" id="mex-light" onchange="pmMapPreview()" style="width:auto"> Světlé barvy pro tisk (vypnuto = jako na obrazovce) <span data-help="mex.light"></span></label>
     <label style="display:flex;align-items:center;gap:9px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text2);margin-top:8px">
-      <input type="checkbox" id="mex-roots" onchange="pmMapPreview()" style="width:auto"> Jen hlavní procesy, bez podprocesů</label>
+      <input type="checkbox" id="mex-roots" onchange="pmMapPreview()" style="width:auto"> Jen hlavní procesy, bez podprocesů <span data-help="mex.roots"></span></label>
     <label style="display:flex;align-items:center;gap:9px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text2);margin-top:8px">
-      <input type="checkbox" id="mex-links" onchange="pmMapPreview()" style="width:auto"> Pod schématem vypsat vazby vedoucí mimo fázi</label>
+      <input type="checkbox" id="mex-links" onchange="pmMapPreview()" style="width:auto"> Pod schématem vypsat vazby vedoucí mimo fázi <span data-help="mex.links"></span></label>
     <div class="mex-info" id="mex-info"></div>
     <div class="m-actions">
       <button class="btn ghost" onclick="closeMapExp()">Zrušit</button>
@@ -2300,13 +2308,13 @@ function fieldHTML(f,o){
      a upravuje se pouze název za ním. */
   if(f.k==='name'&&edCtx&&edCtx.key==='process'){
     const num=pmNumLabel(o);
-    return `<div class="${cls}"><label>${f.l}</label><div class="pm-namerow">
+    return `<div class="${cls}"><label>${f.l}${(edCtx&&PM_HELP[edCtx.key+'.'+f.k])?pmI(edCtx.key+'.'+f.k):''}</label><div class="pm-namerow">
       <span class="pm-num" title="Číslo přiděluje aplikace podle pořadí procesů — narovná ho tlačítko 🔢 Přečíslovat">${num?escXml(num):'—'}</span>
       <input id="${id}" type="text" value="${esc(pmNameOf(o))}"></div></div>`;
   }
-  if(f.t==='check')return `<div class="${cls}" style="display:flex;align-items:center;gap:9px;margin-top:8px"><input type="checkbox" id="${id}" ${v?'checked':''} style="width:auto"><label style="margin:0;text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--text2)">${f.l}</label></div>`;
-  if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs'||f.t==='peoplerefs')return `<div class="${cls}"><label>${f.l}</label><div class="pm-sub" id="${id}"></div></div>`;
-  if(f.t==='actor')return `<div class="${cls}"><label>${f.l}</label><select id="${id}" data-prev="${esc(v)}" onchange="edPersonPick(this)">${actorOptionsHTML(v)}</select></div>`;
+  if(f.t==='check')return `<div class="${cls}" style="display:flex;align-items:center;gap:9px;margin-top:8px"><input type="checkbox" id="${id}" ${v?'checked':''} style="width:auto"><label style="margin:0;text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--text2)">${f.l}${(edCtx&&PM_HELP[edCtx.key+'.'+f.k])?pmI(edCtx.key+'.'+f.k):''}</label></div>`;
+  if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs'||f.t==='peoplerefs')return `<div class="${cls}"><label>${f.l}${(edCtx&&PM_HELP[edCtx.key+'.'+f.k])?pmI(edCtx.key+'.'+f.k):''}</label><div class="pm-sub" id="${id}"></div></div>`;
+  if(f.t==='actor')return `<div class="${cls}"><label>${f.l}${(edCtx&&PM_HELP[edCtx.key+'.'+f.k])?pmI(edCtx.key+'.'+f.k):''}</label><select id="${id}" data-prev="${esc(v)}" onchange="edPersonPick(this)">${actorOptionsHTML(v)}</select></div>`;
   let input;
   if(f.t==='textarea')input=`<textarea id="${id}" style="min-height:70px">${esc(v)}</textarea>`;
   else if(f.t==='lines')input=`<textarea id="${id}" style="min-height:70px">${esc(Array.isArray(v)?v.join('\n'):v)}</textarea>`;
@@ -2319,7 +2327,7 @@ function fieldHTML(f,o){
   }
   else{const mm=f.t==='date'&&f.min?` min="${f.min}" max="${f.max}"`:'';
     input=`<input id="${id}" type="${f.t==='number'?'number':f.t==='date'?'date':'text'}" value="${esc(v)}"${mm}>`;}
-  return `<div class="${cls}"><label>${f.l}</label>${input}</div>`;
+  return `<div class="${cls}"><label>${f.l}${(edCtx&&PM_HELP[edCtx.key+'.'+f.k])?pmI(edCtx.key+'.'+f.k):''}</label>${input}</div>`;
 }
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function saveEditor(){
@@ -2416,7 +2424,7 @@ function syncTip(){
     ?(AUTH?'\n\nPřihlášeno — úpravy se ukládají do databáze.':'\n\nNepřihlášeno — data můžete jen číst. Pro úpravy se přihlaste (Přihlásit).')
     :'';
   const t=i.h+'\n'+i.d+zapis+'\n\nMožné stavy: ● Supabase (připojeno) · ● Supabase · nasazeno (první naplnění) · DEMO režim (databáze není nastavena) · DEMO režim (offline) (databáze nedostupná).';
-  b.dataset.tip=t; b.setAttribute('aria-label',t.replace(/\n+/g,' '));
+  b.dataset.stat=t; b.setAttribute('aria-label',t.replace(/\n+/g,' '));
 }
 function hydrate(rows){
   const by={}; rows.forEach(r=>{(by[r.entity]=by[r.entity]||[]).push(r.data)});
@@ -4377,12 +4385,12 @@ function pmRibbonField(p,k){
     const focusOn=k==='links'&&PM.linkFocus===p.id;
     const focusBtn=k==='links'?`<button type="button" class="btn ghost sm" style="margin:2px 0 8px${focusOn?';background:var(--accent);color:#fff;border-color:var(--accent)':''}"
         title="Zvýrazní na plátně všechny vazby tohoto procesu, ne jen jednu kliknutou" onclick="pmToggleLinkFocus('${p.id}')">🔗 ${focusOn?'Zvýrazněno — vypnout':'Zvýraznit všechny vazby'}</button>`:'';
-    return `<div class="full"><label>${f.l}</label>${focusBtn}<div class="pm-sub" data-sub="${f.k}"></div>${k==='links'?pmSuccHTML(p):''}</div>`;
+    return `<div class="full"><label>${f.l}${pmI('process.'+k)}</label>${focusBtn}<div class="pm-sub" data-sub="${f.k}"></div>${k==='links'?pmSuccHTML(p):''}</div>`;
   }
   /* Číslo procesu drží aplikace — v poli se edituje jen název za ním. */
   if(k==='name'){
     const num=pmNumLabel(p);
-    return `<div class="wide"><label>${f.l}</label><div class="pm-namerow">
+    return `<div class="wide"><label>${f.l}${pmI('process.'+k)}</label><div class="pm-namerow">
       <span class="pm-num" title="Číslo přiděluje aplikace podle pořadí procesů — narovná ho tlačítko 🔢 Přečíslovat">${num?escXml(num):'—'}</span>
       <input type="text" data-k="name" placeholder="Doplňte název procesu" value="${esc(pmNameOf(p))}" onkeydown="pmRibKey(event)" onchange="pmRibSet('name',this.value)">
     </div></div>`;
@@ -4413,7 +4421,7 @@ function pmRibbonField(p,k){
       onchange="pmRibDate(this,'${k}')" onblur="pmRibDate(this,'${k}',true)"${mm}>`;
   }
   else{input=`<input type="${f.t==='number'?'number':'text'}" data-k="${k}" value="${esc(v)}" onkeydown="pmRibKey(event)" onchange="pmRibSet('${k}',this.value)">`;}
-  return `<div class="${cls}"><label>${f.l}</label>${input}</div>`;
+  return `<div class="${cls}"><label>${f.l}${pmI('process.'+k)}</label>${input}</div>`;
 }
 /* Vazby se ukládají jen u následníka (pole `links` = na koho navazuji),
    takže u předchůdce by jinak vazba nebyla vidět vůbec. Druhý směr proto
@@ -7488,7 +7496,7 @@ function pmSubRender(k){
         <select data-prev="${esc(r.who||'')}" onchange="pmPersonPick(this,'cogestors',${i})">${who(r.who)}</select>
         <input value="${esc(r.resp||'')}" placeholder="za co odpovídá" oninput="subCtx.obj.cogestors[${i}].resp=this.value;subFire()">
         <button type="button" class="x" onclick="subCtx.obj.cogestors.splice(${i},1);pmSubRender('cogestors');subFire()">✕</button></div>`).join('');
-    h+=`<button type="button" class="pm-addbtn" onclick="subCtx.obj.cogestors.push({who:'',resp:''});pmSubRender('cogestors')">＋ Spolugestor</button>`;
+    h+=`<button type="button" class="pm-addbtn" data-tip="Spolugestor\nPřidá řádek pro další osobu nebo útvar a její odpovědnost. Jen evidence, termíny neovlivňuje." onclick="subCtx.obj.cogestors.push({who:'',resp:''});pmSubRender('cogestors')">＋ Spolugestor</button>`;
   }
   else if(k==='links'){
     const cand=pmByNum(processes.filter(p=>p.scope===o.scope&&p.id!==o.id));
@@ -7498,9 +7506,9 @@ function pmSubRender(k){
       .map(([v,t])=>`<option value="${v}" ${v===(sel||'')?'selected':''}>${t}</option>`).join('');
     h=o[k].map((l,i)=>`<div class="pm-subrow wrap${l.from?'':' undone'}">
         <select onchange="pmLinkFrom(${i},this.value)">${whoOpts(l.from)}</select>
-        <select style="max-width:140px" onchange="subCtx.obj.links[${i}].type=this.value;subFire()">${typOpts(l.type)}</select>
-        <input type="number" style="max-width:80px" value="${+l.lag||0}" title="prodleva ve dnech" oninput="subCtx.obj.links[${i}].lag=+this.value||0;subFire()">
-        <label class="pm-bi" title="Obousměrná vazba — šipka na obou koncích, např. vzájemná výměna podkladů"><input type="checkbox" ${l.bi?'checked':''} onchange="subCtx.obj.links[${i}].bi=this.checked;subFire()"> ↔ obousměrná</label>
+        <select style="max-width:140px" onchange="subCtx.obj.links[${i}].type=this.value;subFire()">${typOpts(l.type)}</select>${pmI('link.type')}
+        <input type="number" style="max-width:80px" value="${+l.lag||0}" oninput="subCtx.obj.links[${i}].lag=+this.value||0;subFire()">${pmI('link.lag')}
+        <label class="pm-bi"><input type="checkbox" ${l.bi?'checked':''} onchange="subCtx.obj.links[${i}].bi=this.checked;subFire()"> ↔ obousměrná</label>${pmI('link.bi')}
         <button type="button" class="x" onclick="subCtx.obj.links.splice(${i},1);pmSubRender('links');subFire();pmRibRefresh()">✕</button>
         ${l.from?'':'<span class="pm-linkwarn" title="Bez vybraného předchůdce vazba neexistuje — na plátně se nekreslí a u druhého procesu se neukáže">nedokončená</span>'}
         <input class="pm-subj" value="${esc(l.subj||'')}" placeholder="co je výstupem předchůdce, tedy vstupem pro tento proces"
@@ -7523,20 +7531,20 @@ function pmSubRender(k){
                value="${esc(d.q||'')}" oninput="pmLinkDraftSet('q',this.value)">
              <div class="pm-opts">${pmDraftOptsHTML(d)}</div>`}
         <div class="pm-subrow wrap">
-          <select style="max-width:150px" onchange="pmLinkDraftSet('type',this.value)">${typOpts(d.type)}</select>
-          <input type="number" style="max-width:80px" value="${+d.lag||0}" title="prodleva ve dnech" oninput="pmLinkDraftSet('lag',this.value)">
-          <button type="button" class="pm-okbtn" ${d.from&&!bad?'':'disabled'} onclick="pmLinkAdd()">✓ Přidat vazbu</button>
+          <select style="max-width:150px" onchange="pmLinkDraftSet('type',this.value)">${typOpts(d.type)}</select>${pmI('link.type')}
+          <input type="number" style="max-width:80px" value="${+d.lag||0}" oninput="pmLinkDraftSet('lag',this.value)">${pmI('link.lag')}
+          <button type="button" class="pm-okbtn" data-tip="Přidat vazbu\nZapíše rozdělanou vazbu do procesu. Dokud není vybrána protistrana, je tlačítko neaktivní." ${d.from&&!bad?'':'disabled'} onclick="pmLinkAdd()">✓ Přidat vazbu</button>
           <button type="button" class="x" title="Zrušit přidávání" onclick="pmLinkDraft(null)">✕</button>
           ${bad?`<span class="pm-linkwarn">${esc(bad)}</span>`:''}
           <input class="pm-subj" value="${esc(d.subj||'')}" placeholder="co je výstupem předchůdce, tedy vstupem pro následníka"
             oninput="pmLinkDraftSet('subj',this.value)">
           <input class="pm-subj" value="${esc(d.note||'')}" placeholder="popis vazby — poznámka, podmínka, odkaz na předpis"
             oninput="pmLinkDraftSet('note',this.value)">
-          <label class="pm-bi" title="Obousměrná vazba — šipka na obou koncích"><input type="checkbox" ${d.bi?'checked':''} onchange="pmLinkDraftSet('bi',this.checked)"> ↔ obousměrná</label></div></div>`;
+          <label class="pm-bi"><input type="checkbox" ${d.bi?'checked':''} onchange="pmLinkDraftSet('bi',this.checked)"> ↔ obousměrná</label>${pmI('link.bi')}</div></div>`;
     } else {
       h+=`<div class="pm-subrow">
-        <button type="button" class="pm-addbtn" onclick="pmLinkDraft('pred')">＋ Vazba na předchůdce</button>
-        <button type="button" class="pm-addbtn" onclick="pmLinkDraft('succ')">＋ Vazba na následníka</button></div>`;
+        <button type="button" class="pm-addbtn" data-tip="Vazba na předchůdce\nTento proces bude navazovat na vybraný. Vazba se nezapíše hned — nejdřív vyberete protistranu a potvrdíte ji." onclick="pmLinkDraft('pred')">＋ Vazba na předchůdce</button>
+        <button type="button" class="pm-addbtn" data-tip="Vazba na následníka\nVybraný proces bude navazovat na tento. Vazba se uloží u následníka, protože tam se vazby drží." onclick="pmLinkDraft('succ')">＋ Vazba na následníka</button></div>`;
     }
     h+=`<div class="pm-hint" style="margin-top:2px">V konceptu vazby nic neposouvají — typ se doplní až při zpevnění.</div>`;
   }
@@ -7544,14 +7552,14 @@ function pmSubRender(k){
     h=o[k].map((id,i)=>`<div class="pm-subrow">
         <select data-prev="${esc(id||'')}" onchange="pmPersonPick(this,'affected',${i})">${who(id)}</select>
         <button type="button" class="x" onclick="subCtx.obj.affected.splice(${i},1);pmSubRender('affected');subFire()">✕</button></div>`).join('');
-    h+=`<button type="button" class="pm-addbtn" onclick="subCtx.obj.affected.push('');pmSubRender('affected')">＋ Osoba</button>`;
+    h+=`<button type="button" class="pm-addbtn" data-tip="Dotčená osoba\nPřidá řádek pro osobu nebo útvar, který má být o procesu informován nebo konzultován." onclick="subCtx.obj.affected.push('');pmSubRender('affected')">＋ Osoba</button>`;
   }
   else {
     h=o[k].map((id,i)=>`<div class="pm-subrow">
         <select onchange="subCtx.obj.${k}[${i}]=this.value;subFire()">${[['','—']].concat(MS_OPTS())
           .map(([v,t])=>`<option value="${v}" ${v===id?'selected':''}>${esc(t)}</option>`).join('')}</select>
         <button type="button" class="x" onclick="subCtx.obj.${k}.splice(${i},1);pmSubRender('${k}');subFire()">✕</button></div>`).join('');
-    h+=`<button type="button" class="pm-addbtn" onclick="subCtx.obj.${k}.push('');pmSubRender('${k}')">＋ Milník</button>`;
+    h+=`<button type="button" class="pm-addbtn" data-tip="Milník\nPřipojí k procesu milník, který se bude posouvat spolu s ${k==='msEnd'?'koncem':'začátkem'} procesu (je-li nezamčený)." onclick="subCtx.obj.${k}.push('');pmSubRender('${k}')">＋ Milník</button>`;
   }
   host.innerHTML=h;
 }
@@ -7696,6 +7704,151 @@ function pmNormalize(){
   if(el&&typeof PM_TPLS==='object')
     el.textContent='prototyp v0.10 · '+PM_TPLS.length+' šablony · '+PM_TPLS.reduce((n,t)=>n+t.procs.length,0)+' procesů';
 })();
+
+/* ================= NÁPOVĚDA K FUNKCÍM A PARAMETRŮM =================
+   Tlačítka: popis se ukáže po 1,5 s nad tlačítkem. Parametry: u názvu je
+   symbol ⓘ, po najetí na něj se popis ukáže hned. První řádek je nadpis. */
+const PM_HELP={
+ /* --- proces --- */
+ 'process.name':'Název procesu\nCo se v procesu děje. Číslo před názvem přiděluje aplikace sama podle pořadí streamů a času — po přesunu streamu nebo podprocesu se přepíše, upravuje se jen text za ním.\nDopad: název je v záhlaví streamu, v boxu, ve vazbách i v PDF. Při zpevnění do mapy se změna názvu (i čísla) ukáže jako rozdíl.',
+ 'process.desc':'Popis procesu\nVysvětlení pro čtenáře — čím proces končí a co je jeho výstupem.\nDopad: jen informativní. Neovlivňuje termíny ani vazby. Texty s čísly procesů (např. „viz 7.3“) se při přečíslování samy nepřepíšou.',
+ 'process.status':'Stav plnění\nJak daleko proces je — nezahájeno, běží, hotovo apod.\nDopad: mění označení procesu na plátně a přehledy rozpracovanosti. Neposouvá termíny.',
+ 'process.state':'Zralost\nkoncept = pracovní obrys, odvozený = vznikl zpevněním konceptu do mapy, potvrzený = termíny a vazby jsou odsouhlasené.\nDopad: v konceptu jde jen o označení (čárkovaný obrys); termíny se tím nemění.',
+ 'process.color':'Barva fáze\nBarva streamu (záhlaví i boxů). Podprocesy ji dědí, pokud nemají vlastní.\nDopad: když podproces přesunete pod jiný proces nebo stream, převezme barvu nového streamu. Barvu používá i legenda a PDF.',
+ 'process.start':'Začátek\nDen, kdy proces začíná — určuje polohu na časové ose.\nDopad: podle začátku se podprocesy číslují (po změně se číslování upraví při přečíslování). Posune nezamčené milníky navázané na začátek. Nesmí být po konci. V konceptu vazby termíny nehlídají.',
+ 'process.end':'Konec\nDen, kdy proces končí — určuje délku boxu.\nDopad: posune nezamčené milníky navázané na konec. Zamčený milník se nehýbe a při pozdějším konci procesu se zvýrazní červeně jako porušený termín. Nesmí být před začátkem.',
+ 'process.lane':'Pruh (souběh)\nČíslo sloupce (ve vodorovné ose řádku), ve kterém proces stojí. Ve stejném pruhu jdou procesy za sebou, v různých pruzích běží souběžně.\nDopad: změna pruhu proces přesune do jiného sloupce, ale nezmění, ke kterému streamu patří. Pro přesun do jiného streamu změňte raději Nadřazený proces.',
+ 'process.parent':'Nadřazený proces\nKterému procesu (streamu) proces patří. Prázdná volba = kořenová úroveň, tedy samostatný stream. Zanoření je nejvýš na tři úrovně.\nDopad: proces se přesune do sloupců nového streamu, převezme jeho barvu a celý koncept se přečísluje (7.3 → 4.1 apod.). Rodič a potomek nemohou být vázáni časovou vazbou.',
+ 'process.gestor':'Gestor\nOsoba nebo útvar, který za proces odpovídá.\nDopad: zobrazuje se u procesu a v přehledech odpovědnosti. Nový podproces vzniká bez gestora, doplňujete ho sami.',
+ 'process.cogestors':'Spolugestoři\nDalší osoby nebo útvary, které se na procesu podílejí, a za co konkrétně odpovídají.\nDopad: jen evidence odpovědnosti, zobrazí se v přehledu odpovědnosti procesu. Termíny neovlivňuje.',
+ 'process.affected':'Dotčení a konzultovaní\nKdo musí být o procesu informován nebo se k němu vyjádřit, ale neodpovídá za něj.\nDopad: jen evidence, bez vlivu na termíny a vazby.',
+ 'process.links':'Vazby na předchůdce\nNa čem proces závisí — co mu musí předcházet. Každá vazba má typ (FS, SS, FF), prodlevu ve dnech, volitelný směr ↔, předmět (co předchůdce předává) a popis.\nDopad: v konceptu vazby nic neposouvají; typ a prodleva se uplatní až při zpevnění do mapy, kde se hlídají porušené návaznosti. Vazba se ukládá u následníka; opačný směr je v seznamu Navazující procesy.',
+ 'process.msEnd':'Milníky na konci procesu\nMilník se posouvá spolu s koncem procesu.\nDopad: zamčený milník se nehýbe a pozdější konec procesu se zvýrazní červeně jako porušený termín.',
+ 'process.msStart':'Milníky na začátku procesu\nMilník se posouvá spolu se začátkem procesu.\nDopad: změna začátku procesu posune datum nezamčeného milníku.',
+ 'link.type':'Typ vazby\nneutrální = jen spojnice bez časového významu; FS = následník začne po konci předchůdce; SS = oba začínají současně; FF = oba končí současně.\nDopad: v konceptu se neuplatňuje, při zpevnění do mapy se použije pro hlídání a přepočet termínů.',
+ 'link.lag':'Prodleva ve dnech\nKladné číslo = čekání po splnění vazby, záporné = povolený překryv.\nDopad: uplatní se u typované vazby při zpevnění a při přepočtu návazností v mapě.',
+ 'link.bi':'Obousměrná vazba\nŠipka na obou koncích — hodí se pro vzájemnou výměnu podkladů mezi souběžnými procesy.\nDopad: bez časového významu; při zpevnění se navrhne souběh (SS). Na plátně se kreslí bokem mezi sousedními sloupci.',
+ /* --- varianta konceptu --- */
+ 'concept.name':'Název varianty\nPod ním se varianta ukazuje v přehledu, výběru variant a na výstupech do PDF.',
+ 'concept.axis':'Časová osa\nVypnutá = procesy bez osy, relativní = termíny jako odstupy od T0, kalendářní = skutečná data.\nDopad: mění, jak se plátno kreslí a popisuje; hotové procesy se nemažou.',
+ 'concept.t0':'T0 — zahájení\nKotva relativní osy; od tohoto data se počítají odstupy.\nDopad: z T0 se odvozují termíny procesů doplněných ze šablony.',
+ 'concept.src':'Zdroj mapy\nPouze zdrojovou variantu lze zpevnit do procesní mapy (tlačítko Zpevnit do mapy).\nDopad: určuje, ze které varianty mapa vzniká a aktualizuje se.',
+ 'concept.purpose':'Účel varianty\nProč varianta vznikla a co řeší. Část podkladu pro vedení — na plátno nemá vliv.',
+ 'concept.decision':'Požadované rozhodnutí\nCo se po vedení žádá. Část podkladu pro vedení — na plátno nemá vliv.',
+ 'concept.docState':'Stav dokumentu\nPracovní, k připomínkám nebo schválený podklad. Jen informace v podkladu pro vedení.',
+ 'concept.version':'Verze\nOznačení verze podkladu pro vedení. Na plátno nemá vliv.',
+ 'concept.author':'Zpracoval\nAutor podkladu pro vedení. Jen informace.',
+ 'concept.approver':'Schvaluje\nKdo podklad schvaluje. Jen informace.',
+ 'concept.assumptions':'Předpoklady a omezení\nPodmínky, za kterých varianta platí. Část podkladu pro vedení.',
+ 'concept.risks':'Klíčová rizika varianty\nCo může variantu ohrozit. Část podkladu pro vedení.',
+ 'concept.refs':'Odkazy na předpisy a normy\nPředpisy a normy, o které se varianta opírá. Část podkladu pro vedení.',
+ /* --- Mapa do PDF --- */
+ 'mex.split':'Rozdělení\nJeden velký list = celá mapa pohromadě, po fázích = na každém listu jeden hlavní proces a jeho podprocesy.\nDopad: u malého papíru zachová čitelnost písma; velká mapa na jednom listu se může hodně zmenšit.',
+ 'mex.paper':'Formát velkého listu\nAutomaticky se vybere podle velikosti mapy (včetně orientace).\nDopad: menší papír = menší měřítko a drobnější písmo. Platí jen pro „Jeden velký list“.',
+ 'mex.unit':'Dělení časové osy\nPo týdnech, měsících nebo čtvrtletích; automaticky podle délky období.\nDopad: mění jen popisky osy ve výstupu, ne data.',
+ 'mex.light':'Světlé barvy pro tisk\nSvětlejší barvy, které se hezky tisknou a šetří toner.\nDopad: pouze vzhled výstupu, ne data.',
+ 'mex.roots':'Jen hlavní procesy\nVýstup bez podprocesů — přehled na úrovni fází.\nDopad: výstup je přehlednější, podprocesy v něm nejsou. Platí jen pro „Jeden velký list“.',
+ 'mex.links':'Seznam vazeb\nPod schématem se vypíšou vazby vedoucí mimo fázi, včetně předmětu a popisu.\nDopad: přibude samostatný list nebo blok s tabulkou vazeb.'
+};
+/* Tlačítka podle id nebo volané funkce (a prvního argumentu) */
+const PM_TIPS_BTN={
+ 'pmShowGallery':'Zpět na přehled konceptů\nZavře otevřenou variantu a vrátí přehled všech variant. Změny se ukládají průběžně, nic nepřijdete.',
+ 'pmSetMode:concept':'Koncept\nVolná plocha pro objevování procesů. Vazby jsou jen neutrální spojnice a nic se kvůli nim neposouvá. Teprve tlačítkem Zpevnit do mapy z konceptu vznikne plán.',
+ 'pmSetMode:map':'Procesní mapa\nPlán s typovanými vazbami (FS, SS, FF). Hlídají se porušené návaznosti a funguje Přepočítat návaznosti. Mapa vzniká zpevněním konceptu, ne ručně.',
+ 'pm-variant':'Varianta konceptu\nVýběr z variant (alternativ) téhož řešení. Každá má vlastní procesy, osu a T0. Přepnutí mění jen to, co vidíte, nic nemaže.',
+ 'pm-axis':'Režim časové osy\nVypnutá, relativní (odstupy od T0) nebo kalendářní. Mění zobrazení osy na plátně; procesy se nemažou.',
+ 'pmSetUnit:week':'Osa po týdnech\nJemné dělení pro krátká období. Mění vzhled osy a také toleranci při odvození vazeb ze zarovnání procesů při zpevnění (7 dní).',
+ 'pmSetUnit:month':'Osa po měsících\nStřední dělení. Mění vzhled osy a toleranci při odvození vazeb při zpevnění (30 dní).',
+ 'pmSetUnit:quarter':'Osa po kvartálech\nHrubé dělení pro dlouhá období. Mění vzhled osy a toleranci při odvození vazeb při zpevnění (91 dní).',
+ 'histUndo':'Zpět\nVrátí poslední změnu v konceptu (Ctrl+Z). Platí i pro přesun streamu, přečíslování nebo smazání.',
+ 'histRedo':'Znovu\nProvede znovu změnu, kterou jste vrátili tlačítkem Zpět (Ctrl+Shift+Z).',
+ 'pmZoom:-1':'Oddálit\nNa plátno se vejde delší období. Mění jen měřítko zobrazení, ne data.',
+ 'pmZoom:1':'Přiblížit\nObdobí se roztáhne do šířky. Mění jen měřítko zobrazení, ne data.',
+ 'pmZoomReset':'Výchozí měřítko\nVrátí zvětšení na 100 %.',
+ 'pmFitAll':'Celý koncept\nZmenší osu i výšku řádků tak, aby byly vidět všechny procesy a podprocesy najednou. Mění jen zobrazení.',
+ 'pmViewBack':'Původní pohled\nVrátí plátno na místo, kde bylo naposledy v klidu, než jste jím posunuli.',
+ 'pmToggleFull':'Celá obrazovka\nPlátno přes celou obrazovku; ukončíte klávesou Esc. Na mobilu se mapa ukáže jen k prohlížení, bez úprav.',
+ 'pmLegHide:false':'Legenda\nVrátí legendu fází pod plátno.',
+ 'openPeople':'Osoby a útvary\nSpolečný seznam pro celý projekt. Přejmenování, odebrání nebo zařazení se projeví u všech procesů (gestor, spolugestoři, dotčení) ve všech konceptech.',
+ 'pmNewConcept':'Nová varianta\nZaloží novou prázdnou variantu. Stávající varianty se nemění.',
+ 'pmTemplateConcept':'Ze šablony\nZaloží novou variantu z připravené šablony (ETCS, LEU, O14) i s procesy, vazbami a termíny odvozenými od začátku projektu. Stávající varianty se nemění.',
+ 'pmEditConcept':'Varianta — úpravy\nNázev, časová osa, T0, zdroj mapy a údaje pro podklad vedení. Změna osy nebo T0 mění zobrazení, procesy zůstávají.',
+ 'pmNewProcess':'Přidat proces\nVe svislé ose vznikne proces ve vybraném streamu (když není nic označeno, aplikace se zeptá, ve kterém). Vzniká bez názvu a gestora a nikdy nepřekryje jiný proces.',
+ 'pmNewStream':'Přidat stream\nNový sloupec (fáze) vpravo za ostatními, s vlastní barvou a dalším číslem a prvním podprocesem. Stávající streamy se nemění.',
+ 'pmToggleOrient':'Osa svisle / vodorovně\nPřepne zobrazení času. Svisle plyne čas shora dolů a souběžné procesy stojí ve sloupcích streamů. Procesy ani termíny se nemění, orientace se ukládá k variantě.',
+ 'pmToggleRel':'Souvislosti\nZvýrazní vazby i procesy na jejich druhém konci pro právě vybraný proces nebo vazbu. Jen zobrazení.',
+ 'pmMapDialog':'Mapa do PDF\nVytiskne nebo uloží mapu včetně vazeb. Otevře se dialog s volbou formátu a rozdělení; nic se nemění v datech.',
+ 'pmToggleSplit':'Rozdělit\nZapne režim rozdělení: klik na proces v místě dělení z něj vytvoří dva navazující procesy. Režim vypnete tlačítkem znovu nebo klávesou Esc.',
+ 'pmRecalc':'Přepočítat návaznosti\nJen v procesní mapě: posune procesy dopředu tak, aby splnily typované vazby (FS, SS, FF + prodleva). Nikdy je neposouvá dřív; při kruhu vazeb se zastaví. Jde vrátit tlačítkem Zpět.',
+ 'pmTplTopUpPick':'Doplnit ze šablony\nDoplní do otevřeného konceptu procesy, které v něm oproti šabloně chybí, a provede jednorázové úpravy podle aktuální šablony. Existující procesy a jejich termíny se nemění.',
+ 'pmRenumber':'Přečíslovat\nPřečísluje všechny procesy: kořeny podle pořadí streamů, podprocesy podle času. Číslo je součástí názvu, takže se změny ukážou jako změna názvu při zpevnění. Texty, které odkazují na stará čísla, se nepřepíšou.',
+ 'pmOpenWizard':'Zpevnit do mapy\nPrůvodce, který z tohoto (zdrojového) konceptu vytvoří nebo aktualizuje procesní mapu: ukotví čas, odvodí vazby a ukáže rozdíly proti stávající mapě. Samotný koncept se nemění.',
+ /* pás karet */
+ 'pmNewSub':'Podproces\nZapne vkládání: klikněte na plátno, kam podproces patří. Dědí číslo a barvu po tomto procesu, vzniká bez názvu a gestora.',
+ 'pmAddParallel':'Paralelně\nPřidá proces, který běží souběžně s tímto, ve stejném streamu — stejný začátek i konec. Je-li vedlejší sloupec volný, použije se; jinak streamu přibude sloupec. Nic nepřekryje.',
+ 'pmMoveStream':'Posun streamu\nPřesune celý stream (všechny jeho sloupce a podprocesy) o jedno místo. Dopad: změní se pořadí a číslování streamů i jejich podprocesů. Vazby, termíny a rodiče zůstanou. Zkratka: Alt + šipka, ve svislé ose lze záhlaví i táhnout.',
+ 'pmDeleteStream':'Smazat stream\nSmaže celý stream včetně všech podprocesů a vazeb ostatních procesů na ně. Prázdné sloupce zmizí a koncept se přečísluje. Jde vrátit tlačítkem Zpět.',
+ 'pmDeleteProcess':'Smazat proces\nSmaže tento proces; jeho podprocesy se přesunou o úroveň výš a vazby ostatních procesů na něj se odstraní. Jde vrátit tlačítkem Zpět.',
+ 'pmConfirm':'Potvrdit\nOznačí termíny a vazby procesu v mapě za potvrzené (odsouhlasené).',
+ 'pmToggleLinkFocus':'Zvýraznit všechny vazby\nNa plátně zvýrazní všechny vazby tohoto procesu najednou, ne jen jednu kliknutou. Jen zobrazení.',
+ 'pmRibTab:zaklad':'Základ\nNázev, popis, stav, zralost a barva procesu.',
+ 'pmRibTab:cas':'Termíny a poloha\nZačátek, konec, pruh (sloupec) a nadřazený proces. Změny posouvají proces na plátně.',
+ 'pmRibTab:lide':'Odpovědnost\nGestor, spolugestoři a dotčení. Jen evidence odpovědnosti, termíny neovlivňuje.',
+ 'pmRibTab:vazby':'Vazby\nPředchůdci a následníci procesu, jejich typ, prodleva, předmět a popis.',
+ 'pmRibTab:milniky':'Milníky\nMilníky, které se posouvají spolu se začátkem nebo koncem procesu.'
+};
+const PMTIP={el:null,timer:0,box:null,cur:null};
+const PM_TIP_SCOPE='#view-pmap,#editor,#mapexp,#pm-wizard';
+function pmTipKey(el){
+  if(el.id&&PM_TIPS_BTN[el.id])return PM_TIPS_BTN[el.id];
+  const oc=el.getAttribute&&el.getAttribute('onclick'); if(!oc)return null;
+  const m=/^\s*([A-Za-z_$][\w$]*)\(([^)]*)\)/.exec(oc); if(!m)return null;
+  const a0=(m[2].split(',')[0]||'').trim().replace(/^['"]|['"]$/g,'');
+  return PM_TIPS_BTN[m[1]+':'+a0]||PM_TIPS_BTN[m[1]]||null;
+}
+function pmTipText(el){
+  if(el.dataset&&el.dataset.tip)return el.dataset.tip;
+  if(!el.closest||!el.closest(PM_TIP_SCOPE))return null;
+  if(el.hasAttribute('title')){el.dataset.tipFb=el.getAttribute('title');el.removeAttribute('title')}   // ať se nezobrazí i vestavěná bublina
+  return pmTipKey(el)||el.dataset.tipFb||null;
+}
+function pmTipHide(){
+  clearTimeout(PMTIP.timer); PMTIP.timer=0; PMTIP.cur=null;
+  if(PMTIP.box)PMTIP.box.style.display='none';
+}
+function pmTipShow(el,text){
+  if(!el.isConnected)return;
+  let b=PMTIP.box;
+  if(!b){b=PMTIP.box=document.createElement('div');b.id='pm-tip';document.body.appendChild(b)}
+  const parts=String(text).split('\n');
+  b.innerHTML='<b>'+escXml(parts[0])+'</b>'+parts.slice(1).map(l=>'<p>'+escXml(l)+'</p>').join('');
+  b.style.display='block';
+  const r=el.getBoundingClientRect(), w=b.offsetWidth, h=b.offsetHeight;
+  let top=r.bottom+8; if(top+h>innerHeight-8)top=Math.max(8,r.top-h-8);
+  let left=Math.min(Math.max(8,r.left),innerWidth-w-8);
+  b.style.top=top+'px'; b.style.left=left+'px';
+}
+function pmTipOver(e){
+  const t=e.target.closest&&e.target.closest('.pm-i,[data-tip],[title],button,select,input,label,[onclick]');
+  if(!t){if(PMTIP.cur)pmTipHide();return}
+  if(t===PMTIP.cur)return;
+  pmTipHide();
+  const txt=pmTipText(t); if(!txt)return;
+  PMTIP.cur=t;
+  const delay=t.classList.contains('pm-i')?100:1500;      // parametr hned, tlačítko po 1,5 s
+  PMTIP.timer=setTimeout(()=>{if(PMTIP.cur===t)pmTipShow(t,txt)},delay);
+}
+document.addEventListener('mouseover',pmTipOver,true);
+document.addEventListener('mouseout',e=>{if(PMTIP.cur&&!PMTIP.cur.contains(e.relatedTarget))pmTipHide()},true);
+['mousedown','wheel','keydown','scroll','touchstart'].forEach(ev=>document.addEventListener(ev,pmTipHide,true));
+document.addEventListener('focusin',e=>{const t=e.target;if(t.classList&&t.classList.contains('pm-i')){const x=pmTipText(t);if(x){PMTIP.cur=t;pmTipShow(t,x)}}});
+document.addEventListener('focusout',pmTipHide);
+/* symbol ⓘ u názvu parametru */
+function pmI(key){
+  const t=PM_HELP[key]; if(!t)return '';
+  return ` <span class="pm-i" tabindex="0" role="img" aria-label="Nápověda k parametru" data-tip="${esc(t)}">i</span>`;
+}
+(function(){document.querySelectorAll('[data-help]').forEach(el=>{const t=PM_HELP[el.dataset.help];if(t){el.dataset.tip=t;el.textContent='i';el.classList.add('pm-i');el.tabIndex=0}})})();
 
 /* ================= INIT ================= */
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){
