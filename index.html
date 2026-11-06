@@ -384,6 +384,18 @@ textarea::placeholder{color:var(--text3)}
 .delta .d-trend{font-size:10.5px;font-family:var(--mono);margin-top:8px}
 
 /* ---------- Data model ---------- */
+.dm-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+.dm-tabs button{font:600 12px Inter,sans-serif;color:var(--text2);background:rgba(255,255,255,.04);border:1px solid var(--border);padding:7px 13px;border-radius:8px;cursor:pointer}
+.dm-tabs button:hover{color:var(--text)}
+.dm-tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.dm-panel{display:none}.dm-panel.on{display:block}
+.dm-notes{padding:14px 4px 6px;font-size:12.5px;color:var(--text2);line-height:1.55}
+.dm-notes h4{margin:12px 0 6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}
+.dm-notes ul{margin:6px 0 0;padding-left:18px}.dm-notes li{margin:3px 0}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.dm-tbl th{text-align:left;font-weight:600;color:var(--text3);padding:6px 10px;border-bottom:1px solid var(--border)}
+.dm-tbl td{padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:top}
+.dm-tbl code{font:11px 'JetBrains Mono',monospace;color:var(--accent2,#8fb8e8)}
 .dm-wrap{padding:24px;overflow-x:auto}
 .dm-svg{min-width:860px;width:100%}
 .dm-legend{display:flex;gap:20px;font-size:11px;color:var(--text3);padding:0 24px 20px;flex-wrap:wrap}
@@ -817,6 +829,17 @@ body.editing .pmb.dragging{cursor:grabbing}
 .pm-succ-none{font-size:11.5px;color:var(--text3);padding:2px 7px}
 .pm-addbtn:hover{color:var(--accent);border-color:var(--accent)}
 /* --- celá obrazovka --- */
+/* skrytí levého panelu a horní lišty — ovládají je malé úchyty u okraje */
+body.hide-side .app{grid-template-columns:1fr}
+body.hide-side .sidebar{display:none}
+body.hide-top .topbar{display:none}
+.ui-handle{position:fixed;z-index:60;display:none;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--panel,#161b23);
+  color:var(--text2);cursor:pointer;font:600 12px/1 Inter,sans-serif;padding:0;opacity:.85}
+.ui-handle:hover{opacity:1;color:var(--accent);border-color:var(--accent)}
+body.in-app:not(.pm-full):not(.pm-view) .ui-handle{display:flex}
+#ui-side{top:96px;width:16px;height:46px;border-radius:0 8px 8px 0;border-left:0}
+#ui-top{height:16px;width:46px;border-radius:0 0 8px 8px;border-top:0;right:104px}
+@media (max-width:1000px){#ui-side{display:none!important}}
 body.pm-full .app{grid-template-columns:1fr}
 body.pm-full .sidebar,body.pm-full .topbar{display:none}
 body.pm-full .view{padding:10px 16px 12px}
@@ -1210,90 +1233,222 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
 
   <!-- ================= DATOVÝ MODEL ================= -->
   <section class="view" id="view-model">
-    <div class="section-title" style="margin-top:0"><h2>Konceptuální datový model</h2><span>odlehčené schéma prototypu</span></div>
-    <div class="card dm-wrap">
-      <svg class="dm-svg" viewBox="0 0 900 800" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0 0L7 3L0 6" fill="none" stroke="#FF5200" stroke-width="1.2"/></marker>
-          <linearGradient id="gA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF5200" stop-opacity=".18"/><stop offset="1" stop-color="#FF5200" stop-opacity=".04"/></linearGradient>
-          <linearGradient id="gB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3D82C4" stop-opacity=".16"/><stop offset="1" stop-color="#3D82C4" stop-opacity=".03"/></linearGradient>
-          <linearGradient id="gC" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3ddc97" stop-opacity=".16"/><stop offset="1" stop-color="#3ddc97" stop-opacity=".03"/></linearGradient>
-          <marker id="arrG" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0 0L7 3L0 6" fill="none" stroke="#3ddc97" stroke-width="1.2"/></marker>
-        </defs>
-        <style>
-          .ent{fill:#10131b;stroke:rgba(255,255,255,.14)}
-          .ent-core{stroke:rgba(255,82,0,.55)}
-          .ent-ai{stroke:rgba(61,130,196,.5)}
-          .et{fill:#e8eaf2;font:600 12px Inter,sans-serif}
-          .ef{fill:#5d6478;font:9.5px 'JetBrains Mono',monospace}
-          .rel{stroke:rgba(255,82,0,.4);stroke-width:1.1;fill:none;marker-end:url(#arr)}
-          .rel-ai{stroke:rgba(61,130,196,.5)}
-          .rl{fill:#9aa1b5;font:9px 'JetBrains Mono',monospace}
-          .ent-pm{stroke:rgba(61,220,151,.55)}
-          .ent-plan{stroke:rgba(154,161,181,.6);stroke-dasharray:4 3;fill:none}
-          .rel-pm{stroke:rgba(61,220,151,.55);marker-end:url(#arrG)}
-          .rel-plan{stroke:rgba(154,161,181,.6);stroke-dasharray:4 3}
-          .sec{fill:#3ddc97;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.14em}
-        </style>
-        <rect class="ent ent-core" x="20" y="20" width="130" height="52" rx="10" fill="url(#gA)"/><text class="et" x="34" y="42">Projekt</text><text class="ef" x="34" y="58">název · fáze · stav</text>
-        <rect class="ent" x="210" y="20" width="130" height="52" rx="10"/><text class="et" x="224" y="42">Fáze</text><text class="ef" x="224" y="58">start · konec · pořadí</text>
-        <rect class="ent ent-core" x="400" y="20" width="150" height="52" rx="10" fill="url(#gA)"/><text class="et" x="414" y="42">Milník</text><text class="ef" x="414" y="58">stav · datum · %</text>
-        <path class="rel" d="M150 46h58"/><path class="rel" d="M340 46h58"/>
-        <text class="rl" x="158" y="38">1‥n</text><text class="rl" x="348" y="38">1‥n</text>
-        <rect class="ent" x="120" y="150" width="140" height="46" rx="10"/><text class="et" x="134" y="169">Otevřená otázka</text><text class="ef" x="134" y="184">jistota · odpověď</text>
-        <rect class="ent" x="300" y="150" width="120" height="46" rx="10"/><text class="et" x="314" y="169">Úkol</text><text class="ef" x="314" y="184">vlastník · termín</text>
-        <rect class="ent" x="460" y="150" width="120" height="46" rx="10"/><text class="et" x="474" y="169">Riziko</text><text class="ef" x="474" y="184">záv. × pravd.</text>
-        <rect class="ent" x="620" y="150" width="130" height="46" rx="10"/><text class="et" x="634" y="169">Rozhodnutí</text><text class="ef" x="634" y="184">zdůvodnění · vrat.</text>
-        <rect class="ent" x="620" y="20" width="130" height="46" rx="10"/><text class="et" x="634" y="39">Aktualizace</text><text class="ef" x="634" y="54">delta · období</text>
-        <path class="rel" d="M455 72L230 150"/><path class="rel" d="M470 72L365 150"/><path class="rel" d="M490 72L515 150"/><path class="rel" d="M540 72L660 150"/><path class="rel" d="M550 46h70"/>
-        <text class="rl" x="562" y="38">reportuje</text>
-        <rect class="ent ent-core" x="300" y="280" width="150" height="52" rx="10" fill="url(#gA)"/><text class="et" x="314" y="302">Schůzka</text><text class="ef" x="314" y="318">účastníci · účel</text>
-        <path class="rel" d="M355 280l-135-84"/><text class="rl" x="235" y="246">otevírá</text>
-        <path class="rel" d="M390 280l-20-84"/><text class="rl" x="392" y="240">zadává</text>
-        <path class="rel" d="M420 280l85-84"/><text class="rl" x="468" y="246">hlásí</text>
-        <path class="rel" d="M450 300L640 196"/><text class="rl" x="560" y="258">vytváří</text>
-        <rect class="ent" x="620" y="280" width="140" height="52" rx="10"/><text class="et" x="634" y="302">Důkaz</text><text class="ef" x="634" y="318">věrohodnost · zdroj</text>
-        <path class="rel" d="M690 280l-8-84"/><text class="rl" x="696" y="240">podporuje</text>
-        <path class="rel" d="M620 300L260 180"/><text class="rl" x="380" y="228">odpovídá</text>
-        <path class="rel" d="M685 150l-6-84"/><text class="rl" x="692" y="110">uzavírá ?</text>
-        <rect class="ent" x="60" y="280" width="120" height="52" rx="10"/><text class="et" x="74" y="302">Osoba</text><text class="ef" x="74" y="318">role · organizace</text>
-        <path class="rel" d="M180 296l120 2"/><text class="rl" x="212" y="290">účastní se</text>
-        <path class="rel" d="M140 280l40-84"/><text class="rl" x="120" y="240">vlastní</text>
-        <rect class="ent ent-ai" x="120" y="410" width="150" height="52" rx="10" fill="url(#gB)"/><text class="et" x="134" y="432">Přepis</text><text class="ef" x="134" y="448">surový · nahraný · vložený</text>
-        <rect class="ent ent-ai" x="360" y="410" width="160" height="52" rx="10" fill="url(#gB)"/><text class="et" x="374" y="432">AI extrakce</text><text class="ef" x="374" y="448">položky · jistota</text>
-        <path class="rel rel-ai" d="M270 436h84"/><text class="rl" x="278" y="428">zpracován →</text>
-        <path class="rel rel-ai" d="M375 410l-10-78"/><text class="rl" x="330" y="378">ze schůzky</text>
-        <path class="rel rel-ai" d="M520 430c110 0 160-40 168-224"/><text class="rl" x="545" y="416">po potvrzení → Rozhodnutí / Úkol / Riziko / Otázka / Důkaz</text>
+    <div class="section-title" style="margin-top:0"><h2>Konceptuální datový model</h2><span>ověřeno proti kódu a datům aplikace · rozdělen do samostatných diagramů</span></div>
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0 0L7 3L0 6" fill="none" stroke="#FF5200" stroke-width="1.2"/></marker>
+        <marker id="arrG" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0 0L7 3L0 6" fill="none" stroke="#3ddc97" stroke-width="1.2"/></marker>
+        <marker id="arrB" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0 0L7 3L0 6" fill="none" stroke="#3D82C4" stroke-width="1.2"/></marker>
+        <marker id="arrX" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0 0L7 3L0 6" fill="none" stroke="#9aa1b5" stroke-width="1.2"/></marker>
+        <linearGradient id="gA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF5200" stop-opacity=".18"/><stop offset="1" stop-color="#FF5200" stop-opacity=".04"/></linearGradient>
+        <linearGradient id="gB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3D82C4" stop-opacity=".16"/><stop offset="1" stop-color="#3D82C4" stop-opacity=".03"/></linearGradient>
+        <linearGradient id="gC" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3ddc97" stop-opacity=".16"/><stop offset="1" stop-color="#3ddc97" stop-opacity=".03"/></linearGradient>
+      </defs>
+      <style>
+        .ent{fill:#10131b;stroke:rgba(255,255,255,.14)}
+        .ent-core{stroke:rgba(255,82,0,.55)}
+        .ent-ai{stroke:rgba(61,130,196,.5)}
+        .ent-pm{stroke:rgba(61,220,151,.55)}
+        .ent-dash{stroke:rgba(154,161,181,.6);stroke-dasharray:4 3}
+        .et{fill:#e8eaf2;font:600 12px Inter,sans-serif}
+        .et-dim{fill:#9aa1b5}
+        .ef{fill:#5d6478;font:9.5px 'JetBrains Mono',monospace}
+        .rel{stroke:rgba(255,82,0,.45);stroke-width:1.1;fill:none;marker-end:url(#arr)}
+        .rel-pm{stroke:rgba(61,220,151,.55);marker-end:url(#arrG)}
+        .rel-ai{stroke:rgba(61,130,196,.55);marker-end:url(#arrB)}
+        .rel-x{stroke:rgba(154,161,181,.6);stroke-dasharray:4 3;marker-end:url(#arrX)}
+        .rl{fill:#9aa1b5;font:9px 'JetBrains Mono',monospace}
+        .rl-bad{fill:#ff8a5c}
+        .sec{fill:#3ddc97;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.14em}
+      </style>
+    </svg>
 
-        <line x1="20" y1="494" x2="880" y2="494" stroke="rgba(61,220,151,.3)" stroke-dasharray="3 4"/>
-        <text class="sec" x="20" y="512">PROCESNÍ MAPA</text>
-        <rect class="ent ent-pm" x="40" y="550" width="170" height="60" rx="10" fill="url(#gC)"/><text class="et" x="54" y="572">Varianta konceptu</text><text class="ef" x="54" y="588">název · osa · T0</text><text class="ef" x="54" y="600">zdroj mapy · orientace</text>
-        <rect class="ent ent-pm" x="290" y="550" width="200" height="60" rx="10" fill="url(#gC)"/><text class="et" x="304" y="572">Proces</text><text class="ef" x="304" y="588">název · termín · pruh · stav</text><text class="ef" x="304" y="600">zralost · barva · popis</text>
-        <rect class="ent ent-pm" x="560" y="550" width="130" height="60" rx="10"/><text class="et" x="574" y="572">Rámeček</text><text class="ef" x="574" y="588">název · barva</text><text class="ef" x="574" y="600">členové (procesy)</text>
-        <rect class="ent" x="740" y="550" width="130" height="60" rx="10" stroke-dasharray="2 3"/><text class="et" x="754" y="572" fill="#9aa1b5">Milník</text><text class="ef" x="754" y="588">viz výše · termín</text><text class="ef" x="754" y="600">drží se procesu</text>
-        <path class="rel rel-pm" d="M210 580h78"/><text class="rl" x="218" y="572">obsahuje</text>
-        <path class="rel rel-pm" d="M490 580h68"/><text class="rl" x="494" y="572">seskupuje</text>
-        <path class="rel rel-pm" d="M490 560C540 520 700 520 738 560"/><text class="rl" x="580" y="522">začátek / konec</text>
-        <path class="rel rel-pm" d="M464 550c0-34 40-34 40 0" transform="translate(-12 0)"/><text class="rl" x="296" y="541">podproces (≤ 3 úrovně)</text>
-        <rect class="ent ent-pm" x="40" y="664" width="170" height="60" rx="10"/><text class="et" x="54" y="686">Procesní mapa</text><text class="ef" x="54" y="702">procesy ze zpevnění</text><text class="ef" x="54" y="714">srcId → proces konceptu</text>
-        <rect class="ent ent-pm" x="290" y="664" width="200" height="60" rx="10"/><text class="et" x="304" y="686">Vazba (součást procesu)</text><text class="ef" x="304" y="702">typ FS/SS/FF · prodleva · ↔</text><text class="ef" x="304" y="714">předmět · popis</text>
-        <rect class="ent" x="520" y="664" width="150" height="60" rx="10"/><text class="et" x="534" y="686">Osoba / útvar</text><text class="ef" x="534" y="702">gestor · spolugestoři</text><text class="ef" x="534" y="714">dotčení</text>
-        <rect class="ent ent-plan" x="700" y="664" width="170" height="60" rx="10"/><text class="et" x="714" y="686" fill="#9aa1b5">Příloha (plánováno)</text><text class="ef" x="714" y="702">soubor · verze · sada</text><text class="ef" x="714" y="714">viz docs/BACKLOG.md</text>
-        <path class="rel rel-pm" d="M125 610v52"/><text class="rl" x="134" y="640">zpevnění</text>
-        <path class="rel rel-pm" d="M210 690C250 690 270 650 300 612"/><text class="rl" x="222" y="660">srcId</text>
-        <path class="rel rel-pm" d="M380 610v52"/><text class="rl" x="388" y="640">předchůdci</text>
-        <path class="rel rel-pm" d="M450 610L540 662"/><text class="rl" x="486" y="640">gestor</text>
-        <path class="rel rel-plan" d="M490 604L702 666" marker-end="url(#arr)"/><text class="rl" x="612" y="640">k procesu</text>
-        <text class="rl" x="20" y="760">Nadřazený proces (stream) = kořenový proces s podprocesy · každý proces patří do jedné varianty nebo do mapy</text>
-        <text class="rl" x="20" y="776">Úkoly a rizika zatím s procesy propojeny nejsou · Kolej / úsek ani balíček prací aplikace jako objekt nezná</text>
-      </svg>
+    <div class="dm-tabs" id="dm-tabs">
+      <button class="on" data-t="core" onclick="dmTab('core')">Projektové řízení</button>
+      <button data-t="pm" onclick="dmTab('pm')">Procesní mapa</button>
+      <button data-t="who" onclick="dmTab('who')">Osoby a útvary</button>
+      <button data-t="life" onclick="dmTab('life')">Koncept → mapa</button>
+      <button data-t="ai" onclick="dmTab('ai')">AI pipeline (ukázka)</button>
     </div>
-    <div class="dm-legend">
-      <span><i style="display:inline-block;width:10px;height:10px;border:1.5px solid rgba(255,82,0,.6);border-radius:3px;margin-right:6px;vertical-align:-1px"></i>Jádro (Projekt → Milník → Schůzka)</span>
-      <span><i style="display:inline-block;width:10px;height:10px;border:1.5px solid rgba(61,130,196,.6);border-radius:3px;margin-right:6px;vertical-align:-1px"></i>AI pipeline (nic se nezapisuje bez potvrzení)</span>
-      <span><i style="display:inline-block;width:10px;height:10px;border:1.5px solid rgba(61,220,151,.6);border-radius:3px;margin-right:6px;vertical-align:-1px"></i>Procesní mapa (varianty konceptu, procesy, vazby, rámečky)</span>
-      <span><i style="display:inline-block;width:10px;height:10px;border:1.5px dashed rgba(154,161,181,.8);border-radius:3px;margin-right:6px;vertical-align:-1px"></i>Plánováno, zatím není v aplikaci</span>
-      <span>Klíčová pravidla: Schůzka vytváří rozhodnutí, úkoly, rizika, důkazy a otázky · Rozhodnutí může uzavřít otázku · Důkaz podporuje rozhodnutí · Úkol odblokuje milník</span>
+
+    <!-- 1) Projektové řízení -->
+    <div class="dm-panel on" id="dm-core">
+      <div class="card dm-wrap"><svg class="dm-svg" viewBox="0 0 1000 560" xmlns="http://www.w3.org/2000/svg">
+        <rect class="ent ent-core" x="20" y="50" width="170" height="56" rx="10" fill="url(#gA)"/><text class="et" x="34" y="72">Projekt</text><text class="ef" x="34" y="88">název · fáze (text) · stav</text><text class="ef" x="34" y="99">vlastník</text>
+        <rect class="ent ent-core" x="400" y="50" width="200" height="56" rx="10" fill="url(#gA)"/><text class="et" x="414" y="72">Milník</text><text class="ef" x="414" y="88">stav · datum · % · zamčený</text><text class="ef" x="414" y="99">fáze (text) · vlastník</text>
+        <rect class="ent ent-dash" x="790" y="50" width="170" height="56" rx="10"/><text class="et et-dim" x="804" y="72">Změna</text><text class="ef" x="804" y="88">přehled změn</text><text class="ef" x="804" y="99">jen zobrazení</text>
+        <rect class="ent ent-dash" x="790" y="150" width="170" height="46" rx="10"/><text class="et et-dim" x="804" y="170">Fáze</text><text class="ef" x="804" y="185">pevný seznam časové osy</text>
+        <path class="rel" d="M190 78H398"/><text class="rl" x="280" y="70">1‥n</text>
+        <path class="rel rel-x" d="M600 90H788"/><text class="rl" x="618" y="82">reportuje (bez uložení)</text>
+        <path class="rel rel-x" d="M790 173C700 173 650 100 602 94"/><text class="rl" x="640" y="165">text, bez vazby</text>
+        <path class="rel" d="M470 50c0-38 60-38 60 0"/><text class="rl" x="446" y="26">závisí na (dep)</text>
+        <rect class="ent" x="20" y="230" width="150" height="52" rx="10"/><text class="et" x="34" y="252">Schůzka</text><text class="ef" x="34" y="268">účastníci · účel · přepis (příznak)</text>
+        <rect class="ent" x="200" y="230" width="150" height="52" rx="10"/><text class="et" x="214" y="252">Otázka</text><text class="ef" x="214" y="268">jistota · odpověď · priorita</text>
+        <rect class="ent" x="380" y="230" width="150" height="52" rx="10"/><text class="et" x="394" y="252">Rozhodnutí</text><text class="ef" x="394" y="268">zdůvodnění · vratnost</text>
+        <rect class="ent" x="560" y="230" width="150" height="52" rx="10"/><text class="et" x="574" y="252">Riziko</text><text class="ef" x="574" y="268">závažnost × pravděpodobnost</text>
+        <rect class="ent ent-dash" x="740" y="230" width="150" height="52" rx="10"/><text class="et" x="754" y="252">Úkol</text><text class="ef" x="754" y="268">termín · stav · závislost (text)</text>
+        <path class="rel" d="M95 230L415 106"/><text class="rl" x="116" y="205">navázána na (ms)</text>
+        <path class="rel" d="M275 230L450 106"/><text class="rl" x="300" y="205">blokuje (ms)</text>
+        <path class="rel" d="M455 230L495 106"/><text class="rl" x="458" y="190">ms</text>
+        <path class="rel" d="M635 230L540 106"/><text class="rl" x="600" y="205">ms</text>
+        <path class="rel rel-x" d="M815 230L585 106"/><text class="rl rl-bad" x="700" y="170">žádná vazba na milník</text>
+        <rect class="ent" x="200" y="470" width="150" height="52" rx="10"/><text class="et" x="214" y="492">Důkaz</text><text class="ef" x="214" y="508">věrohodnost · typ · stav</text>
+        <path class="rel" d="M250 470L252 282"/><text class="rl" x="262" y="420">odpovídá na (q)</text>
+        <rect class="ent" x="380" y="380" width="190" height="56" rx="10"/><text class="et" x="394" y="402">Osoba</text><text class="ef" x="394" y="418">kód · jméno · role · útvar</text><text class="ef" x="394" y="429">vlastník: projekt, milník, otázka …</text>
+        <path class="rel" d="M400 380L95 282"/><text class="rl" x="160" y="340">účastníci (parts)</text>
+        <path class="rel" d="M430 380L285 282"/><text class="rl" x="332" y="350">vlastník</text>
+        <path class="rel" d="M475 380L458 282"/><text class="rl" x="478" y="340">vlastník</text>
+        <path class="rel" d="M520 380L630 282"/><text class="rl" x="590" y="340">vlastník</text>
+        <path class="rel" d="M560 380L810 282"/><text class="rl" x="690" y="340">vlastník</text>
+        <path class="rel" d="M570 408C975 420 985 62 602 60"/><text class="rl" x="880" y="330">vlastník</text>
+      </svg></div>
+      <div class="dm-notes">
+        <h4>Ověřené vazby (pole s id)</h4>
+        <table class="dm-tbl"><thead><tr><th>Odkud</th><th>Kam</th><th>Pole</th></tr></thead><tbody>
+          <tr><td>Milník</td><td>Milník</td><td><code>dep</code> — závisí na</td></tr>
+          <tr><td>Schůzka · Otázka · Rozhodnutí · Riziko</td><td>Milník</td><td><code>ms</code></td></tr>
+          <tr><td>Důkaz</td><td>Otázka</td><td><code>q</code> — odpovídá na</td></tr>
+          <tr><td>Schůzka</td><td>Osoba</td><td><code>parts</code> — kódy účastníků</td></tr>
+          <tr><td>Projekt · Milník · Otázka · Rozhodnutí · Úkol · Riziko</td><td>Osoba</td><td><code>owner</code> — jen osoba, ne útvar</td></tr>
+        </tbody></table>
+        <h4>Bez vazby (jen text nebo číslo)</h4>
+        <ul>
+          <li><b>Úkol</b> nemá vazbu na milník, proces ani otázku — jen textovou „závislost“ a dopad.</li>
+          <li><b>Milník</b>: blokující problémy, rozhodnutí, důkazy a schůzky jsou textové seznamy, ne odkazy na záznamy.</li>
+          <li><b>Rozhodnutí</b>: zdroj je text; mezi rozhodnutím a důkazem vazba není.</li>
+          <li><b>Schůzka</b>: počty rozhodnutí, otázek a úkolů jsou čísla, ne odkazy; přepis je jen příznak.</li>
+          <li><b>Fáze</b> (pruhy na časové ose) a <b>Změna</b> (přehled změn) jsou pevné seznamy v aplikaci; do databáze se neukládají. U milníku je fáze jen text.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 2) Procesní mapa -->
+    <div class="dm-panel" id="dm-pm">
+      <div class="card dm-wrap"><svg class="dm-svg" viewBox="0 0 900 360" xmlns="http://www.w3.org/2000/svg">
+        <rect class="ent ent-pm" x="40" y="60" width="170" height="60" rx="10" fill="url(#gC)"/><text class="et" x="54" y="82">Varianta konceptu</text><text class="ef" x="54" y="98">název · osa · T0</text><text class="ef" x="54" y="110">zdroj mapy · orientace</text>
+        <rect class="ent ent-pm" x="290" y="60" width="200" height="60" rx="10" fill="url(#gC)"/><text class="et" x="304" y="82">Proces</text><text class="ef" x="304" y="98">název · termín · pruh · stav</text><text class="ef" x="304" y="110">zralost · barva · popis</text>
+        <rect class="ent ent-pm" x="560" y="60" width="130" height="60" rx="10"/><text class="et" x="574" y="82">Rámeček</text><text class="ef" x="574" y="98">název · barva</text><text class="ef" x="574" y="110">členové (procesy)</text>
+        <rect class="ent" x="740" y="60" width="130" height="60" rx="10" stroke-dasharray="2 3"/><text class="et et-dim" x="754" y="82">Milník</text><text class="ef" x="754" y="98">viz Projektové řízení</text><text class="ef" x="754" y="110">msStart · msEnd</text>
+        <path class="rel rel-pm" d="M210 90h78"/><text class="rl" x="218" y="82">obsahuje</text>
+        <path class="rel rel-pm" d="M490 90h68"/><text class="rl" x="494" y="82">seskupuje</text>
+        <path class="rel rel-pm" d="M490 70C540 30 700 30 738 70"/><text class="rl" x="580" y="32">začátek / konec posouvá milník</text>
+        <path class="rel rel-pm" d="M444 60c0-34 40-34 40 0"/><text class="rl" x="296" y="42">podproces — až 3 úrovně (parent)</text>
+        <rect class="ent ent-pm" x="40" y="174" width="170" height="60" rx="10"/><text class="et" x="54" y="196">Procesní mapa</text><text class="ef" x="54" y="212">procesy se zpevněním</text><text class="ef" x="54" y="224">srcId → proces konceptu</text>
+        <rect class="ent ent-pm" x="290" y="174" width="200" height="60" rx="10"/><text class="et" x="304" y="196">Vazba (součást procesu)</text><text class="ef" x="304" y="212">typ FS/SS/FF · prodleva · ↔</text><text class="ef" x="304" y="224">předmět · popis</text>
+        <rect class="ent" x="520" y="174" width="150" height="60" rx="10"/><text class="et" x="534" y="196">Osoba / útvar</text><text class="ef" x="534" y="212">gestor · spolugestoři</text><text class="ef" x="534" y="224">dotčení</text>
+        <rect class="ent ent-dash" x="700" y="174" width="170" height="60" rx="10"/><text class="et et-dim" x="714" y="196">Příloha (plánováno)</text><text class="ef" x="714" y="212">soubor · verze · sada</text><text class="ef" x="714" y="224">viz docs/BACKLOG.md</text>
+        <path class="rel rel-pm" d="M125 120v52"/><text class="rl" x="134" y="150">zpevnění</text>
+        <path class="rel rel-pm" d="M210 200C250 200 270 160 300 122"/><text class="rl" x="222" y="170">srcId</text>
+        <path class="rel rel-pm" d="M380 120v52"/><text class="rl" x="388" y="150">předchůdci (links.from)</text>
+        <path class="rel rel-pm" d="M450 120L540 172"/><text class="rl" x="480" y="146">gestor</text>
+        <path class="rel rel-x" d="M490 114L702 176"/><text class="rl" x="620" y="150">k procesu</text>
+        <text class="rl" x="20" y="290">Procesy varianty nebo mapy se rozliší polem scope (concept:K-xx / map) · nadřazený proces s podprocesy = stream</text>
+        <text class="rl rl-bad" x="20" y="308">Úkoly a rizika s procesy propojeny nejsou · rámečky patří vždy do jedné varianty nebo mapy a do mapy se nekopírují</text>
+        <text class="rl" x="20" y="326">Kolej / úsek ani balíček prací aplikace jako objekt nezná</text>
+      </svg></div>
+      <div class="dm-notes">
+        <h4>Ověřené vazby</h4>
+        <table class="dm-tbl"><thead><tr><th>Odkud</th><th>Kam</th><th>Pole</th></tr></thead><tbody>
+          <tr><td>Proces</td><td>Varianta / mapa</td><td><code>scope</code></td></tr>
+          <tr><td>Proces</td><td>Proces (nadřazený)</td><td><code>parent</code> — až 3 úrovně</td></tr>
+          <tr><td>Proces</td><td>Proces (předchůdce)</td><td><code>links[].from</code> + typ, prodleva, předmět, popis, obousměrnost</td></tr>
+          <tr><td>Proces</td><td>Milník</td><td><code>msStart[]</code>, <code>msEnd[]</code></td></tr>
+          <tr><td>Proces</td><td>Osoba / útvar</td><td><code>gestor</code>, <code>cogestors[]</code>, <code>affected[]</code></td></tr>
+          <tr><td>Mapový proces</td><td>Proces konceptu</td><td><code>srcId</code></td></tr>
+          <tr><td>Rámeček</td><td>Proces</td><td><code>members[]</code></td></tr>
+        </tbody></table>
+        <ul>
+          <li>Milníky jsou společné pro všechny varianty i mapu: termín nezamčeného milníku se posouvá s procesem v kterékoli z nich.</li>
+          <li>Vazba se ukládá jen u následníka; opačný směr se dopočítává.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 3) Osoby a útvary -->
+    <div class="dm-panel" id="dm-who">
+      <div class="card dm-wrap"><svg class="dm-svg" viewBox="0 0 900 440" xmlns="http://www.w3.org/2000/svg">
+        <rect class="ent" x="20" y="20" width="170" height="40" rx="10"/><text class="et" x="34" y="44">Projekt</text>
+        <rect class="ent" x="20" y="76" width="170" height="40" rx="10"/><text class="et" x="34" y="100">Milník</text>
+        <rect class="ent" x="20" y="132" width="170" height="40" rx="10"/><text class="et" x="34" y="156">Otázka</text>
+        <rect class="ent" x="20" y="188" width="170" height="40" rx="10"/><text class="et" x="34" y="212">Rozhodnutí</text>
+        <rect class="ent" x="20" y="244" width="170" height="40" rx="10"/><text class="et" x="34" y="268">Úkol</text>
+        <rect class="ent" x="20" y="300" width="170" height="40" rx="10"/><text class="et" x="34" y="324">Riziko</text>
+        <rect class="ent" x="20" y="370" width="170" height="40" rx="10"/><text class="et" x="34" y="394">Schůzka</text>
+        <rect class="ent ent-core" x="350" y="170" width="170" height="60" rx="10" fill="url(#gA)"/><text class="et" x="364" y="192">Osoba</text><text class="ef" x="364" y="208">kód · jméno · role</text><text class="ef" x="364" y="220">staff.unit → útvar</text>
+        <rect class="ent ent-core" x="350" y="330" width="170" height="60" rx="10" fill="url(#gA)"/><text class="et" x="364" y="352">Útvar</text><text class="ef" x="364" y="368">kód · název · druh</text>
+        <rect class="ent ent-pm" x="700" y="170" width="170" height="60" rx="10" fill="url(#gC)"/><text class="et" x="714" y="192">Proces</text><text class="ef" x="714" y="208">gestor · spolugestoři</text><text class="ef" x="714" y="220">dotčení</text>
+        <path class="rel" d="M190 40L350 182"/><path class="rel" d="M190 96L350 188"/><path class="rel" d="M190 152L350 194"/><path class="rel" d="M190 208L350 200"/><path class="rel" d="M190 264L350 208"/><path class="rel" d="M190 320L350 216"/>
+        <text class="rl" x="215" y="150">vlastník</text>
+        <path class="rel" d="M190 390L360 232"/><text class="rl" x="228" y="350">účastníci</text>
+        <path class="rel" d="M435 230V328"/><text class="rl" x="445" y="285">patří do</text>
+        <path class="rel rel-pm" d="M700 190H522"/><text class="rl" x="548" y="182">gestor · spolugestor · dotčený</text>
+        <path class="rel rel-pm" d="M740 230L520 352"/><text class="rl" x="640" y="298">totéž — gestor může být útvar</text>
+        <text class="rl" x="20" y="430">Společný číselník projektu: přejmenování nebo odebrání osoby či útvaru se projeví u všech záznamů ve všech konceptech i v mapě</text>
+      </svg></div>
+      <div class="dm-notes">
+        <h4>Ověřené vazby</h4>
+        <table class="dm-tbl"><thead><tr><th>Odkud</th><th>Kam</th><th>Pole</th></tr></thead><tbody>
+          <tr><td>Projekt · Milník · Otázka · Rozhodnutí · Úkol · Riziko</td><td>Osoba</td><td><code>owner</code> — vlastník je jen osoba</td></tr>
+          <tr><td>Schůzka</td><td>Osoba</td><td><code>parts</code></td></tr>
+          <tr><td>Osoba</td><td>Útvar</td><td><code>staff[kód].unit</code></td></tr>
+          <tr><td>Proces</td><td>Osoba nebo útvar</td><td><code>gestor</code> (kód osoby, nebo <code>@</code> + kód útvaru)</td></tr>
+          <tr><td>Proces</td><td>Osoba nebo útvar</td><td><code>cogestors[].who</code> + odpovědnost, <code>affected[]</code></td></tr>
+        </tbody></table>
+        <ul><li>Vlastník milníku, úkolu a dalších záznamů je jen osoba; gestor procesu může být osoba i útvar.</li></ul>
+      </div>
+    </div>
+
+    <!-- 4) Koncept → mapa -->
+    <div class="dm-panel" id="dm-life">
+      <div class="card dm-wrap"><svg class="dm-svg" viewBox="0 0 1000 440" xmlns="http://www.w3.org/2000/svg">
+        <rect class="ent ent-pm" x="20" y="50" width="200" height="110" rx="10" fill="url(#gC)"/><text class="et" x="34" y="74">Varianta konceptu</text>
+          <text class="ef" x="34" y="94">volná plocha, více variant</text><text class="ef" x="34" y="108">vazby neutrální — nic se</text><text class="ef" x="34" y="122">kvůli nim neposouvá</text><text class="ef" x="34" y="142">zpevnit lze jen zdrojovou</text>
+        <rect class="ent ent-core" x="270" y="50" width="200" height="110" rx="10" fill="url(#gA)"/><text class="et" x="284" y="74">Zpevnění (průvodce)</text>
+          <text class="ef" x="284" y="94">1 Úplnost</text><text class="ef" x="284" y="106">2 Ukotvení času (posun)</text><text class="ef" x="284" y="118">3 Vazby (typ, prodleva)</text><text class="ef" x="284" y="130">4 Milníky (zámek termínu)</text><text class="ef" x="284" y="142">5 Rozdíly (při další mapě)</text>
+        <rect class="ent ent-pm" x="520" y="50" width="200" height="110" rx="10" fill="url(#gC)"/><text class="et" x="534" y="74">Mapa — odvozený proces</text>
+          <text class="ef" x="534" y="94">kopie procesu z konceptu</text><text class="ef" x="534" y="108">srcId · typované vazby</text><text class="ef" x="534" y="122">hlídání porušených vazeb</text><text class="ef" x="534" y="142">mapEdited = ne</text>
+        <rect class="ent ent-pm" x="770" y="50" width="200" height="110" rx="10" fill="url(#gC)"/><text class="et" x="784" y="74">Mapa — potvrzený proces</text>
+          <text class="ef" x="784" y="94">termíny a vazby odsouhlasené</text><text class="ef" x="784" y="108">po ruční úpravě v mapě:</text><text class="ef" x="784" y="122">mapEdited = ano</text>
+        <path class="rel rel-pm" d="M220 105h48"/><path class="rel rel-pm" d="M470 105h48"/><path class="rel rel-pm" d="M720 105h48"/>
+        <text class="rl" x="500" y="40">vznikají procesy mapy</text><text class="rl" x="730" y="40">Potvrdit</text>
+        <path class="rel rel-pm" d="M120 160C120 270 620 270 620 162"/><text class="rl" x="250" y="262">Opakované zpevnění: nové / změněné / odstraněné procesy; konflikt u procesů ručně upravených v mapě</text>
+        <rect class="ent ent-dash" x="20" y="300" width="470" height="100" rx="10"/><text class="et" x="34" y="324">Do mapy se přenáší</text>
+          <text class="ef" x="34" y="344">název · popis · gestor · spolugestoři · dotčení</text><text class="ef" x="34" y="358">stav plnění · termíny (s posunem) · pruh</text><text class="ef" x="34" y="372">nadřazený proces · vazby (s typem a prodlevou)</text><text class="ef" x="34" y="386">milníky na konci procesu</text>
+        <rect class="ent ent-dash" x="520" y="300" width="450" height="100" rx="10"/><text class="et rl-bad" x="534" y="324" style="fill:#ff8a5c">Nepřenáší se</text>
+          <text class="ef" x="534" y="344">barva fáze (mapa tak barvy streamů nemá — k opravě)</text><text class="ef" x="534" y="358">rámečky · milníky na začátku procesu</text>
+          <text class="et et-dim" x="534" y="380">Společné pro koncept i mapu</text><text class="ef" x="534" y="394">milníky (jeden záznam) · osoby a útvary</text>
+      </svg></div>
+      <div class="dm-notes">
+        <h4>Co se děje s objekty ve fázích návrhu</h4>
+        <ul>
+          <li><b>Koncept:</b> procesy, podprocesy, rámečky a neutrální vazby patří jedné variantě. Milníky a osoby jsou společné.</li>
+          <li><b>Zpevnění:</b> z procesů zdrojové varianty vznikne nebo se aktualizuje sada procesů mapy; průvodce ukáže rozdíly proti stávající mapě.</li>
+          <li><b>Mapa:</b> vazby mají typ a hlídají se. Termín milníku se posouvá s procesem (v konceptu i v mapě), pokud není zamčený.</li>
+          <li><b>Opakované zpevnění:</b> páruje se podle <code>srcId</code>; ruční úpravy v mapě se hlásí jako konflikt.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 5) AI pipeline -->
+    <div class="dm-panel" id="dm-ai">
+      <div class="card dm-wrap"><svg class="dm-svg" viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg">
+        <rect class="ent" x="20" y="50" width="140" height="56" rx="10"/><text class="et" x="34" y="72">Schůzka</text><text class="ef" x="34" y="88">příznak „přepis“</text>
+        <rect class="ent ent-ai" x="210" y="50" width="160" height="56" rx="10" fill="url(#gB)"/><text class="et" x="224" y="72">Přepis</text><text class="ef" x="224" y="88">textové pole (neukládá se)</text>
+        <rect class="ent ent-ai" x="420" y="50" width="170" height="56" rx="10" fill="url(#gB)"/><text class="et" x="434" y="72">AI extrakce</text><text class="ef" x="434" y="88">ukázkový vzorek, ne model</text>
+        <rect class="ent ent-ai" x="640" y="50" width="230" height="56" rx="10" fill="url(#gB)"/><text class="et" x="654" y="72">Návrhy ke kontrole</text><text class="ef" x="654" y="88">rozhodnutí · otázky · akce · rizika</text>
+        <path class="rel rel-ai" d="M160 78h48"/><path class="rel rel-ai" d="M370 78h48"/><path class="rel rel-ai" d="M590 78h48"/>
+        <rect class="ent ent-ai" x="640" y="190" width="230" height="56" rx="10" fill="url(#gB)"/><text class="et" x="654" y="212">Přehled změn</text><text class="ef" x="654" y="228">jen textový řádek, neukládá se</text>
+        <path class="rel rel-ai" d="M755 106V188"/><text class="rl" x="765" y="152">po potvrzení</text>
+        <rect class="ent ent-dash" x="250" y="190" width="340" height="56" rx="10"/><text class="et et-dim" x="264" y="212">Rozhodnutí · Úkol · Riziko · Otázka · Důkaz</text><text class="ef" x="264" y="228">po potvrzení se zatím nevytváří</text>
+        <path class="rel rel-x" d="M640 100C560 130 470 160 430 188"/>
+        <text class="rl rl-bad" x="20" y="290">Tato část je zatím demonstrace: výsledek je předpřipravený a potvrzení zapíše jen řádek do přehledu změn</text>
+      </svg></div>
+      <div class="dm-notes">
+        <ul>
+          <li>Přepis se nikam neukládá, u schůzky je jen příznak „přepis přiložen“.</li>
+          <li>Z potvrzených návrhů se zatím nevytvářejí záznamy rozhodnutí, úkolů, rizik ani otázek.</li>
+        </ul>
+      </div>
     </div>
   </section>
 
@@ -7893,6 +8048,36 @@ function pmI(key){
   return ` <span class="pm-i" tabindex="0" role="img" aria-label="Nápověda k parametru" data-tip="${esc(t)}">i</span>`;
 }
 (function(){document.querySelectorAll('[data-help]').forEach(el=>{const t=PM_HELP[el.dataset.help];if(t){el.dataset.tip=t;el.textContent='i';el.classList.add('pm-i');el.tabIndex=0}})})();
+
+function dmTab(k){
+  document.querySelectorAll('#dm-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===k));
+  document.querySelectorAll('.dm-panel').forEach(p=>p.classList.toggle('on',p.id==='dm-'+k));
+}
+/* ================= SKRYTÍ PANELŮ ================= */
+(function(){
+  const get=k=>{try{return localStorage.getItem(k)==='1'}catch(e){return false}};
+  const put=(k,v)=>{try{localStorage.setItem(k,v?'1':'0')}catch(e){}};
+  const side=document.createElement('button'), top=document.createElement('button');
+  side.id='ui-side'; side.className='ui-handle'; top.id='ui-top'; top.className='ui-handle';
+  side.setAttribute('aria-label','Skrýt nebo zobrazit levý panel'); top.setAttribute('aria-label','Skrýt nebo zobrazit horní lištu');
+  document.body.appendChild(side); document.body.appendChild(top);
+  function apply(){
+    const hs=document.body.classList.contains('hide-side'), ht=document.body.classList.contains('hide-top');
+    side.textContent=hs?'›':'‹'; top.textContent=ht?'⌄':'⌃';
+    side.dataset.tip=hs?'Zobrazit levý panel\nVrátí navigaci (Přehled, Milníková nástěnka, Procesní mapa …).':'Skrýt levý panel\nUvolní místo pro plátno. Panel se vrátí tímto úchytem u levého okraje; volba se pamatuje.';
+    top.dataset.tip=ht?'Zobrazit horní lištu\nVrátí hledání, stav připojení, přihlášení a tlačítko Úpravy.':'Skrýt horní lištu\nUvolní místo nahoře. Tlačítko Úpravy a přihlášení se vrátí tímto úchytem; volba se pamatuje.';
+    const bar=document.querySelector('.topbar');
+    side.style.left=hs?'0':(document.querySelector('.sidebar')?document.querySelector('.sidebar').getBoundingClientRect().width+'px':'236px');
+    top.style.top=ht||!bar?'0':Math.max(0,bar.getBoundingClientRect().bottom)+'px';
+  }
+  side.onclick=()=>{document.body.classList.toggle('hide-side');put('ui-hide-side',document.body.classList.contains('hide-side'));apply();if(typeof pmFitHeight==='function')setTimeout(()=>{pmFitHeight();if(typeof renderPMap==='function'&&$('#view-pmap').classList.contains('active'))renderPMap()},50)};
+  top.onclick=()=>{document.body.classList.toggle('hide-top');put('ui-hide-top',document.body.classList.contains('hide-top'));apply();if(typeof pmFitHeight==='function')setTimeout(()=>{pmFitHeight();if(typeof renderPMap==='function'&&$('#view-pmap').classList.contains('active'))renderPMap()},50)};
+  if(get('ui-hide-side'))document.body.classList.add('hide-side');
+  if(get('ui-hide-top'))document.body.classList.add('hide-top');
+  apply(); window.addEventListener('resize',apply);
+  new MutationObserver(apply).observe(document.body,{attributes:true,attributeFilter:['class']});
+  setInterval(apply,1500);
+})();
 
 /* ================= INIT ================= */
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){
