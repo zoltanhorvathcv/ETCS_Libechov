@@ -899,8 +899,15 @@ body.pm-ribdrag{cursor:row-resize;user-select:none}
 .pm-rib-empty{padding:9px 12px;color:var(--text3);font-size:12px;text-align:center}
 
 /* --- správa osob --- */
-.ppl-row{display:grid;grid-template-columns:46px minmax(120px,1.4fr) minmax(100px,1fr) minmax(110px,1fr) 34px 30px;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--border)}
-.ppl-row.unit{grid-template-columns:46px minmax(120px,2fr) minmax(110px,1fr) 34px 30px}
+.ppl-row{display:grid;grid-template-columns:46px minmax(120px,1.4fr) minmax(150px,1.3fr) minmax(110px,1fr) 34px 30px;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--border)}
+.ppl-row.unit{grid-template-columns:46px minmax(120px,1.6fr) minmax(90px,.8fr) minmax(150px,1.3fr) 34px 30px}
+.ppl-row.rolerow{grid-template-columns:18px minmax(140px,2fr) minmax(90px,1fr) minmax(110px,1fr) 34px 30px}
+.rdot{width:12px;height:12px;border-radius:50%;display:block}
+.rolebox{display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-width:0}
+.rchip{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:1px 3px 1px 8px;border-radius:999px;border:1px solid var(--rc,var(--border2));background:rgba(255,255,255,.04);color:var(--text)}
+.rchip button{border:0;background:none;color:var(--text3);cursor:pointer;padding:0 3px;font-size:10px;line-height:1}
+.rchip button:hover{color:var(--accent)}
+.rolebox select{width:auto;max-width:110px;font-size:11px;padding:3px 5px}
 .ppl-head{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:4px 0 2px;font-weight:600}
 .ppl-row select,.ppl-row input{font-size:12px;padding:6px 8px}
 .ppl-row .code{font-family:var(--mono);font-size:11px;color:var(--accent)}
@@ -1717,6 +1724,8 @@ let people = {ZH:'Zoltán Horváth',MK:'Marie Klimešová',PN:'Petr Novotný',JS
 let orgUnits = {O12:{name:'Odbor přípravy staveb',kind:'Odbor'},O31:{name:'Oddělení zabezpečovací techniky',kind:'Oddělení'}};
 /* Zařazení osob — nepovinné doplňkové údaje ke jménu. */
 let staff = {ZH:{role:'Vedoucí projektu',unit:'O12'},MK:{role:'Analytička',unit:'O31'},PN:{role:'Projektant',unit:'O12'}};
+/* Číselník rolí — společný pro celý projekt: {id:{name,color,for:'oba'|'osoba'|'utvar'}} */
+let roles = {};
 const UNIT_PREFIX='@';
 const ORG_KINDS=['Odbor','Oddělení','Útvar','Sekce','Externí'];
 /* jméno gestora — osoba i útvar, podle prefixu kódu */
@@ -2580,7 +2589,40 @@ function closeEditor(){$('#editor').classList.remove('open')}
 
 /* ================= SUPABASE DATA LAYER ================= */
 let sb=null, ONLINE=false;
+/* ---- Role aktérů ---- */
+const roleSlug=n=>String(n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'role';
+function roleFind(name,store){
+  const k=String(name||'').trim().toLowerCase(); if(!k)return '';
+  const R=store||roles; return Object.keys(R).find(id=>String(R[id].name||'').trim().toLowerCase()===k)||'';
+}
+function roleCreate(name,kind,store){
+  const R=store||roles; name=String(name||'').trim(); if(!name)return '';
+  const have=roleFind(name,R); if(have)return have;
+  const base=roleSlug(name); let id=base,i=1; while(R[id])id=base+'-'+(++i);
+  R[id]={name,color:'',for:kind||'oba'};
+  return id;
+}
+const roleName=(id,store)=>((store||roles)[id]||{}).name||id;
+const actorIsUnit=c=>String(c||'')[0]===UNIT_PREFIX;
+/* role aktéra: osoba → staff[kód].roles, útvar → orgUnits[kód].roles */
+function actorRoles(code){
+  if(!code)return [];
+  const r=actorIsUnit(code)?(orgUnits[String(code).slice(1)]||{}).roles:(staff[code]||{}).roles;
+  return Array.isArray(r)?r.filter(id=>roles[id]):[];
+}
+const actorRoleText=code=>actorRoles(code).map(id=>roleName(id)).join(', ');
+/* Starší data mají u osoby jedinou textovou roli — převede se na záznam v číselníku. */
+function rolesMigrate(){
+  if(!roles||typeof roles!=='object')roles={};
+  Object.keys(staff||{}).forEach(c=>{
+    const m=staff[c]; if(!m||Array.isArray(m.roles))return;
+    const t=String(m.role||'').trim();
+    m.roles=t?[roleCreate(t,'osoba')]:[];
+  });
+  Object.keys(orgUnits||{}).forEach(u=>{if(orgUnits[u]&&!Array.isArray(orgUnits[u].roles))orgUnits[u].roles=[]});
+}
 function normalizeData(){
+  rolesMigrate();
   milestones.forEach(m=>{['blocking','decisions','evidence','meetings'].forEach(k=>{if(!Array.isArray(m[k]))m[k]=m[k]?[m[k]]:[]});['short','objective','next','phase'].forEach(k=>{if(m[k]==null)m[k]=''})});
   meetings.forEach((m,i)=>{if(!m.uid)m.uid='m'+i+'-'+(m.date||'');if(!Array.isArray(m.parts))m.parts=[]});
   evidence.forEach((e,i)=>{if(!e.uid)e.uid='e'+i});
@@ -2636,6 +2678,7 @@ function hydrate(rows){
   if(by.people&&by.people[0])people=by.people[0];
   if(by.units&&by.units[0])orgUnits=by.units[0];
   if(by.staff&&by.staff[0])staff=by.staff[0];
+  if(by.roles&&by.roles[0])roles=by.roles[0];
   if(by.milestone)milestones=by.milestone; if(by.meeting)meetings=by.meeting;
   if(by.question)questions=by.question; if(by.decision)decisions=by.decision;
   if(by.task)tasks=by.task; if(by.risk)risks=by.risk; if(by.evidence)evidence=by.evidence;
@@ -2648,7 +2691,8 @@ async function persistAll(){
   if(!ONLINE)return;
   const rows=[rowFor('project',project,0),rowFor('people',people,0),
     {project_id:SUPA.projectId,entity:'units',id:'meta',sort:0,data:orgUnits},
-    {project_id:SUPA.projectId,entity:'staff',id:'meta',sort:0,data:staff}];
+    {project_id:SUPA.projectId,entity:'staff',id:'meta',sort:0,data:staff},
+    {project_id:SUPA.projectId,entity:'roles',id:'meta',sort:0,data:roles}];
   [['milestone',milestones],['meeting',meetings],['question',questions],['decision',decisions],['task',tasks],['risk',risks],['evidence',evidence],['concept',concepts],['process',processes],['pmgroup',pmgroups]]
     .forEach(([e,arr])=>arr.forEach((o,i)=>rows.push(rowFor(e,o,i))));
   // people uložíme jako celý objekt pod jedním id
@@ -2661,7 +2705,8 @@ async function persistMeta(){ if(ONLINE)try{await sb.from('pi_entities').upsert(
   rowFor('project',project,0),
   {project_id:SUPA.projectId,entity:'people',id:'meta',sort:0,data:people},
   {project_id:SUPA.projectId,entity:'units',id:'meta',sort:0,data:orgUnits},
-  {project_id:SUPA.projectId,entity:'staff',id:'meta',sort:0,data:staff}
+  {project_id:SUPA.projectId,entity:'staff',id:'meta',sort:0,data:staff},
+  {project_id:SUPA.projectId,entity:'roles',id:'meta',sort:0,data:roles}
 ])}catch(e){console.warn(e)} }
 
 /* ================= AUTH (veřejné čtení / zápis jen správce) ================= */
@@ -4188,7 +4233,7 @@ function personReplace(code,to){
   });
 }
 function openPeople(){
-  PPL={names:Object.assign({},people),meta:JSON.parse(JSON.stringify(staff)),units:JSON.parse(JSON.stringify(orgUnits))};
+  PPL={names:Object.assign({},people),meta:JSON.parse(JSON.stringify(staff)),units:JSON.parse(JSON.stringify(orgUnits)),roles:JSON.parse(JSON.stringify(roles))};
   $('#people-modal').classList.add('open');
   pplRender();
 }
@@ -4202,7 +4247,7 @@ function pplRender(){
     return `<div class="ppl-row">
       <span class="code">${c}</span>
       <input value="${esc(PPL.names[c])}" title="Jméno a příjmení" oninput="PPL.names['${c}']=this.value">
-      <input value="${esc(m.role||'')}" placeholder="role / pozice" title="Role nebo pracovní pozice — nepovinné" oninput="pplMeta('${c}','role',this.value)">
+      ${pplRoleBox('p',c,m.roles||[])}
       <select title="Zařazení do útvaru — nepovinné" onchange="pplMeta('${c}','unit',this.value)">${unitOpts(m.unit||'')}</select>
       <span class="uses" title="Na kolika místech je odkazován">${actorUses(c)||'—'}</span>
       <button type="button" class="x" title="Odebrat osobu" onclick="pplRemove('${c}')">✕</button>
@@ -4214,6 +4259,7 @@ function pplRender(){
       <input value="${esc(PPL.units[u].name)}" title="Název útvaru" oninput="PPL.units['${u}'].name=this.value">
       <select title="Typ organizační jednotky" onchange="PPL.units['${u}'].kind=this.value">
         ${ORG_KINDS.map(k=>`<option ${k===PPL.units[u].kind?'selected':''}>${k}</option>`).join('')}</select>
+      ${pplRoleBox('u',u,PPL.units[u].roles||[])}
       <span class="uses" title="Na kolika místech je odkazován">${actorUses(UNIT_PREFIX+u)||'—'}</span>
       <button type="button" class="x" title="Odebrat útvar" onclick="pplRemoveUnit('${u}')">✕</button>
     </div>`).join('')||'<div class="pm-hint">Zatím žádné útvary.</div>';
@@ -4222,7 +4268,71 @@ function pplRender(){
     <div class="ppl-head">Osoby</div>${rows}
     <button type="button" class="pm-addbtn" style="margin:10px 0 4px" title="Přidat další osobu" onclick="pplAdd()">＋ Přidat osobu</button>
     <div class="ppl-head" style="margin-top:16px">Útvary — mohou být gestorem i spolugestorem</div>${urows}
-    <button type="button" class="pm-addbtn" style="margin-top:10px" title="Přidat organizační jednotku" onclick="pplAddUnit()">＋ Přidat útvar</button>`;
+    <button type="button" class="pm-addbtn" style="margin-top:10px" title="Přidat organizační jednotku" onclick="pplAddUnit()">＋ Přidat útvar</button>
+    <div class="ppl-head" style="margin-top:16px">Role${pmI('roles.catalog')}</div>${pplRolesCatalog()}
+    <button type="button" class="pm-addbtn" style="margin-top:10px" onclick="pplRoleNew()" data-tip="Nová role\nPřidá roli do společného číselníku. Pak ji lze přiřadit osobám i útvarům a vybírat při přiřazení k procesu.">＋ Přidat roli</button>`;
+}
+/* ---- role v dialogu Osoby a útvary ---- */
+function pplRoleBox(kind,code,ids){
+  const mine=(ids||[]).filter(id=>PPL.roles[id]);
+  const chips=mine.map(id=>`<span class="rchip" style="--rc:${esc(roleHex(PPL.roles[id].color)||'var(--border2)')}">${esc(PPL.roles[id].name)}<button type="button" title="Odebrat roli" onclick="pplRoleOff('${kind}','${esc(code)}','${esc(id)}')">✕</button></span>`).join('');
+  const volne=Object.keys(PPL.roles).filter(id=>!mine.includes(id)&&(PPL.roles[id].for==='oba'||!PPL.roles[id].for||PPL.roles[id].for===(kind==='p'?'osoba':'utvar')));
+  const sel=`<select title="Přidat roli" onchange="pplRoleOn('${kind}','${esc(code)}',this.value)"><option value="">＋ role</option>${volne.map(id=>`<option value="${esc(id)}">${esc(PPL.roles[id].name)}</option>`).join('')}<option value="__new">＋ Nová role…</option></select>`;
+  return `<div class="rolebox">${chips}${sel}</div>`;
+}
+const roleHex=k=>{try{return k?pmHex(k):null}catch(e){return null}};
+function pplRoleTarget(kind,code){
+  if(kind==='p'){if(!PPL.meta[code])PPL.meta[code]={};return PPL.meta[code]}
+  return PPL.units[code];
+}
+function pplRoleOn(kind,code,id){
+  if(!id)return;
+  if(id==='__new'){
+    const name=(prompt('Název nové role (např. garant, schvalovatel, zpracovatel)')||'').trim();
+    if(!name){pplRender();return}
+    id=roleCreate(name,kind==='p'?'osoba':'utvar',PPL.roles);
+  }
+  const t=pplRoleTarget(kind,code); t.roles=Array.isArray(t.roles)?t.roles:[];
+  if(!t.roles.includes(id))t.roles.push(id);
+  pplRender();
+}
+function pplRoleOff(kind,code,id){
+  const t=pplRoleTarget(kind,code); t.roles=(t.roles||[]).filter(x=>x!==id); pplRender();
+}
+function pplRoleUses(id){
+  const o=Object.keys(PPL.meta).filter(c=>(PPL.meta[c].roles||[]).includes(id)).length;
+  const u=Object.keys(PPL.units).filter(k=>(PPL.units[k].roles||[]).includes(id)).length;
+  return {o,u,n:o+u};
+}
+function pplRolesCatalog(){
+  const ids=Object.keys(PPL.roles).sort((a,b)=>String(PPL.roles[a].name).localeCompare(String(PPL.roles[b].name),'cs'));
+  if(!ids.length)return '<div class="pm-hint">Zatím žádné role.</div>';
+  const colOpts=sel=>['<option value="">bez barvy</option>'].concat((typeof PM_COLORS!=='undefined'?PM_COLORS:[]).map(([k,,l])=>`<option value="${k}" ${k===sel?'selected':''}>${l}</option>`)).join('');
+  const forOpts=sel=>[['oba','osoba i útvar'],['osoba','jen osoba'],['utvar','jen útvar']].map(([v,t])=>`<option value="${v}" ${v===(sel||'oba')?'selected':''}>${t}</option>`).join('');
+  return ids.map(id=>{const r=PPL.roles[id],n=pplRoleUses(id);
+    return `<div class="ppl-row rolerow">
+      <span class="rdot" style="background:${esc(roleHex(r.color)||'var(--border2)')}"></span>
+      <input value="${esc(r.name)}" title="Název role" oninput="PPL.roles['${esc(id)}'].name=this.value">
+      <select title="Barva role" onchange="PPL.roles['${esc(id)}'].color=this.value;pplRender()">${colOpts(r.color||'')}</select>
+      <select title="Komu lze roli přiřadit" onchange="PPL.roles['${esc(id)}'].for=this.value;pplRender()">${forOpts(r.for)}</select>
+      <span class="uses" title="Kolika osobám a útvarům je role přiřazena">${n.n||'—'}</span>
+      <button type="button" class="x" title="Smazat roli" onclick="pplRoleDelete('${esc(id)}')">✕</button></div>`}).join('');
+}
+function pplRoleNew(){
+  const name=(prompt('Název nové role (např. garant, schvalovatel, zpracovatel)')||'').trim();
+  if(!name)return;
+  if(roleFind(name,PPL.roles)){toast('Role se stejným názvem už existuje');return}
+  roleCreate(name,'oba',PPL.roles); pplRender();
+}
+function pplRoleDelete(id){
+  const r=PPL.roles[id]; if(!r)return;
+  const n=pplRoleUses(id);
+  const txt=n.n?`Role „${r.name}“ je přiřazena: osobám ${n.o}×, útvarům ${n.u}×.\nSmazáním se odebere všem. Pokračovat?`:`Smazat roli „${r.name}“?`;
+  if(!confirm(txt))return;
+  delete PPL.roles[id];
+  Object.keys(PPL.meta).forEach(c=>{PPL.meta[c].roles=(PPL.meta[c].roles||[]).filter(x=>x!==id)});
+  Object.keys(PPL.units).forEach(u=>{PPL.units[u].roles=(PPL.units[u].roles||[]).filter(x=>x!==id)});
+  pplRender(); toast('Role smazána (projeví se po Uložit)');
 }
 function pplMeta(code,key,val){
   if(!PPL.meta[code])PPL.meta[code]={};
@@ -4283,8 +4393,11 @@ function pplSave(){
   staff=JSON.parse(JSON.stringify(PPL.meta));
   Object.keys(PPL.units).forEach(u=>{
     const nm=(PPL.units[u].name||'').trim();
-    if(nm)orgUnits[u]={name:nm,kind:PPL.units[u].kind||'Odbor'};
+    if(nm)orgUnits[u]={name:nm,kind:PPL.units[u].kind||'Odbor',roles:(PPL.units[u].roles||[]).filter(id=>PPL.roles[id])};
   });
+  Object.keys(PPL.roles).forEach(id=>{PPL.roles[id].name=String(PPL.roles[id].name||'').trim()||roleName(id,PPL.roles)});
+  roles=JSON.parse(JSON.stringify(PPL.roles));
+  Object.keys(staff).forEach(c=>{staff[c].roles=(staff[c].roles||[]).filter(id=>roles[id])});
   persistMeta(); closePeople(); renderAll();
   toast('Osoby a útvary uloženy');
 }
@@ -8076,6 +8189,7 @@ const PM_HELP={
  'process.cogestors':'Spolugestoři\nDalší osoby nebo útvary, které se na procesu podílejí, a za co konkrétně odpovídají.\nDopad: jen evidence odpovědnosti, zobrazí se v přehledu odpovědnosti procesu. Termíny neovlivňuje.',
  'process.affected':'Dotčení a konzultovaní\nKdo musí být o procesu informován nebo se k němu vyjádřit, ale neodpovídá za něj.\nDopad: jen evidence, bez vlivu na termíny a vazby.',
  'process.links':'Vazby na předchůdce\nNa čem proces závisí — co mu musí předcházet. Každá vazba má typ (FS, SS, FF), prodlevu ve dnech, volitelný směr ↔, předmět (co předchůdce předává) a popis.\nDopad: v konceptu vazby nic neposouvají; typ a prodleva se uplatní až při zpevnění do mapy, kde se hlídají porušené návaznosti. Vazba se ukládá u následníka; opačný směr je v seznamu Navazující procesy.',
+ 'roles.catalog':'Role\nSpolečný číselník rolí (např. garant, schvalovatel, zpracovatel). Každá osoba, odbor, oddělení nebo jiný útvar může mít jednu i více rolí.\nDopad: změna názvu nebo barvy se projeví všude, kde se role používá. Smazání role ji odebere všem osobám a útvarům; před smazáním se zobrazí počet použití. Změny se uloží tlačítkem Uložit.',
  'process.tasks':'Úkoly odpovědnosti\nÚkoly (s termínem od–do a stavem), které plní gestor nebo spolugestoři procesu. Úkol lze zadat jen těm, kdo jsou u procesu vybraní; kdo není vybraný, nemá ani tlačítko ＋ Úkol.\nDopad: evidence práce uvnitř procesu — termíny procesu ani vazby se tím nemění. Při změně nebo odebrání gestora úkoly zůstanou a ukážou se jako „bez gestora“, dokud je nepřiřadíte. Do mapy se úkoly zkopírují při zpevnění.',
  'process.msEnd':'Milníky na konci procesu\nMilník se posouvá spolu s koncem procesu.\nDopad: zamčený milník se nehýbe a pozdější konec procesu se zvýrazní červeně jako porušený termín.',
  'process.msStart':'Milníky na začátku procesu\nMilník se posouvá spolu se začátkem procesu.\nDopad: změna začátku procesu posune datum nezamčeného milníku.',
