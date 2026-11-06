@@ -959,6 +959,8 @@ body.pm-ribdrag{cursor:row-resize;user-select:none}
       <input type="checkbox" id="mex-roots" onchange="pmMapPreview()" style="width:auto"> Jen hlavní procesy, bez podprocesů <span data-help="mex.roots"></span></label>
     <label style="display:flex;align-items:center;gap:9px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text2);margin-top:8px">
       <input type="checkbox" id="mex-links" onchange="pmMapPreview()" style="width:auto"> Pod schématem vypsat vazby vedoucí mimo fázi <span data-help="mex.links"></span></label>
+    <label style="display:flex;align-items:center;gap:9px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text2);margin-top:8px">
+      <input type="checkbox" id="mex-tasks" onchange="pmMapPreview()" style="width:auto"> Vypsat úkoly odpovědnosti (řešitel, termín od–do, stav) <span data-help="mex.tasks"></span></label>
     <div class="mex-info" id="mex-info"></div>
     <div class="m-actions">
       <button class="btn ghost" onclick="closeMapExp()">Zrušit</button>
@@ -7356,7 +7358,7 @@ function pmMapSVG(o){
 }
 
 /* ---- dialog s parametry ---- */
-const MEX={split:'one',paper:'auto',unit:'auto',light:true,rootsOnly:false,links:true,autoSplit:true};
+const MEX={split:'one',paper:'auto',unit:'auto',light:true,rootsOnly:false,links:true,tasks:false,autoSplit:true};
 /* Ve schématu je vidět jen tvar vazby, ne co po ní teče. Seznam pod schématem
    proto vypisuje vazby, které z fáze vedou ven — u každé směr, protistranu,
    předmět i popis. Vazby uvnitř fáze seznam neopakuje, ty schéma ukazuje samo. */
@@ -7382,6 +7384,27 @@ function pmLinkRows(rootId,scope){
   });
   radky.sort((x,y)=>pmNumCmp(x.doma,y.doma)||(x.smer===y.smer?pmNumCmp(x.ciz,y.ciz):(x.smer==='pred'?-1:1)));
   return radky;
+}
+/* Úkoly odpovědnosti celé fáze (kořenový proces i všechny podprocesy) pro tisk */
+function pmTaskRows(rootId,scope){
+  const root=pmById(rootId); if(!root)return [];
+  const fam=[root].concat(pmDescOf(rootId)).filter(x=>x.scope===scope);
+  const rows=[];
+  pmByNum(fam).forEach(p=>(p.tasks||[]).forEach(t=>rows.push({p:p,t:t})));
+  return rows;
+}
+function pmTaskListHTML(rootId,scope,nadpis){
+  const radky=pmTaskRows(rootId,scope); if(!radky.length)return '';
+  let predchozi='';
+  const stav=k=>(STATUS[k]||STATUS.idle)[0];
+  const tr=radky.map(r=>{
+    const klic=pmNumLabel(r.p)||r.p.name, krok=klic===predchozi?'':escXml(klic); predchozi=klic;
+    const termin=(r.t.start||r.t.end)?`${r.t.start?pmCz(r.t.start):'…'} – ${r.t.end?pmCz(r.t.end):'…'}`:'<span class="miss">—</span>';
+    return `<tr><td class="k">${krok}</td><td class="s">${escXml(actorName(r.t.who)||'—')}</td>
+      <td class="c">${escXml(r.t.t||'(bez názvu)')}</td><td class="p">${termin} · ${escXml(stav(r.t.status))}</td></tr>`;
+  }).join('');
+  return `<div class="lnk"><div class="lh">${escXml(nadpis||'Úkoly odpovědnosti')}</div><table class="lt">
+    <tr><th>Krok</th><th>Řešitel</th><th>Úkol</th><th>Termín od – do · stav</th></tr>${tr}</table></div>`;
 }
 function pmLinkListHTML(rootId,scope,nadpis){
   const radky=pmLinkRows(rootId,scope);
@@ -7415,6 +7438,7 @@ function pmMapDialog(){
   ['split','paper','unit'].forEach(k=>{const el=$('#mex-'+k);if(el)el.value=MEX[k]});
   $('#mex-light').checked=MEX.light; $('#mex-roots').checked=MEX.rootsOnly;
   const lb=$('#mex-links'); if(lb)lb.checked=MEX.links;
+  const tb=$('#mex-tasks'); if(tb)tb.checked=MEX.tasks;
   $('#mapexp').classList.add('open');
   pmMapPreview();
 }
@@ -7424,6 +7448,7 @@ function pmMapRead(){
   MEX.unit=$('#mex-unit').value; MEX.light=$('#mex-light').checked;
   MEX.rootsOnly=$('#mex-roots').checked;
   const lb=$('#mex-links'); if(lb)MEX.links=lb.checked;
+  const tb=$('#mex-tasks'); if(tb)MEX.tasks=tb.checked;
   $('#mex-paper').disabled=MEX.split!=='one';
   $('#mex-roots').disabled=MEX.split!=='one';
 }
@@ -7450,7 +7475,8 @@ function pmMapPreview(){
     let nad=0;
     roots.forEach(r=>{
       const m=pmMapSVG({concept:c.id,solo:r.id,unit:MEX.unit,light:MEX.light,availMm:pmAvailMm(pap)});
-      if(pmFixedPaper(pap,m.w,m.h,MEX.links?pmLinkReserveMm(pmLinkRows(r.id,sc).length):0,true).scale<0.7)nad++;
+      const nT=MEX.tasks?pmTaskRows(r.id,sc).length:0;
+      if(pmFixedPaper(pap,m.w,m.h,(MEX.links?pmLinkReserveMm(pmLinkRows(r.id,sc).length):0)+(nT?pmLinkReserveMm(nT):0),true).scale<0.7)nad++;
     });
     out.innerHTML=`<b>${roots.length} listů ${pap} ${pmVert()?'na výšku':'na šířku'}</b> — na každém jeden hlavní proces
       se svými podprocesy${MEX.links?', pod schématem seznam vazeb vedoucích mimo fázi':''}${nad?`<br><span class="warn">${nad} z nich se na ${pap} vejde jen ve zmenšení pod 70 % — zvažte ${pap==='A4'?'A3':'jeden velký list'}.</span>`:''}`;
@@ -7480,6 +7506,14 @@ function pmMapRun(){
       if(bloky)strany.push(`<section class="page mappage">${zahlavi('Vazby mezi fázemi',m,pap)}
         <div class="lcols">${bloky}</div></section>`);
     }
+    if(MEX.tasks){
+      const sc=pmScopeOf(c.id);
+      const rs=processes.filter(x=>x.scope===sc&&!x.parent).sort(pmNumCmp);
+      const bloky=rs.map(r=>pmTaskListHTML(r.id,sc,r.name+' — úkoly odpovědnosti')).join('');
+      if(bloky)strany.push(`<section class="page mappage">${zahlavi('Úkoly odpovědnosti',m,pap)}
+        <div class="lcols">${bloky}</div></section>`);
+      else toast('Ve variantě nejsou žádné úkoly odpovědnosti — stránka s úkoly se nevytvořila');
+    }
   } else {
     const papName=MEX.split==='a4'?'A4':'A3';
     const roots=processes.filter(x=>x.scope===pmScopeOf(c.id)&&!x.parent)
@@ -7489,10 +7523,12 @@ function pmMapRun(){
     const sc=pmScopeOf(c.id);
     roots.forEach(r=>{
       const m=pmMapSVG({concept:c.id,solo:r.id,unit:MEX.unit,light:MEX.light,availMm:pmAvailMm(papName)});
-      const pap=pmFixedPaper(papName,m.w,m.h,MEX.links?pmLinkReserveMm(pmLinkRows(r.id,sc).length):0,true);
+      const nTask=MEX.tasks?pmTaskRows(r.id,sc).length:0;
+      const rez=(MEX.links?pmLinkReserveMm(pmLinkRows(r.id,sc).length):0)+(nTask?pmLinkReserveMm(nTask):0);
+      const pap=pmFixedPaper(papName,m.w,m.h,rez,true);
       strany.push(`<section class="page mappage">${zahlavi(r.name,m,pap)}
         <div class="mapbox" style="width:${(pap.wmm*pap.scale).toFixed(1)}mm">${m.svg}</div>
-        ${MEX.links?pmLinkListHTML(r.id,sc):''}</section>`);
+        ${MEX.links?pmLinkListHTML(r.id,sc):''}${MEX.tasks?pmTaskListHTML(r.id,sc):''}</section>`);
     });
   }
   /* velikost papíru se do @page vkládá až teď — formát závisí na mapě */
@@ -8066,6 +8102,7 @@ const PM_HELP={
  'mex.unit':'Dělení časové osy\nPo týdnech, měsících nebo čtvrtletích; automaticky podle délky období.\nDopad: mění jen popisky osy ve výstupu, ne data.',
  'mex.light':'Světlé barvy pro tisk\nSvětlejší barvy, které se hezky tisknou a šetří toner.\nDopad: pouze vzhled výstupu, ne data.',
  'mex.roots':'Jen hlavní procesy\nVýstup bez podprocesů — přehled na úrovni fází.\nDopad: výstup je přehlednější, podprocesy v něm nejsou. Platí jen pro „Jeden velký list“.',
+ 'mex.tasks':'Úkoly odpovědnosti\nVypíše úkoly zadané u procesů: řešitel (gestor nebo spolugestor), název, termín od–do a stav, seřazené podle kroků.\nDopad: u „Jeden velký list“ přibude samostatná stránka s úkoly, u dělení po fázích se tabulka přidá pod schéma a zmenší jeho měřítko. Výchozí stav je vypnuto.',
  'mex.links':'Seznam vazeb\nPod schématem se vypíšou vazby vedoucí mimo fázi, včetně předmětu a popisu.\nDopad: přibude samostatný list nebo blok s tabulkou vazeb.'
 };
 /* Tlačítka podle id nebo volané funkce (a prvního argumentu) */
