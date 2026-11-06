@@ -907,6 +907,22 @@ body.pm-ribdrag{cursor:row-resize;user-select:none}
 .rchip{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:1px 3px 1px 8px;border-radius:999px;border:1px solid var(--rc,var(--border2));background:rgba(255,255,255,.04);color:var(--text)}
 .rchip button{border:0;background:none;color:var(--text3);cursor:pointer;padding:0 3px;font-size:10px;line-height:1}
 .rchip button:hover{color:var(--accent)}
+.rpbtn{background:none;border:1px dashed var(--border2);color:var(--text3);border-radius:999px;font-size:11px;padding:1px 8px;cursor:pointer;font-family:inherit}
+.rpbtn:hover{color:var(--accent);border-color:var(--accent)}
+.pm-rib-body .pm-rp{margin-top:4px}
+#role-pop{position:fixed;display:none;z-index:10000;width:290px;max-height:60vh;overflow:auto;padding:8px;border-radius:10px;background:var(--panel,#161b23);
+  border:1px solid var(--border2,#2a3040);box-shadow:0 12px 32px rgba(0,0,0,.5);font-size:12px;color:var(--text)}
+#role-pop .rp-h{font-weight:600;padding:2px 4px 6px;border-bottom:1px solid var(--border)}
+#role-pop .rp-s{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin:8px 4px 3px}
+#role-pop .rp-row{display:flex;align-items:center;gap:7px;padding:4px;border-radius:6px;cursor:pointer}
+#role-pop .rp-row:hover{background:rgba(255,255,255,.05)}
+#role-pop .rp-row .rn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#role-pop .rp-row input[type=checkbox]{width:auto;margin:0}
+#role-pop .rp-row button,#role-pop .rp-new{background:none;border:0;color:var(--text3);cursor:pointer;font-size:12px;padding:1px 4px}
+#role-pop .rp-row button:hover,#role-pop .rp-new:hover{color:var(--accent)}
+#role-pop .rp-row.edit input{flex:1;min-width:0;font-size:12px;padding:3px 6px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text)}
+#role-pop .rp-row.edit select{width:auto;font-size:11px;padding:3px}
+#role-pop .rp-new{display:block;width:100%;text-align:left;margin-top:6px;padding:6px 4px;border-top:1px solid var(--border);color:var(--accent)}
 .rolebox select{width:auto;max-width:110px;font-size:11px;padding:3px 5px}
 .ppl-head{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:4px 0 2px;font-weight:600}
 .ppl-row select,.ppl-row input{font-size:12px;padding:6px 8px}
@@ -2510,7 +2526,13 @@ function edPersonPick(sel){
   else sel.dataset.prev=sel.value;
 }
 function pmPersonPick(sel,key,i){
-  const write=v=>{if(key==='cogestors')subCtx.obj.cogestors[i].who=v;else subCtx.obj[key][i]=v;subFire();if(key==='cogestors')pmTasksRefresh()};
+  const old=sel.dataset.prev||'';
+  const write=v=>{
+    if(key==='cogestors'){const r=subCtx.obj.cogestors[i];if(r.who!==v)r.roles=[];r.who=v}
+    else{subCtx.obj[key][i]=v;if(key==='affected'&&old&&old!==v&&subCtx.obj.affRoles)delete subCtx.obj.affRoles[old]}
+    subFire();if(key==='cogestors')pmTasksRefresh();
+    if(sel.closest('.pm-sub'))pmSubRender(key);else pmRpRefresh();
+  };
   if(sel.value===NEW_PERSON){addPersonInline(sel,write);return}
   sel.dataset.prev=sel.value; write(sel.value);
 }
@@ -4327,9 +4349,16 @@ function pplRoleNew(){
 function pplRoleDelete(id){
   const r=PPL.roles[id]; if(!r)return;
   const n=pplRoleUses(id);
-  const txt=n.n?`Role „${r.name}“ je přiřazena: osobám ${n.o}×, útvarům ${n.u}×.\nSmazáním se odebere všem. Pokračovat?`:`Smazat roli „${r.name}“?`;
+  const ap=roleUsage(id).a;
+  const txt=(n.n||ap)?`Role „${r.name}“ je přiřazena: osobám ${n.o}×, útvarům ${n.u}×, přiřazení u procesů ${ap}×.\nSmazáním se odebere všem. Pokračovat?`:`Smazat roli „${r.name}“?`;
   if(!confirm(txt))return;
   delete PPL.roles[id];
+  processes.forEach(p=>{let t=false;
+    if((p.gestorRoles||[]).includes(id)){p.gestorRoles=p.gestorRoles.filter(x=>x!==id);t=true}
+    (p.cogestors||[]).forEach(q=>{if((q.roles||[]).includes(id)){q.roles=q.roles.filter(x=>x!==id);t=true}});
+    Object.keys(p.affRoles||{}).forEach(k=>{if((p.affRoles[k]||[]).includes(id)){p.affRoles[k]=p.affRoles[k].filter(x=>x!==id);if(!p.affRoles[k].length)delete p.affRoles[k];t=true}});
+    if(t)pmQueue(p)});
+  pmFlush();
   Object.keys(PPL.meta).forEach(c=>{PPL.meta[c].roles=(PPL.meta[c].roles||[]).filter(x=>x!==id)});
   Object.keys(PPL.units).forEach(u=>{PPL.units[u].roles=(PPL.units[u].roles||[]).filter(x=>x!==id)});
   pplRender(); toast('Role smazána (projeví se po Uložit)');
@@ -4504,9 +4533,10 @@ function pmToggleGestorPop(id,btn){
   const pop=$('#pm-gpop');
   if(pop.dataset.gid===id&&pop.classList.contains('on')){pmHideGestorPop();return}
   const p=pmById(id); if(!p)return;
-  const co=(p.cogestors||[]).map(r=>`${escXml(actorName(r.who))}${r.resp?' — '+escXml(r.resp):''}`).join('<br>')||'—';
+  const rl=ids=>{const t=(ids||[]).filter(i=>roles[i]).map(i=>roles[i].name).join(', ');return t?` <i style="color:var(--text3)">(${escXml(t)})</i>`:''};
+  const co=(p.cogestors||[]).map(r=>`${escXml(actorName(r.who))}${rl(r.roles)}${r.resp?' — '+escXml(r.resp):''}`).join('<br>')||'—';
   pop.innerHTML=`<div class="gp-head"><span class="code">${escXml(p.id)}</span><b>${escXml(p.name)}</b></div>
-    <div class="gp-row"><div class="l">Gestor</div><div class="v">${escXml(actorName(p.gestor))||'—'}</div></div>
+    <div class="gp-row"><div class="l">Gestor</div><div class="v">${escXml(actorName(p.gestor))||'—'}${rl(p.gestorRoles)}</div></div>
     <div class="gp-row"><div class="l">Spolugestoři</div><div class="v">${co}</div></div>
     <div class="gp-row"><div class="l">Začátek</div><div class="v">${pmCz(p.start)}</div></div>
     <div class="gp-row"><div class="l">Konec</div><div class="v">${pmCz(p.end)}</div></div>`;
@@ -4775,7 +4805,7 @@ function pmRibbonField(p,k){
       oninput="pmRibDateSoon(this,'${k}')" onchange="pmRibDateSoon(this,'${k}')" onblur="pmRibDateBlur(this,'${k}')"${mm}>`;
   }
   else{input=`<input type="${f.t==='number'?'number':'text'}" data-k="${k}" value="${esc(v)}" onkeydown="pmRibKey(event)" onchange="pmRibSet('${k}',this.value)">`;}
-  return `<div class="${cls}"><label>${f.l}${pmI('process.'+k)}</label>${input}</div>`;
+  return `<div class="${cls}"><label>${f.l}${pmI('process.'+k)}</label>${input}${k==='gestor'?pmRpWrap('gestor'):''}</div>`;
 }
 /* Vazby se ukládají jen u následníka (pole `links` = na koho navazuji),
    takže u předchůdce by jinak vazba nebyla vidět vůbec. Druhý směr proto
@@ -4971,7 +5001,7 @@ function pmRibSet(k,v){
   if(k==='name')v=pmJoinName(pmNumLabel(p),v);   // číslo drží aplikace, ne pole
   const oldRoot=k==='parent'?pmRootOf(p):null;
   p[k]=v;
-  if(k==='gestor')pmTasksRefresh();
+  if(k==='gestor'){p.gestorRoles=[];pmTasksRefresh();pmRpRefresh()}
   if(k==='parent'){pmAfterReparent(p,oldRoot);PM._vl=null;pmRenderInspector();}
   if(k==='start'||k==='end')pmSyncMilestones(p);
   if(p.scope==='map')p.mapEdited=true;
@@ -5590,7 +5620,7 @@ function pmSplitProcess(id,dateStr){
     name:p.name.replace(/\s*\(pokr\.\)$/,'')+' (pokr.)',
     start:dateStr,end:p.end,
     cogestors:JSON.parse(JSON.stringify(p.cogestors||[])),
-    affected:(p.affected||[]).slice(),tasks:[],
+    affected:(p.affected||[]).slice(),tasks:[],gestorRoles:(p.gestorRoles||[]).slice(),affRoles:JSON.parse(JSON.stringify(p.affRoles||{})),
     links:[{from:p.id,type:'',lag:0}],
     msStart:[],msEnd:(p.msEnd||[]).slice(),
     collapsed:false,mapEdited:false
@@ -6223,6 +6253,7 @@ function pmApplyPromotion(){
     Object.assign(t,{name:p.name,desc:p.desc,gestor:p.gestor,
       cogestors:JSON.parse(JSON.stringify(p.cogestors||[])),affected:(p.affected||[]).slice(),
       tasks:JSON.parse(JSON.stringify(p.tasks||[])),
+      gestorRoles:(p.gestorRoles||[]).slice(),affRoles:JSON.parse(JSON.stringify(p.affRoles||{})),
       status:p.status,start:st,end:en,lane:p.lane,color:p.color||'',
       msStart:(p.msStart||[]).slice(),msEnd:(p.msEnd||[]).slice()});
     if(t.state!=='potvrzeny')t.state='odvozeny';
@@ -7929,7 +7960,7 @@ function pmSubRender(k){
   let h='';
   if(k==='cogestors'){
     h=o[k].map((r,i)=>`<div class="pm-subrow">
-        <select data-prev="${esc(r.who||'')}" onchange="pmPersonPick(this,'cogestors',${i})">${who(r.who)}</select>
+        <select data-prev="${esc(r.who||'')}" onchange="pmPersonPick(this,'cogestors',${i})">${who(r.who)}</select>${pmRpWrap('co:'+i)}
         <input value="${esc(r.resp||'')}" placeholder="za co odpovídá" oninput="subCtx.obj.cogestors[${i}].resp=this.value;subFire()">
         <button type="button" class="x" onclick="subCtx.obj.cogestors.splice(${i},1);pmSubRender('cogestors');subFire();pmTasksRefresh()">✕</button></div>`).join('');
     h+=`<button type="button" class="pm-addbtn" data-tip="Spolugestor\nPřidá řádek pro další osobu nebo útvar a její odpovědnost. Jen evidence, termíny neovlivňuje." onclick="subCtx.obj.cogestors.push({who:'',resp:''});pmSubRender('cogestors')">＋ Spolugestor</button>`;
@@ -8016,7 +8047,7 @@ function pmSubRender(k){
   }
   else if(k==='affected'){
     h=o[k].map((id,i)=>`<div class="pm-subrow">
-        <select data-prev="${esc(id||'')}" onchange="pmPersonPick(this,'affected',${i})">${who(id)}</select>
+        <select data-prev="${esc(id||'')}" onchange="pmPersonPick(this,'affected',${i})">${who(id)}</select>${pmRpWrap('aff:'+i)}
         <button type="button" class="x" onclick="subCtx.obj.affected.splice(${i},1);pmSubRender('affected');subFire()">✕</button></div>`).join('');
     h+=`<button type="button" class="pm-addbtn" data-tip="Dotčená osoba\nPřidá řádek pro osobu nebo útvar, který má být o procesu informován nebo konzultován." onclick="subCtx.obj.affected.push('');pmSubRender('affected')">＋ Osoba</button>`;
   }
@@ -8324,6 +8355,128 @@ function dmTab(k){
   document.querySelectorAll('#dm-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===k));
   document.querySelectorAll('.dm-panel').forEach(p=>p.classList.toggle('on',p.id==='dm-'+k));
 }
+/* ================= ROLE PŘI PŘIŘAZENÍ K PROCESU =================
+   Gestor, spolugestor i dotčený může u procesu vystupovat v jedné nebo více rolích.
+   Výběr je rozbalovací okno: role aktéra nahoře, ostatní role dole (vybrána z nich
+   se přidá i aktérovi), dole „＋ Nová role“, u každé role úprava a smazání. */
+const RPOP={ctx:'',edit:'',el:null,btn:null};
+function rpResolve(ctx){
+  const o=subCtx&&subCtx.obj; if(!o||!ctx)return null;
+  if(ctx==='gestor')return {o,actor:o.gestor,get:()=>o.gestorRoles||[],set:a=>{o.gestorRoles=a}};
+  const [t,i]=String(ctx).split(':'), n=+i;
+  if(t==='co'){const r=(o.cogestors||[])[n];if(!r)return null;return {o,actor:r.who,get:()=>r.roles||[],set:a=>{r.roles=a}}}
+  if(t==='aff'){const a=(o.affected||[])[n];if(a===undefined)return null;
+    return {o,actor:a,get:()=>((o.affRoles||{})[a]||[]),set:arr=>{o.affRoles=o.affRoles||{};if(arr.length)o.affRoles[a]=arr;else delete o.affRoles[a]}}}
+  return null;
+}
+function pmRpInner(ctx){
+  const R=rpResolve(ctx); if(!R||!R.actor)return '';
+  const chips=R.get().filter(id=>roles[id]).map(id=>`<span class="rchip" style="--rc:${esc(roleHex(roles[id].color)||'var(--border2)')}">${esc(roles[id].name)}<button type="button" title="Odebrat roli z tohoto přiřazení" onclick="pmRpToggle('${ctx}','${esc(id)}',false)">✕</button></span>`).join('');
+  return chips+`<button type="button" class="rpbtn" data-tip="Role\\nVyberte, v jaké roli tento aktér u procesu vystupuje. Lze vybrat více rolí, přidat novou, upravit nebo smazat existující." onclick="pmRolePop(this,'${ctx}')">＋ role</button>`;
+}
+function pmRpWrap(ctx){return `<span class="rolebox pm-rp" data-rp="${ctx}">${pmRpInner(ctx)}</span>`}
+function pmRpRefresh(){document.querySelectorAll('.pm-rp').forEach(el=>{el.innerHTML=pmRpInner(el.dataset.rp)})}
+function roleUsage(id){
+  const o=Object.keys(staff).filter(c=>(staff[c].roles||[]).includes(id)).length;
+  const u=Object.keys(orgUnits).filter(k=>(orgUnits[k].roles||[]).includes(id)).length;
+  let a=0;
+  processes.forEach(p=>{
+    if((p.gestorRoles||[]).includes(id))a++;
+    (p.cogestors||[]).forEach(r=>{if((r.roles||[]).includes(id))a++});
+    Object.values(p.affRoles||{}).forEach(arr=>{if((arr||[]).includes(id))a++});
+  });
+  return {o,u,a,n:o+u+a};
+}
+function actorRoleAdd(actor,id){
+  if(!actor||!roles[id])return;
+  if(actorIsUnit(actor)){const u=orgUnits[String(actor).slice(1)];if(!u)return;u.roles=Array.isArray(u.roles)?u.roles:[];if(!u.roles.includes(id))u.roles.push(id)}
+  else{staff[actor]=staff[actor]||{};const m=staff[actor];m.roles=Array.isArray(m.roles)?m.roles:[];if(!m.roles.includes(id))m.roles.push(id)}
+  persistMeta();
+}
+function pmRpToggle(ctx,id,on){
+  const R=rpResolve(ctx); if(!R||!roles[id])return;
+  const cur=R.get().filter(x=>roles[x]);
+  const next=on?(cur.includes(id)?cur:cur.concat(id)):cur.filter(x=>x!==id);
+  R.set(next);
+  if(on)actorRoleAdd(R.actor,id);       // vybraná cizí role se přidá i aktérovi
+  subFire(); pmRpRefresh(); if(RPOP.el&&RPOP.el.style.display==='block')pmRpPopRender();
+}
+function pmRolePop(btn,ctx){
+  RPOP.ctx=ctx; RPOP.edit=''; RPOP.btn=btn;
+  if(!RPOP.el){const d=document.createElement('div');d.id='role-pop';document.body.appendChild(d);RPOP.el=d}
+  pmRpPopRender();
+  const r=btn.getBoundingClientRect(), e=RPOP.el;
+  e.style.display='block';
+  let top=r.bottom+6; if(top+e.offsetHeight>innerHeight-8)top=Math.max(8,r.top-e.offsetHeight-6);
+  e.style.top=top+'px'; e.style.left=Math.max(8,Math.min(r.left,innerWidth-e.offsetWidth-8))+'px';
+}
+function pmRpPopHide(){if(RPOP.el)RPOP.el.style.display='none';RPOP.edit=''}
+function pmRpPopRender(){
+  const R=rpResolve(RPOP.ctx), e=RPOP.el; if(!R||!e)return;
+  const kind=actorIsUnit(R.actor)?'utvar':'osoba';
+  const mine=new Set(actorRoles(R.actor)), sel=new Set(R.get());
+  const okFor=id=>{const f=roles[id].for;return !f||f==='oba'||f===kind};
+  const sort=a=>a.sort((x,y)=>String(roles[x].name).localeCompare(String(roles[y].name),'cs'));
+  const ownIds=sort(Object.keys(roles).filter(id=>mine.has(id)));
+  const otherIds=sort(Object.keys(roles).filter(id=>!mine.has(id)&&okFor(id)));
+  const colOpts=s=>['<option value="">bez barvy</option>'].concat(PM_COLORS.map(([k,,l])=>`<option value="${k}" ${k===s?'selected':''}>${l}</option>`)).join('');
+  const row=id=>{
+    const r=roles[id];
+    if(RPOP.edit===id)return `<div class="rp-row edit"><input id="rp-n" value="${esc(r.name)}" onkeydown="if(event.key==='Enter')pmRpSaveEdit('${esc(id)}')">
+      <select id="rp-c">${colOpts(r.color||'')}</select>
+      <button type="button" title="Uložit" onclick="pmRpSaveEdit('${esc(id)}')">✓</button><button type="button" title="Zrušit" onclick="RPOP.edit='';pmRpPopRender()">✕</button></div>`;
+    return `<label class="rp-row"><input type="checkbox" ${sel.has(id)?'checked':''} onchange="pmRpToggle(RPOP.ctx,'${esc(id)}',this.checked)">
+      <span class="rdot" style="background:${esc(roleHex(r.color)||'var(--border2)')}"></span><span class="rn">${esc(r.name)}</span>
+      <button type="button" title="Upravit roli" onclick="event.preventDefault();RPOP.edit='${esc(id)}';pmRpPopRender()">✎</button>
+      <button type="button" title="Smazat roli" onclick="event.preventDefault();pmRpDelete('${esc(id)}')">🗑</button></label>`;
+  };
+  e.innerHTML=`<div class="rp-h">Role · ${esc(actorName(R.actor))}</div>
+    ${ownIds.length?`<div class="rp-s">Role aktéra</div>${ownIds.map(row).join('')}`:'<div class="rp-s">Aktér zatím nemá žádnou roli</div>'}
+    ${otherIds.length?`<div class="rp-s">Ostatní role — vybraná se přidá i aktérovi</div>${otherIds.map(row).join('')}`:''}
+    <button type="button" class="rp-new" onclick="pmRpNew()">＋ Nová role…</button>`;
+}
+function pmRpNew(){
+  const R=rpResolve(RPOP.ctx); if(!R)return;
+  const name=(prompt('Název nové role (např. garant, schvalovatel, zpracovatel)')||'').trim(); if(!name)return;
+  const ex=roleFind(name);
+  const id=ex||roleCreate(name,'oba');
+  persistMeta();
+  pmRpToggle(RPOP.ctx,id,true);
+  if(ex)toast('Role už existuje — vybrána');
+}
+function pmRpSaveEdit(id){
+  const n=($('#rp-n').value||'').trim(), c=$('#rp-c').value;
+  if(!n){toast('Název role nesmí být prázdný');return}
+  const dup=roleFind(n); if(dup&&dup!==id){toast('Role se stejným názvem už existuje');return}
+  roles[id].name=n; roles[id].color=c; RPOP.edit='';
+  persistMeta(); pmRpRefresh(); pmRpPopRender(); subFire(); toast('Role upravena — změna platí všude, kde se používá');
+}
+function pmRpDelete(id){
+  const r=roles[id]; if(!r)return;
+  const u=roleUsage(id);
+  const txt=u.n?`Role „${r.name}“ se používá: osoby ${u.o}×, útvary ${u.u}×, přiřazení u procesů ${u.a}×.\\nSmazáním se odebere všude. Pokračovat?`:`Smazat roli „${r.name}“?`;
+  if(!confirm(txt))return;
+  delete roles[id];
+  Object.keys(staff).forEach(c=>{staff[c].roles=(staff[c].roles||[]).filter(x=>x!==id)});
+  Object.keys(orgUnits).forEach(k=>{orgUnits[k].roles=(orgUnits[k].roles||[]).filter(x=>x!==id)});
+  processes.forEach(p=>{
+    let t=false;
+    if((p.gestorRoles||[]).includes(id)){p.gestorRoles=p.gestorRoles.filter(x=>x!==id);t=true}
+    (p.cogestors||[]).forEach(r=>{if((r.roles||[]).includes(id)){r.roles=r.roles.filter(x=>x!==id);t=true}});
+    Object.keys(p.affRoles||{}).forEach(k=>{if((p.affRoles[k]||[]).includes(id)){p.affRoles[k]=p.affRoles[k].filter(x=>x!==id);if(!p.affRoles[k].length)delete p.affRoles[k];t=true}});
+    if(t)pmQueue(p);
+  });
+  persistMeta(); pmFlush();
+  pmRpRefresh(); pmRpPopRender(); renderPMap();
+  toast(`Role „${r.name}“ smazána${u.n?` (odebrána z ${u.n} míst)`:''}`);
+}
+document.addEventListener('pointerdown',e=>{
+  if(!RPOP.el||RPOP.el.style.display!=='block')return;
+  if(e.target.closest('#role-pop')||e.target.closest('.rpbtn'))return;
+  pmRpPopHide();
+},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&RPOP.el&&RPOP.el.style.display==='block'){pmRpPopHide();e.stopPropagation()}},true);
+
 /* ================= SKRYTÍ PANELŮ ================= */
 (function(){
   const get=k=>{try{return localStorage.getItem(k)==='1'}catch(e){return false}};
