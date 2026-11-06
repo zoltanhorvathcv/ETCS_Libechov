@@ -385,6 +385,20 @@ textarea::placeholder{color:var(--text3)}
 
 /* ---------- Data model ---------- */
 .pm-tgrp{border:1px solid var(--border);border-radius:9px;padding:8px 10px;margin:0 0 8px;background:rgba(255,255,255,.02)}
+.pm-task{position:relative}
+.pm-thandle{cursor:grab;color:var(--text3);user-select:none;padding:0 4px;font-size:13px;letter-spacing:-2px}
+.pm-thandle:hover{color:var(--accent)}
+.pm-task.dragging{opacity:.45}
+body.pm-tdrag,body.pm-tdrag *{cursor:grabbing!important;user-select:none}
+.pm-task.drop-before{box-shadow:0 -2px 0 var(--accent)}
+.pm-task.drop-after{box-shadow:0 2px 0 var(--accent)}
+.pm-tgrp.drop-end{outline:2px dashed var(--accent);outline-offset:-2px}
+.pm-tas{flex:1 1 100%;display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:2px 0 4px 22px}
+.rchip.as{padding:2px 4px 2px 8px;gap:5px}
+.rchip.as i{color:var(--text3);font-style:normal}
+.rchip.as.warn{border-color:rgba(255,138,92,.8);background:rgba(255,138,92,.08)}
+.rchip.as .rpbtn{padding:0 6px;font-size:10px}
+.pm-tas .as-add{width:auto;max-width:150px;font-size:11px;padding:3px 5px}
 .pm-tgrp.bad{border-color:rgba(255,138,92,.6)}
 .pm-tgrp-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;font-size:12.5px}
 .pm-tresp{font-size:11px;color:var(--text3)}
@@ -4228,6 +4242,7 @@ function actorUses(code){
     if(p.gestor===code)n++;
     (p.cogestors||[]).forEach(r=>{if(r.who===code)n++});
     (p.affected||[]).forEach(a=>{if(a===code)n++});
+    (p.tasks||[]).forEach(t=>{if(t.who===code)n++;(t.assignees||[]).forEach(x=>{if(x.who===code)n++})});
   });
   return n;
 }
@@ -4251,6 +4266,14 @@ function personReplace(code,to){
       p.affected=to?[...new Set(p.affected.map(swap))]:p.affected.filter(x=>x!==code);
       touched=true;
     }
+    (p.tasks||[]).forEach(t=>{
+      if(t.who===code){t.who=to;touched=true}
+      if((t.assignees||[]).some(x=>x.who===code)){
+        t.assignees.forEach(x=>{if(x.who===code)x.who=to});
+        t.assignees=t.assignees.filter(x=>x.who).filter((x,k,arr)=>arr.findIndex(y=>y.who===x.who)===k);
+        touched=true;
+      }
+    });
     if(touched)persist('process',p,i);
   });
 }
@@ -4357,6 +4380,7 @@ function pplRoleDelete(id){
     if((p.gestorRoles||[]).includes(id)){p.gestorRoles=p.gestorRoles.filter(x=>x!==id);t=true}
     (p.cogestors||[]).forEach(q=>{if((q.roles||[]).includes(id)){q.roles=q.roles.filter(x=>x!==id);t=true}});
     Object.keys(p.affRoles||{}).forEach(k=>{if((p.affRoles[k]||[]).includes(id)){p.affRoles[k]=p.affRoles[k].filter(x=>x!==id);if(!p.affRoles[k].length)delete p.affRoles[k];t=true}});
+    (p.tasks||[]).forEach(tk=>(tk.assignees||[]).forEach(x=>{if((x.roles||[]).includes(id)){x.roles=x.roles.filter(z=>z!==id);t=true}}));
     if(t)pmQueue(p)});
   pmFlush();
   Object.keys(PPL.meta).forEach(c=>{PPL.meta[c].roles=(PPL.meta[c].roles||[]).filter(x=>x!==id)});
@@ -7925,13 +7949,77 @@ function pmSubHost(k){
       || document.getElementById('edf-'+k);
 }
 /* Úkoly odpovědnosti — úkol patří jednomu z vybraných gestorů či spolugestorů procesu */
+function pmTaskAssAdd(i,who){
+  if(!subCtx||!who)return; const t=subCtx.obj.tasks[i]; if(!t)return;
+  t.assignees=Array.isArray(t.assignees)?t.assignees:[];
+  if(t.assignees.some(a=>a.who===who))return;
+  t.assignees.push({who:who,roles:[]});
+  subFire(); pmSubRender('tasks');
+}
+function pmTaskAssDel(i,j){
+  if(!subCtx)return; const t=subCtx.obj.tasks[i]; if(!t||!t.assignees)return;
+  t.assignees.splice(j,1); subFire(); pmSubRender('tasks');
+}
+/* přesun úkolu v poli: o `d` míst uvnitř téhož gestora (Alt + šipka) */
+function pmTaskKey(e,i){
+  if(!e.altKey||(e.key!=='ArrowUp'&&e.key!=='ArrowDown'))return;
+  e.preventDefault();
+  const T=subCtx.obj.tasks, t=T[i], d=e.key==='ArrowUp'?-1:1;
+  let j=i+d; while(j>=0&&j<T.length&&T[j].who!==t.who)j+=d;
+  if(j<0||j>=T.length){toast('Úkol už je na kraji skupiny');return}
+  T.splice(i,1); T.splice(j,0,t); subFire(); pmSubRender('tasks');
+  const rows=pmSubHost('tasks').querySelectorAll('.pm-task');
+  const r=[...rows].find(x=>+x.dataset.i===j); if(r){const inp=r.querySelector('input.pm-subj');if(inp)inp.focus()}
+}
+/* Přetahování úkolů: úchyt ⋮⋮, vložení před/za řádek nebo na konec skupiny gestora */
+let TDRAG=null;
+function pmTdragClear(){document.querySelectorAll('.drop-before,.drop-after,.drop-end').forEach(x=>x.classList.remove('drop-before','drop-after','drop-end'))}
+document.addEventListener('pointerdown',e=>{
+  const h=e.target.closest&&e.target.closest('.pm-thandle'); if(!h||!subCtx)return;
+  const row=h.closest('.pm-task'); if(!row)return;
+  e.preventDefault();
+  TDRAG={i:+row.dataset.i,row:row,moved:false,y:e.clientY,drop:null};
+  row.classList.add('dragging'); document.body.classList.add('pm-tdrag');
+});
+window.addEventListener('pointermove',e=>{
+  if(!TDRAG)return;
+  if(!TDRAG.moved&&Math.abs(e.clientY-TDRAG.y)>4)TDRAG.moved=true;
+  if(!TDRAG.moved)return;
+  pmTdragClear(); TDRAG.drop=null;
+  const el=document.elementFromPoint(e.clientX,e.clientY); if(!el)return;
+  const tr=el.closest('.pm-task'), gr=el.closest('.pm-tgrp[data-who]');
+  if(tr&&tr!==TDRAG.row){
+    const r=tr.getBoundingClientRect(), after=e.clientY>r.top+r.height/2;
+    tr.classList.add(after?'drop-after':'drop-before');
+    TDRAG.drop={type:'row',i:+tr.dataset.i,after:after,who:tr.dataset.who};
+  } else if(gr&&!tr){
+    gr.classList.add('drop-end'); TDRAG.drop={type:'end',who:gr.dataset.who};
+  }
+});
+window.addEventListener('pointerup',()=>{
+  if(!TDRAG)return;
+  const d=TDRAG; TDRAG=null; document.body.classList.remove('pm-tdrag'); pmTdragClear();
+  if(d.row)d.row.classList.remove('dragging');
+  if(!d.moved||!d.drop||!subCtx)return;
+  const T=subCtx.obj.tasks, item=T[d.i]; if(!item)return;
+  if(!d.drop.who){toast('Úkol lze přesunout jen ke gestorovi nebo spolugestorovi procesu');return}
+  const target=d.drop.type==='row'?T[d.drop.i]:null;
+  T.splice(d.i,1);
+  let idx;
+  if(target){idx=T.indexOf(target)+(d.drop.after?1:0)}
+  else{idx=T.length;for(let k=T.length-1;k>=0;k--){if(T[k].who===d.drop.who){idx=k+1;break}}}
+  const prevWho=item.who; item.who=d.drop.who;
+  T.splice(idx,0,item);
+  subFire(); pmSubRender('tasks');
+  if(prevWho!==item.who)toast('Úkol přeřazen: '+actorName(item.who));
+});
 function pmTasksRefresh(){if(subCtx&&pmSubHost('tasks'))pmSubRender('tasks')}
 function pmTaskAdd(who){
   if(!subCtx)return;
   const o=subCtx.obj; if(!Array.isArray(o.tasks))o.tasks=[];
   const platny=who&&(o.gestor===who||(o.cogestors||[]).some(c=>c.who===who));
   if(!platny){toast('Úkol lze zadat jen vybranému gestorovi nebo spolugestorovi');return}
-  o.tasks.push({id:'U'+Math.random().toString(36).slice(2,7),t:'',who:who,start:o.start||'',end:o.end||'',status:'idle'});
+  o.tasks.push({id:'U'+Math.random().toString(36).slice(2,7),t:'',who:who,assignees:[],start:o.start||'',end:o.end||'',status:'idle'});
   pmSubRender('tasks'); subFire();
   const inp=pmSubHost('tasks').querySelectorAll('.pm-task');
   const last=inp[inp.length-1]; if(last){const i=last.querySelector('input.pm-subj');if(i)i.focus()}
@@ -8027,17 +8115,37 @@ function pmSubRender(k){
     const whoOpts=sel=>[['','— vyberte gestora —']].concat(parties.map(q=>[q.key,actorName(q.key)]))
       .map(([v,t])=>`<option value="${esc(v)}" ${v===(sel||'')?'selected':''}>${esc(t)}</option>`).join('');
     const out=(t)=>(t.start&&o.start&&t.start<o.start)||(t.end&&o.end&&t.end>o.end);
-    const row=(t,i)=>`<div class="pm-subrow wrap pm-task">
-        <input class="pm-subj" value="${esc(t.t||'')}" placeholder="název úkolu" oninput="subCtx.obj.tasks[${i}].t=this.value;subFire()">
+    /* útvar, ze kterého se čeká řešitel: útvar gestora, u osoby její zařazení */
+    const ownerUnit=who=>actorIsUnit(who)?String(who).slice(1):((staff[who]||{}).unit||'');
+    const assHTML=(t,i)=>{
+      const exp=ownerUnit(t.who), as=Array.isArray(t.assignees)?t.assignees:[];
+      const chips=as.map((a,j)=>{
+        const un=actorIsUnit(a.who)?'':((staff[a.who]||{}).unit||'');
+        const mimo=!actorIsUnit(a.who)&&exp&&un!==exp;
+        const rl=(a.roles||[]).filter(id=>roles[id]).map(id=>roles[id].name).join(', ');
+        return `<span class="rchip as${mimo?' warn':''}" ${mimo?`title="Řešitel je mimo útvar gestora (${esc(orgUnits[exp]?orgUnits[exp].name:exp)})"`:''}>${mimo?'⚠ ':''}${esc(actorName(a.who))}${rl?` <i>· ${esc(rl)}</i>`:''}
+          <button type="button" class="rpbtn" data-tip="Role řešitele\nVyberte roli, v níž tento řešitel úkol plní." onclick="pmRolePop(this,'tk:${i}:${j}')">role</button>
+          <button type="button" title="Odebrat řešitele" onclick="pmTaskAssDel(${i},${j})">✕</button></span>`}).join('');
+      const used=new Set(as.map(a=>a.who));
+      const pers=Object.keys(people).filter(c=>!used.has(c));
+      const same=pers.filter(c=>exp&&(staff[c]||{}).unit===exp), other=pers.filter(c=>!same.includes(c));
+      const uns=Object.keys(orgUnits).map(u=>UNIT_PREFIX+u).filter(c=>!used.has(c));
+      const og=(lab,arr)=>arr.length?`<optgroup label="${lab}">${arr.map(c=>`<option value="${esc(c)}">${esc(actorName(c))}</option>`).join('')}</optgroup>`:'';
+      const sel=`<select class="as-add" onchange="pmTaskAssAdd(${i},this.value);this.value=''"><option value="">＋ řešitel</option>${og('Z útvaru gestora',same)}${og('Ostatní osoby (mimo útvar gestora)',other)}${og('Útvary',uns)}</select>`;
+      return `<div class="pm-tas">${chips}${sel}</div>`;
+    };
+    const row=(t,i)=>`<div class="pm-subrow wrap pm-task" data-i="${i}" data-who="${esc(t.who||'')}">
+        <span class="pm-thandle" title="Přetažením změníte pořadí (Alt + ↑ / ↓); přetažení k jinému gestoru úkol přeřadí">⋮⋮</span>
+        <input class="pm-subj" value="${esc(t.t||'')}" placeholder="název úkolu" oninput="subCtx.obj.tasks[${i}].t=this.value;subFire()" onkeydown="pmTaskKey(event,${i})">
         <label class="pm-tlab">od<input type="date" value="${esc(t.start||'')}" onchange="pmTaskSet(${i},'start',this.value)" onblur="pmTaskCheck(${i})"></label>
         <label class="pm-tlab">do<input type="date" value="${esc(t.end||'')}" onchange="pmTaskSet(${i},'end',this.value)" onblur="pmTaskCheck(${i})"></label>
         <select style="max-width:130px" onchange="pmTaskSet(${i},'status',this.value)">${stOpts(t.status)}</select>
         <select style="max-width:170px" onchange="pmTaskSet(${i},'who',this.value)">${whoOpts(known.has(t.who)?t.who:'')}</select>
         <button type="button" class="x" onclick="subCtx.obj.tasks.splice(${i},1);pmSubRender('tasks');subFire()">✕</button>
-        ${out(t)?'<span class="pm-linkwarn" title="Termín úkolu přesahuje termín procesu">mimo termín procesu</span>':''}</div>`;
+        ${out(t)?'<span class="pm-linkwarn" title="Termín úkolu přesahuje termín procesu">mimo termín procesu</span>':''}${assHTML(t,i)}</div>`;
     h=parties.map(q=>{
       const mine=o[k].map((t,i)=>[t,i]).filter(([t])=>t.who===q.key);
-      return `<div class="pm-tgrp"><div class="pm-tgrp-h"><b>${esc(actorName(q.key))}</b><span class="tag">${esc(q.role)}</span>${q.resp?`<span class="pm-tresp">${esc(q.resp)}</span>`:''}</div>
+      return `<div class="pm-tgrp" data-who="${esc(q.key)}"><div class="pm-tgrp-h"><b>${esc(actorName(q.key))}</b><span class="tag">${esc(q.role)}</span>${q.resp?`<span class="pm-tresp">${esc(q.resp)}</span>`:''}</div>
         ${mine.map(([t,i])=>row(t,i)).join('')}
         <button type="button" class="pm-addbtn" data-tip="Úkol pro ${esc(actorName(q.key))}\nPřidá úkol s termínem od–do tomuto gestoru nebo spolugestorovi. Úkol lze zadat jen osobě nebo útvaru, které jsou u procesu vybrané." onclick="pmTaskAdd('${esc(q.key)}')">＋ Úkol</button></div>`;
     }).join('');
@@ -8221,7 +8329,7 @@ const PM_HELP={
  'process.affected':'Dotčení a konzultovaní\nKdo musí být o procesu informován nebo se k němu vyjádřit, ale neodpovídá za něj.\nDopad: jen evidence, bez vlivu na termíny a vazby.',
  'process.links':'Vazby na předchůdce\nNa čem proces závisí — co mu musí předcházet. Každá vazba má typ (FS, SS, FF), prodlevu ve dnech, volitelný směr ↔, předmět (co předchůdce předává) a popis.\nDopad: v konceptu vazby nic neposouvají; typ a prodleva se uplatní až při zpevnění do mapy, kde se hlídají porušené návaznosti. Vazba se ukládá u následníka; opačný směr je v seznamu Navazující procesy.',
  'roles.catalog':'Role\nSpolečný číselník rolí (např. garant, schvalovatel, zpracovatel). Každá osoba, odbor, oddělení nebo jiný útvar může mít jednu i více rolí.\nDopad: změna názvu nebo barvy se projeví všude, kde se role používá. Smazání role ji odebere všem osobám a útvarům; před smazáním se zobrazí počet použití. Změny se uloží tlačítkem Uložit.',
- 'process.tasks':'Úkoly odpovědnosti\nÚkoly (s termínem od–do a stavem), které plní gestor nebo spolugestoři procesu. Úkol lze zadat jen těm, kdo jsou u procesu vybraní; kdo není vybraný, nemá ani tlačítko ＋ Úkol.\nDopad: evidence práce uvnitř procesu — termíny procesu ani vazby se tím nemění. Při změně nebo odebrání gestora úkoly zůstanou a ukážou se jako „bez gestora“, dokud je nepřiřadíte. Do mapy se úkoly zkopírují při zpevnění.',
+ 'process.tasks':'Úkoly odpovědnosti\nÚkoly (s termínem od–do a stavem), které plní gestor nebo spolugestoři procesu. Úkol patří vybranému gestorovi nebo spolugestorovi; navíc k němu lze přidat konkrétní řešitele (osoby nebo útvary), každého s vlastní rolí.\nŘešitel mimo útvar gestora se označí ⚠, ale povolen je. Pořadí úkolů se mění přetažením za ⋮⋮ (nebo Alt + ↑ / ↓); přetažení k jinému gestoru úkol přeřadí.\nDopad: evidence práce uvnitř procesu — termíny ani vazby procesu se nemění. Při změně nebo odebrání gestora úkoly zůstanou a ukážou se jako „bez gestora“. Do mapy se kopírují při zpevnění.',
  'process.msEnd':'Milníky na konci procesu\nMilník se posouvá spolu s koncem procesu.\nDopad: zamčený milník se nehýbe a pozdější konec procesu se zvýrazní červeně jako porušený termín.',
  'process.msStart':'Milníky na začátku procesu\nMilník se posouvá spolu se začátkem procesu.\nDopad: změna začátku procesu posune datum nezamčeného milníku.',
  'link.type':'Typ vazby\nneutrální = jen spojnice bez časového významu; FS = následník začne po konci předchůdce; SS = oba začínají současně; FF = oba končí současně.\nDopad: v konceptu se neuplatňuje, při zpevnění do mapy se použije pro hlídání a přepočet termínů.',
@@ -8363,7 +8471,8 @@ const RPOP={ctx:'',edit:'',el:null,btn:null};
 function rpResolve(ctx){
   const o=subCtx&&subCtx.obj; if(!o||!ctx)return null;
   if(ctx==='gestor')return {o,actor:o.gestor,get:()=>o.gestorRoles||[],set:a=>{o.gestorRoles=a}};
-  const [t,i]=String(ctx).split(':'), n=+i;
+  const [t,i,j]=String(ctx).split(':'), n=+i;
+  if(t==='tk'){const a=(((o.tasks||[])[n]||{}).assignees||[])[+j];if(!a)return null;return {o,actor:a.who,get:()=>a.roles||[],set:arr=>{a.roles=arr}}}
   if(t==='co'){const r=(o.cogestors||[])[n];if(!r)return null;return {o,actor:r.who,get:()=>r.roles||[],set:a=>{r.roles=a}}}
   if(t==='aff'){const a=(o.affected||[])[n];if(a===undefined)return null;
     return {o,actor:a,get:()=>((o.affRoles||{})[a]||[]),set:arr=>{o.affRoles=o.affRoles||{};if(arr.length)o.affRoles[a]=arr;else delete o.affRoles[a]}}}
@@ -8384,6 +8493,7 @@ function roleUsage(id){
     if((p.gestorRoles||[]).includes(id))a++;
     (p.cogestors||[]).forEach(r=>{if((r.roles||[]).includes(id))a++});
     Object.values(p.affRoles||{}).forEach(arr=>{if((arr||[]).includes(id))a++});
+    (p.tasks||[]).forEach(t=>(t.assignees||[]).forEach(x=>{if((x.roles||[]).includes(id))a++}));
   });
   return {o,u,a,n:o+u+a};
 }
@@ -8399,7 +8509,7 @@ function pmRpToggle(ctx,id,on){
   const next=on?(cur.includes(id)?cur:cur.concat(id)):cur.filter(x=>x!==id);
   R.set(next);
   if(on)actorRoleAdd(R.actor,id);       // vybraná cizí role se přidá i aktérovi
-  subFire(); pmRpRefresh(); if(RPOP.el&&RPOP.el.style.display==='block')pmRpPopRender();
+  subFire(); pmRpRefresh(); if(String(ctx).indexOf('tk:')===0)pmTasksRefresh(); if(RPOP.el&&RPOP.el.style.display==='block')pmRpPopRender();
 }
 function pmRolePop(btn,ctx){
   RPOP.ctx=ctx; RPOP.edit=''; RPOP.btn=btn;
@@ -8449,7 +8559,7 @@ function pmRpSaveEdit(id){
   if(!n){toast('Název role nesmí být prázdný');return}
   const dup=roleFind(n); if(dup&&dup!==id){toast('Role se stejným názvem už existuje');return}
   roles[id].name=n; roles[id].color=c; RPOP.edit='';
-  persistMeta(); pmRpRefresh(); pmRpPopRender(); subFire(); toast('Role upravena — změna platí všude, kde se používá');
+  persistMeta(); pmRpRefresh(); pmTasksRefresh(); pmRpPopRender(); subFire(); toast('Role upravena — změna platí všude, kde se používá');
 }
 function pmRpDelete(id){
   const r=roles[id]; if(!r)return;
@@ -8464,9 +8574,10 @@ function pmRpDelete(id){
     if((p.gestorRoles||[]).includes(id)){p.gestorRoles=p.gestorRoles.filter(x=>x!==id);t=true}
     (p.cogestors||[]).forEach(r=>{if((r.roles||[]).includes(id)){r.roles=r.roles.filter(x=>x!==id);t=true}});
     Object.keys(p.affRoles||{}).forEach(k=>{if((p.affRoles[k]||[]).includes(id)){p.affRoles[k]=p.affRoles[k].filter(x=>x!==id);if(!p.affRoles[k].length)delete p.affRoles[k];t=true}});
+    (p.tasks||[]).forEach(tk=>(tk.assignees||[]).forEach(x=>{if((x.roles||[]).includes(id)){x.roles=x.roles.filter(z=>z!==id);t=true}}));
     if(t)pmQueue(p);
   });
-  persistMeta(); pmFlush();
+  persistMeta(); pmFlush(); pmTasksRefresh();
   pmRpRefresh(); pmRpPopRender(); renderPMap();
   toast(`Role „${r.name}“ smazána${u.n?` (odebrána z ${u.n} míst)`:''}`);
 }
