@@ -384,6 +384,12 @@ textarea::placeholder{color:var(--text3)}
 .delta .d-trend{font-size:10.5px;font-family:var(--mono);margin-top:8px}
 
 /* ---------- Data model ---------- */
+.pm-tgrp{border:1px solid var(--border);border-radius:9px;padding:8px 10px;margin:0 0 8px;background:rgba(255,255,255,.02)}
+.pm-tgrp.bad{border-color:rgba(255,138,92,.6)}
+.pm-tgrp-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;font-size:12.5px}
+.pm-tresp{font-size:11px;color:var(--text3)}
+.pm-tlab{display:inline-flex;align-items:center;gap:4px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)}
+.pm-rib-body .pm-tlab input,.pm-tlab input{width:140px;flex:none}
 .dm-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
 .dm-tabs button{font:600 12px Inter,sans-serif;color:var(--text2);background:rgba(255,255,255,.04);border:1px solid var(--border);padding:7px 13px;border-radius:8px;cursor:pointer}
 .dm-tabs button:hover{color:var(--text)}
@@ -1277,22 +1283,21 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
         <rect class="ent ent-core" x="20" y="50" width="170" height="56" rx="10" fill="url(#gA)"/><text class="et" x="34" y="72">Projekt</text><text class="ef" x="34" y="88">název · fáze (text) · stav</text><text class="ef" x="34" y="99">vlastník</text>
         <rect class="ent ent-core" x="400" y="50" width="200" height="56" rx="10" fill="url(#gA)"/><text class="et" x="414" y="72">Milník</text><text class="ef" x="414" y="88">stav · datum · % · zamčený</text><text class="ef" x="414" y="99">fáze (text) · vlastník</text>
         <rect class="ent ent-dash" x="790" y="50" width="170" height="56" rx="10"/><text class="et et-dim" x="804" y="72">Změna</text><text class="ef" x="804" y="88">přehled změn</text><text class="ef" x="804" y="99">jen zobrazení</text>
-        <rect class="ent ent-dash" x="790" y="150" width="170" height="46" rx="10"/><text class="et et-dim" x="804" y="170">Fáze</text><text class="ef" x="804" y="185">pevný seznam časové osy</text>
+        <rect class="ent ent-dash" x="790" y="430" width="170" height="56" rx="10"/><text class="et et-dim" x="804" y="452">Fáze</text><text class="ef" x="804" y="468">pevný seznam časové osy</text><text class="ef" x="804" y="479">u milníku jen text</text>
         <path class="rel" d="M190 78H398"/><text class="rl" x="280" y="70">1‥n</text>
         <path class="rel rel-x" d="M600 90H788"/><text class="rl" x="618" y="82">reportuje (bez uložení)</text>
-        <path class="rel rel-x" d="M790 173C700 173 650 100 602 94"/><text class="rl" x="640" y="165">text, bez vazby</text>
-        <path class="rel" d="M470 50c0-38 60-38 60 0"/><text class="rl" x="446" y="26">závisí na (dep)</text>
-        <rect class="ent" x="20" y="230" width="150" height="52" rx="10"/><text class="et" x="34" y="252">Schůzka</text><text class="ef" x="34" y="268">účastníci · účel · přepis (příznak)</text>
+                <path class="rel" d="M470 50c0-38 60-38 60 0"/><text class="rl" x="446" y="26">závisí na (dep)</text>
+        <rect class="ent" x="20" y="230" width="150" height="52" rx="10"/><text class="et" x="34" y="252">Schůzka</text><text class="ef" x="34" y="268">účastníci · účel · přepis</text>
         <rect class="ent" x="200" y="230" width="150" height="52" rx="10"/><text class="et" x="214" y="252">Otázka</text><text class="ef" x="214" y="268">jistota · odpověď · priorita</text>
         <rect class="ent" x="380" y="230" width="150" height="52" rx="10"/><text class="et" x="394" y="252">Rozhodnutí</text><text class="ef" x="394" y="268">zdůvodnění · vratnost</text>
-        <rect class="ent" x="560" y="230" width="150" height="52" rx="10"/><text class="et" x="574" y="252">Riziko</text><text class="ef" x="574" y="268">závažnost × pravděpodobnost</text>
-        <rect class="ent ent-dash" x="740" y="230" width="150" height="52" rx="10"/><text class="et" x="754" y="252">Úkol</text><text class="ef" x="754" y="268">termín · stav · závislost (text)</text>
+        <rect class="ent" x="560" y="230" width="150" height="52" rx="10"/><text class="et" x="574" y="252">Riziko</text><text class="ef" x="574" y="268">závažnost × pravd.</text>
+        <rect class="ent ent-dash" x="740" y="230" width="150" height="52" rx="10"/><text class="et" x="754" y="252">Úkol</text><text class="ef" x="754" y="268">termín · stav · závislost</text>
         <path class="rel" d="M95 230L415 106"/><text class="rl" x="116" y="205">navázána na (ms)</text>
         <path class="rel" d="M275 230L450 106"/><text class="rl" x="300" y="205">blokuje (ms)</text>
         <path class="rel" d="M455 230L495 106"/><text class="rl" x="458" y="190">ms</text>
         <path class="rel" d="M635 230L540 106"/><text class="rl" x="600" y="205">ms</text>
-        <path class="rel rel-x" d="M815 230L585 106"/><text class="rl rl-bad" x="700" y="170">žádná vazba na milník</text>
-        <rect class="ent" x="200" y="470" width="150" height="52" rx="10"/><text class="et" x="214" y="492">Důkaz</text><text class="ef" x="214" y="508">věrohodnost · typ · stav</text>
+        <path class="rel rel-x" d="M815 230L585 106"/><text class="rl rl-bad" x="690" y="196">žádná vazba na milník</text>
+        <rect class="ent" x="200" y="470" width="150" height="52" rx="10"/><text class="et" x="214" y="492">Důkaz</text><text class="ef" x="214" y="508">věrohodnost · typ</text>
         <path class="rel" d="M250 470L252 282"/><text class="rl" x="262" y="420">odpovídá na (q)</text>
         <rect class="ent" x="380" y="380" width="190" height="56" rx="10"/><text class="et" x="394" y="402">Osoba</text><text class="ef" x="394" y="418">kód · jméno · role · útvar</text><text class="ef" x="394" y="429">vlastník: projekt, milník, otázka …</text>
         <path class="rel" d="M400 380L95 282"/><text class="rl" x="160" y="340">účastníci (parts)</text>
@@ -1313,7 +1318,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
         </tbody></table>
         <h4>Bez vazby (jen text nebo číslo)</h4>
         <ul>
-          <li><b>Úkol</b> nemá vazbu na milník, proces ani otázku — jen textovou „závislost“ a dopad.</li>
+          <li><b>Úkol</b> (tento záznam) nemá vazbu na milník, proces ani otázku — jen textovou „závislost“ a dopad. Úkoly odpovědnosti u procesu jsou samostatná, vnořená položka procesu (viz Procesní mapa a Osoby a útvary).</li>
           <li><b>Milník</b>: blokující problémy, rozhodnutí, důkazy a schůzky jsou textové seznamy, ne odkazy na záznamy.</li>
           <li><b>Rozhodnutí</b>: zdroj je text; mezi rozhodnutím a důkazem vazba není.</li>
           <li><b>Schůzka</b>: počty rozhodnutí, otázek a úkolů jsou čísla, ne odkazy; přepis je jen příznak.</li>
@@ -1324,27 +1329,29 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
 
     <!-- 2) Procesní mapa -->
     <div class="dm-panel" id="dm-pm">
-      <div class="card dm-wrap"><svg class="dm-svg" viewBox="0 0 900 360" xmlns="http://www.w3.org/2000/svg">
+      <div class="card dm-wrap"><svg class="dm-svg" viewBox="0 0 900 400" xmlns="http://www.w3.org/2000/svg">
         <rect class="ent ent-pm" x="40" y="60" width="170" height="60" rx="10" fill="url(#gC)"/><text class="et" x="54" y="82">Varianta konceptu</text><text class="ef" x="54" y="98">název · osa · T0</text><text class="ef" x="54" y="110">zdroj mapy · orientace</text>
         <rect class="ent ent-pm" x="290" y="60" width="200" height="60" rx="10" fill="url(#gC)"/><text class="et" x="304" y="82">Proces</text><text class="ef" x="304" y="98">název · termín · pruh · stav</text><text class="ef" x="304" y="110">zralost · barva · popis</text>
         <rect class="ent ent-pm" x="560" y="60" width="130" height="60" rx="10"/><text class="et" x="574" y="82">Rámeček</text><text class="ef" x="574" y="98">název · barva</text><text class="ef" x="574" y="110">členové (procesy)</text>
-        <rect class="ent" x="740" y="60" width="130" height="60" rx="10" stroke-dasharray="2 3"/><text class="et et-dim" x="754" y="82">Milník</text><text class="ef" x="754" y="98">viz Projektové řízení</text><text class="ef" x="754" y="110">msStart · msEnd</text>
+        <rect class="ent" x="740" y="60" width="130" height="60" rx="10" stroke-dasharray="2 3"/><text class="et et-dim" x="754" y="82">Milník</text><text class="ef" x="754" y="98">viz jádro modelu</text><text class="ef" x="754" y="110">msStart · msEnd</text>
         <path class="rel rel-pm" d="M210 90h78"/><text class="rl" x="218" y="82">obsahuje</text>
         <path class="rel rel-pm" d="M490 90h68"/><text class="rl" x="494" y="82">seskupuje</text>
         <path class="rel rel-pm" d="M490 70C540 30 700 30 738 70"/><text class="rl" x="580" y="32">začátek / konec posouvá milník</text>
         <path class="rel rel-pm" d="M444 60c0-34 40-34 40 0"/><text class="rl" x="296" y="42">podproces — až 3 úrovně (parent)</text>
         <rect class="ent ent-pm" x="40" y="174" width="170" height="60" rx="10"/><text class="et" x="54" y="196">Procesní mapa</text><text class="ef" x="54" y="212">procesy se zpevněním</text><text class="ef" x="54" y="224">srcId → proces konceptu</text>
-        <rect class="ent ent-pm" x="290" y="174" width="200" height="60" rx="10"/><text class="et" x="304" y="196">Vazba (součást procesu)</text><text class="ef" x="304" y="212">typ FS/SS/FF · prodleva · ↔</text><text class="ef" x="304" y="224">předmět · popis</text>
-        <rect class="ent" x="520" y="174" width="150" height="60" rx="10"/><text class="et" x="534" y="196">Osoba / útvar</text><text class="ef" x="534" y="212">gestor · spolugestoři</text><text class="ef" x="534" y="224">dotčení</text>
-        <rect class="ent ent-dash" x="700" y="174" width="170" height="60" rx="10"/><text class="et et-dim" x="714" y="196">Příloha (plánováno)</text><text class="ef" x="714" y="212">soubor · verze · sada</text><text class="ef" x="714" y="224">viz docs/BACKLOG.md</text>
+        <rect class="ent ent-pm" x="270" y="174" width="160" height="60" rx="10"/><text class="et" x="284" y="196">Vazba (v procesu)</text><text class="ef" x="284" y="212">typ FS/SS/FF · prodleva · ↔</text><text class="ef" x="284" y="224">předmět · popis</text>
+        <rect class="ent ent-pm" x="470" y="174" width="170" height="60" rx="10"/><text class="et" x="484" y="196">Úkol odpovědnosti</text><text class="ef" x="484" y="212">název · od–do · stav</text><text class="ef" x="484" y="224">součást procesu (tasks)</text>
+        <rect class="ent" x="680" y="174" width="190" height="60" rx="10"/><text class="et" x="694" y="196">Osoba / útvar</text><text class="ef" x="694" y="212">gestor · spolugestoři</text><text class="ef" x="694" y="224">dotčení</text>
+        <rect class="ent ent-dash" x="270" y="262" width="200" height="50" rx="10"/><text class="et et-dim" x="284" y="282">Příloha (plánováno)</text><text class="ef" x="284" y="298">soubor · verze · sada — BACKLOG</text>
         <path class="rel rel-pm" d="M125 120v52"/><text class="rl" x="134" y="150">zpevnění</text>
         <path class="rel rel-pm" d="M210 200C250 200 270 160 300 122"/><text class="rl" x="222" y="170">srcId</text>
-        <path class="rel rel-pm" d="M380 120v52"/><text class="rl" x="388" y="150">předchůdci (links.from)</text>
-        <path class="rel rel-pm" d="M450 120L540 172"/><text class="rl" x="480" y="146">gestor</text>
-        <path class="rel rel-x" d="M490 114L702 176"/><text class="rl" x="620" y="150">k procesu</text>
-        <text class="rl" x="20" y="290">Procesy varianty nebo mapy se rozliší polem scope (concept:K-xx / map) · nadřazený proces s podprocesy = stream</text>
-        <text class="rl rl-bad" x="20" y="308">Úkoly a rizika s procesy propojeny nejsou · rámečky patří vždy do jedné varianty nebo mapy a do mapy se nekopírují</text>
-        <text class="rl" x="20" y="326">Kolej / úsek ani balíček prací aplikace jako objekt nezná</text>
+        <path class="rel rel-pm" d="M350 120v52"/><text class="rl" x="358" y="150">předchůdci (links.from)</text>
+        <path class="rel rel-pm" d="M470 120L520 172"/><text class="rl" x="500" y="138">tasks</text>
+        <path class="rel rel-pm" d="M640 204H678"/><text class="rl" x="634" y="196">who</text>
+        <path class="rel rel-pm" d="M490 112C600 120 700 130 760 172"/><text class="rl" x="640" y="132">gestor · spolugestor · dotčený</text>
+        <text class="rl" x="20" y="344">Procesy varianty nebo mapy se rozliší polem scope (concept:K-xx / map) · nadřazený proces s podprocesy = stream</text>
+        <text class="rl" x="20" y="362">Úkol odpovědnosti smí dostat jen vybraný gestor nebo spolugestor procesu · rámečky do mapy nekopírujeme</text>
+        <text class="rl rl-bad" x="20" y="380">Globální úkoly (Projektové řízení) s procesy propojeny nejsou · kolej / úsek ani balíček prací aplikace jako objekt nezná</text>
       </svg></div>
       <div class="dm-notes">
         <h4>Ověřené vazby</h4>
@@ -1354,6 +1361,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
           <tr><td>Proces</td><td>Proces (předchůdce)</td><td><code>links[].from</code> + typ, prodleva, předmět, popis, obousměrnost</td></tr>
           <tr><td>Proces</td><td>Milník</td><td><code>msStart[]</code>, <code>msEnd[]</code></td></tr>
           <tr><td>Proces</td><td>Osoba / útvar</td><td><code>gestor</code>, <code>cogestors[]</code>, <code>affected[]</code></td></tr>
+          <tr><td>Úkol odpovědnosti (v procesu)</td><td>Osoba / útvar</td><td><code>tasks[].who</code> — jen gestor nebo spolugestor téhož procesu; <code>start</code>–<code>end</code>, <code>status</code></td></tr>
           <tr><td>Mapový proces</td><td>Proces konceptu</td><td><code>srcId</code></td></tr>
           <tr><td>Rámeček</td><td>Proces</td><td><code>members[]</code></td></tr>
         </tbody></table>
@@ -1383,6 +1391,9 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
         <path class="rel" d="M435 230V328"/><text class="rl" x="445" y="285">patří do</text>
         <path class="rel rel-pm" d="M700 190H522"/><text class="rl" x="548" y="182">gestor · spolugestor · dotčený</text>
         <path class="rel rel-pm" d="M740 230L520 352"/><text class="rl" x="640" y="298">totéž — gestor může být útvar</text>
+        <rect class="ent ent-pm" x="700" y="300" width="170" height="50" rx="10" fill="url(#gC)"/><text class="et" x="714" y="322">Úkol odpovědnosti</text><text class="ef" x="714" y="338">tasks[] v procesu · od–do</text>
+        <path class="rel rel-pm" d="M785 300V232"/><text class="rl" x="795" y="270">součást</text>
+        <path class="rel rel-pm" d="M700 336C640 360 560 380 522 362"/><text class="rl" x="560" y="395">who — jen vybraný gestor / spolugestor</text>
         <text class="rl" x="20" y="430">Společný číselník projektu: přejmenování nebo odebrání osoby či útvaru se projeví u všech záznamů ve všech konceptech i v mapě</text>
       </svg></div>
       <div class="dm-notes">
@@ -1393,6 +1404,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
           <tr><td>Osoba</td><td>Útvar</td><td><code>staff[kód].unit</code></td></tr>
           <tr><td>Proces</td><td>Osoba nebo útvar</td><td><code>gestor</code> (kód osoby, nebo <code>@</code> + kód útvaru)</td></tr>
           <tr><td>Proces</td><td>Osoba nebo útvar</td><td><code>cogestors[].who</code> + odpovědnost, <code>affected[]</code></td></tr>
+          <tr><td>Úkol odpovědnosti (součást procesu)</td><td>Osoba nebo útvar</td><td><code>tasks[].who</code> — jen z gestora a spolugestorů téhož procesu</td></tr>
         </tbody></table>
         <ul><li>Vlastník milníku, úkolu a dalších záznamů je jen osoba; gestor procesu může být osoba i útvar.</li></ul>
       </div>
@@ -2422,7 +2434,7 @@ function openEditor(key,id){
   $('#ed-del').style.display=(!isNew&&key!=='project')?'inline-flex':'none';
   $('#ed-fields').innerHTML='<div class="grid2">'+sc.fields.map(f=>fieldHTML(f,obj)).join('')+'</div>';
   subSet(edCtx.obj,null);
-  sc.fields.forEach(f=>{if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs'||f.t==='peoplerefs')pmSubRender(f.k)});
+  sc.fields.forEach(f=>{if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs'||f.t==='peoplerefs'||f.t==='ptasks')pmSubRender(f.k)});
   $('#editor').classList.add('open');
 }
 /* ---- Zakládání osob do sdíleného seznamu `people` ----------------------
@@ -2483,7 +2495,7 @@ function edPersonPick(sel){
   else sel.dataset.prev=sel.value;
 }
 function pmPersonPick(sel,key,i){
-  const write=v=>{if(key==='cogestors')subCtx.obj.cogestors[i].who=v;else subCtx.obj[key][i]=v;subFire()};
+  const write=v=>{if(key==='cogestors')subCtx.obj.cogestors[i].who=v;else subCtx.obj[key][i]=v;subFire();if(key==='cogestors')pmTasksRefresh()};
   if(sel.value===NEW_PERSON){addPersonInline(sel,write);return}
   sel.dataset.prev=sel.value; write(sel.value);
 }
@@ -2499,7 +2511,7 @@ function fieldHTML(f,o){
       <input id="${id}" type="text" value="${esc(pmNameOf(o))}"></div></div>`;
   }
   if(f.t==='check')return `<div class="${cls}" style="display:flex;align-items:center;gap:9px;margin-top:8px"><input type="checkbox" id="${id}" ${v?'checked':''} style="width:auto"><label style="margin:0;text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--text2)">${f.l}${(edCtx&&PM_HELP[edCtx.key+'.'+f.k])?pmI(edCtx.key+'.'+f.k):''}</label></div>`;
-  if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs'||f.t==='peoplerefs')return `<div class="${cls}"><label>${f.l}${(edCtx&&PM_HELP[edCtx.key+'.'+f.k])?pmI(edCtx.key+'.'+f.k):''}</label><div class="pm-sub" id="${id}"></div></div>`;
+  if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs'||f.t==='peoplerefs'||f.t==='ptasks')return `<div class="${cls}"><label>${f.l}${(edCtx&&PM_HELP[edCtx.key+'.'+f.k])?pmI(edCtx.key+'.'+f.k):''}</label><div class="pm-sub" id="${id}"></div></div>`;
   if(f.t==='actor')return `<div class="${cls}"><label>${f.l}${(edCtx&&PM_HELP[edCtx.key+'.'+f.k])?pmI(edCtx.key+'.'+f.k):''}</label><select id="${id}" data-prev="${esc(v)}" onchange="edPersonPick(this)">${actorOptionsHTML(v)}</select></div>`;
   let input;
   if(f.t==='textarea')input=`<textarea id="${id}" style="min-height:70px">${esc(v)}</textarea>`;
@@ -2519,7 +2531,7 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function saveEditor(){
   const sc=SCHEMAS[edCtx.key], o=edCtx.obj;
   sc.fields.forEach(f=>{
-    if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs'||f.t==='peoplerefs')return;   // zapsáno průběžně dílčím editorem
+    if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs'||f.t==='peoplerefs'||f.t==='ptasks')return;   // zapsáno průběžně dílčím editorem
     const el=document.getElementById('edf-'+f.k); if(!el)return;
     if(f.t==='check')o[f.k]=el.checked;
     else if(f.t==='number')o[f.k]=+el.value||0;
@@ -4560,14 +4572,14 @@ function pmConfirm(id){
 const PM_TABS=[
   {id:'zaklad',l:'Základ',keys:['name','desc','status','state','color']},
   {id:'cas',l:'Termíny a poloha',keys:['start','end','lane','parent']},
-  {id:'lide',l:'Odpovědnost',keys:['gestor','cogestors','affected']},
+  {id:'lide',l:'Odpovědnost',keys:['gestor','cogestors','tasks','affected']},
   {id:'vazby',l:'Vazby',keys:['links']},
   {id:'milniky',l:'Milníky',keys:['msEnd','msStart']}
 ];
 function pmRibbonField(p,k){
   const f=(SCHEMAS.process.fields||[]).find(x=>x.k===k); if(!f)return '';
   const cls=f.t==='textarea'||f.full?'wide':'';   // celý řádek si bere jen dílčí editor
-  if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs'||f.t==='peoplerefs'){
+  if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs'||f.t==='peoplerefs'||f.t==='ptasks'){
     const focusOn=k==='links'&&PM.linkFocus===p.id;
     const focusBtn=k==='links'?`<button type="button" class="btn ghost sm" style="margin:2px 0 8px${focusOn?';background:var(--accent);color:#fff;border-color:var(--accent)':''}"
         title="Zvýrazní na plátně všechny vazby tohoto procesu, ne jen jednu kliknutou" onclick="pmToggleLinkFocus('${p.id}')">🔗 ${focusOn?'Zvýrazněno — vypnout':'Zvýraznit všechny vazby'}</button>`:'';
@@ -4724,7 +4736,7 @@ function pmRenderRibbon(host,p){
   };
   tab.keys.forEach(k=>{
     const f=(SCHEMAS.process.fields||[]).find(x=>x.k===k);
-    if(f&&['roles','plinks','msrefs','peoplerefs'].includes(f.t))pmSubRender(k);
+    if(f&&['roles','plinks','msrefs','peoplerefs','ptasks'].includes(f.t))pmSubRender(k);
   });
   pmRibRestore(keepFocus);
   pmFitHeight();
@@ -4801,6 +4813,7 @@ function pmRibSet(k,v){
   if(k==='name')v=pmJoinName(pmNumLabel(p),v);   // číslo drží aplikace, ne pole
   const oldRoot=k==='parent'?pmRootOf(p):null;
   p[k]=v;
+  if(k==='gestor')pmTasksRefresh();
   if(k==='parent'){pmAfterReparent(p,oldRoot);PM._vl=null;pmRenderInspector();}
   if(k==='start'||k==='end')pmSyncMilestones(p);
   if(p.scope==='map')p.mapEdited=true;
@@ -5419,7 +5432,7 @@ function pmSplitProcess(id,dateStr){
     name:p.name.replace(/\s*\(pokr\.\)$/,'')+' (pokr.)',
     start:dateStr,end:p.end,
     cogestors:JSON.parse(JSON.stringify(p.cogestors||[])),
-    affected:(p.affected||[]).slice(),
+    affected:(p.affected||[]).slice(),tasks:[],
     links:[{from:p.id,type:'',lag:0}],
     msStart:[],msEnd:(p.msEnd||[]).slice(),
     collapsed:false,mapEdited:false
@@ -6050,6 +6063,7 @@ function pmApplyPromotion(){
     }
     Object.assign(t,{name:p.name,desc:p.desc,gestor:p.gestor,
       cogestors:JSON.parse(JSON.stringify(p.cogestors||[])),affected:(p.affected||[]).slice(),
+      tasks:JSON.parse(JSON.stringify(p.tasks||[])),
       status:p.status,start:st,end:en,lane:p.lane,
       msStart:(p.msStart||[]).slice(),msEnd:(p.msEnd||[]).slice()});
     if(t.state!=='potvrzeny')t.state='odvozeny';
@@ -6115,6 +6129,7 @@ SCHEMAS.process={title:'Proces',entity:'process',arr:()=>processes,idf:'id',pref
          &&(!me||(p.id!==me.id&&!pmIsAncestor(me.id,p))))).map(p=>[p.id,p.name]));
    }},
   {k:'cogestors',l:'Spolugestoři (osoby i útvary) a jejich odpovědnost',t:'roles',full:1},
+  {k:'tasks',l:'Úkoly odpovědnosti (jen pro vybrané gestory a spolugestory)',t:'ptasks',full:1},
   {k:'affected',l:'Dotčení / konzultovaní (osoby i útvary)',t:'peoplerefs',full:1},
   {k:'links',l:'Vazby na předchůdce',t:'plinks',full:1},
   {k:'msEnd',l:'Milníky na konci procesu',t:'msrefs',full:1},
@@ -7685,6 +7700,35 @@ function pmSubHost(k){
   return (subCtx&&subCtx.host?subCtx.host.querySelector('[data-sub="'+k+'"]'):null)
       || document.getElementById('edf-'+k);
 }
+/* Úkoly odpovědnosti — úkol patří jednomu z vybraných gestorů či spolugestorů procesu */
+function pmTasksRefresh(){if(subCtx&&pmSubHost('tasks'))pmSubRender('tasks')}
+function pmTaskAdd(who){
+  if(!subCtx)return;
+  const o=subCtx.obj; if(!Array.isArray(o.tasks))o.tasks=[];
+  const platny=who&&(o.gestor===who||(o.cogestors||[]).some(c=>c.who===who));
+  if(!platny){toast('Úkol lze zadat jen vybranému gestorovi nebo spolugestorovi');return}
+  o.tasks.push({id:'U'+Math.random().toString(36).slice(2,7),t:'',who:who,start:o.start||'',end:o.end||'',status:'idle'});
+  pmSubRender('tasks'); subFire();
+  const inp=pmSubHost('tasks').querySelectorAll('.pm-task');
+  const last=inp[inp.length-1]; if(last){const i=last.querySelector('input.pm-subj');if(i)i.focus()}
+}
+function pmTaskSet(i,k,v){
+  if(!subCtx||!subCtx.obj.tasks[i])return;
+  const o=subCtx.obj;
+  if(k==='who'){
+    const platny=v&&(o.gestor===v||(o.cogestors||[]).some(c=>c.who===v));
+    if(!platny){toast('Úkol lze přiřadit jen vybranému gestorovi nebo spolugestorovi');pmSubRender('tasks');return}
+  }
+  o.tasks[i][k]=v; subFire();
+  if(k==='who')pmSubRender('tasks');
+}
+/* Kontrola termínů se dělá až při odchodu z pole — rozepsané datum se nesmí přepisovat */
+function pmTaskCheck(i){
+  if(!subCtx||!subCtx.obj.tasks[i])return;
+  const t=subCtx.obj.tasks[i];
+  if(t.start&&t.end&&t.end<t.start){toast('Konec úkolu nemůže být před začátkem — nastaven na začátek');t.end=t.start;subFire()}
+  pmSubRender('tasks');
+}
 function pmSubRender(k){
   const host=pmSubHost(k); if(!host||!subCtx)return;
   const o=subCtx.obj; if(!Array.isArray(o[k]))o[k]=[];
@@ -7694,7 +7738,7 @@ function pmSubRender(k){
     h=o[k].map((r,i)=>`<div class="pm-subrow">
         <select data-prev="${esc(r.who||'')}" onchange="pmPersonPick(this,'cogestors',${i})">${who(r.who)}</select>
         <input value="${esc(r.resp||'')}" placeholder="za co odpovídá" oninput="subCtx.obj.cogestors[${i}].resp=this.value;subFire()">
-        <button type="button" class="x" onclick="subCtx.obj.cogestors.splice(${i},1);pmSubRender('cogestors');subFire()">✕</button></div>`).join('');
+        <button type="button" class="x" onclick="subCtx.obj.cogestors.splice(${i},1);pmSubRender('cogestors');subFire();pmTasksRefresh()">✕</button></div>`).join('');
     h+=`<button type="button" class="pm-addbtn" data-tip="Spolugestor\nPřidá řádek pro další osobu nebo útvar a její odpovědnost. Jen evidence, termíny neovlivňuje." onclick="subCtx.obj.cogestors.push({who:'',resp:''});pmSubRender('cogestors')">＋ Spolugestor</button>`;
   }
   else if(k==='links'){
@@ -7746,6 +7790,36 @@ function pmSubRender(k){
         <button type="button" class="pm-addbtn" data-tip="Vazba na následníka\nVybraný proces bude navazovat na tento. Vazba se uloží u následníka, protože tam se vazby drží." onclick="pmLinkDraft('succ')">＋ Vazba na následníka</button></div>`;
     }
     h+=`<div class="pm-hint" style="margin-top:2px">V konceptu vazby nic neposouvají — typ se doplní až při zpevnění.</div>`;
+  }
+  else if(k==='tasks'){
+    const stOpts=sel=>ST_OPTS.map(([v,t])=>`<option value="${v}" ${v===(sel||'idle')?'selected':''}>${esc(t)}</option>`).join('');
+    /* úkoly lze zakládat jen těm, kdo jsou u procesu vybraní jako gestor nebo spolugestor */
+    const parties=[];
+    const add=(key,role,resp)=>{if(!key)return;const x=parties.find(q=>q.key===key);
+      if(x){if(x.role.indexOf(role)<0)x.role+=' + '+role.toLowerCase();if(resp&&!x.resp)x.resp=resp}else parties.push({key,role,resp:resp||''})};
+    add(o.gestor,'Gestor');
+    (o.cogestors||[]).forEach(c=>add(c.who,'Spolugestor',c.resp));
+    const known=new Set(parties.map(q=>q.key));
+    const whoOpts=sel=>[['','— vyberte gestora —']].concat(parties.map(q=>[q.key,actorName(q.key)]))
+      .map(([v,t])=>`<option value="${esc(v)}" ${v===(sel||'')?'selected':''}>${esc(t)}</option>`).join('');
+    const out=(t)=>(t.start&&o.start&&t.start<o.start)||(t.end&&o.end&&t.end>o.end);
+    const row=(t,i)=>`<div class="pm-subrow wrap pm-task">
+        <input class="pm-subj" value="${esc(t.t||'')}" placeholder="název úkolu" oninput="subCtx.obj.tasks[${i}].t=this.value;subFire()">
+        <label class="pm-tlab">od<input type="date" value="${esc(t.start||'')}" onchange="pmTaskSet(${i},'start',this.value)" onblur="pmTaskCheck(${i})"></label>
+        <label class="pm-tlab">do<input type="date" value="${esc(t.end||'')}" onchange="pmTaskSet(${i},'end',this.value)" onblur="pmTaskCheck(${i})"></label>
+        <select style="max-width:130px" onchange="pmTaskSet(${i},'status',this.value)">${stOpts(t.status)}</select>
+        <select style="max-width:170px" onchange="pmTaskSet(${i},'who',this.value)">${whoOpts(known.has(t.who)?t.who:'')}</select>
+        <button type="button" class="x" onclick="subCtx.obj.tasks.splice(${i},1);pmSubRender('tasks');subFire()">✕</button>
+        ${out(t)?'<span class="pm-linkwarn" title="Termín úkolu přesahuje termín procesu">mimo termín procesu</span>':''}</div>`;
+    h=parties.map(q=>{
+      const mine=o[k].map((t,i)=>[t,i]).filter(([t])=>t.who===q.key);
+      return `<div class="pm-tgrp"><div class="pm-tgrp-h"><b>${esc(actorName(q.key))}</b><span class="tag">${esc(q.role)}</span>${q.resp?`<span class="pm-tresp">${esc(q.resp)}</span>`:''}</div>
+        ${mine.map(([t,i])=>row(t,i)).join('')}
+        <button type="button" class="pm-addbtn" data-tip="Úkol pro ${esc(actorName(q.key))}\nPřidá úkol s termínem od–do tomuto gestoru nebo spolugestorovi. Úkol lze zadat jen osobě nebo útvaru, které jsou u procesu vybrané." onclick="pmTaskAdd('${esc(q.key)}')">＋ Úkol</button></div>`;
+    }).join('');
+    const orph=o[k].map((t,i)=>[t,i]).filter(([t])=>!known.has(t.who));
+    if(orph.length)h+=`<div class="pm-tgrp bad"><div class="pm-tgrp-h"><b>Úkoly bez gestora (${orph.length})</b><span class="pm-tresp">gestor nebo spolugestor byl změněn či odebrán — přiřaďte úkol vybranému</span></div>${orph.map(([t,i])=>row(t,i)).join('')}</div>`;
+    if(!parties.length)h=`<div class="pm-succ-none">Úkoly lze přidávat až poté, co vyberete gestora nebo spolugestora.</div>`;
   }
   else if(k==='affected'){
     h=o[k].map((id,i)=>`<div class="pm-subrow">
@@ -7870,7 +7944,7 @@ function pmNormalize(){
   if(!Array.isArray(pmgroups))pmgroups=[];
   pmgroups.forEach(g=>{if(!Array.isArray(g.members))g.members=[]});
   processes.forEach(p=>{
-    ['cogestors','affected','links','msStart','msEnd'].forEach(k=>{if(!Array.isArray(p[k]))p[k]=[]});
+    ['cogestors','affected','links','msStart','msEnd','tasks'].forEach(k=>{if(!Array.isArray(p[k]))p[k]=[]});
     if(!p.scope)p.scope='concept:'+(concepts[0]?concepts[0].id:'K-01');
     if(!p.state)p.state='koncept';
     if(!p.status)p.status='idle';
@@ -7922,6 +7996,7 @@ const PM_HELP={
  'process.cogestors':'Spolugestoři\nDalší osoby nebo útvary, které se na procesu podílejí, a za co konkrétně odpovídají.\nDopad: jen evidence odpovědnosti, zobrazí se v přehledu odpovědnosti procesu. Termíny neovlivňuje.',
  'process.affected':'Dotčení a konzultovaní\nKdo musí být o procesu informován nebo se k němu vyjádřit, ale neodpovídá za něj.\nDopad: jen evidence, bez vlivu na termíny a vazby.',
  'process.links':'Vazby na předchůdce\nNa čem proces závisí — co mu musí předcházet. Každá vazba má typ (FS, SS, FF), prodlevu ve dnech, volitelný směr ↔, předmět (co předchůdce předává) a popis.\nDopad: v konceptu vazby nic neposouvají; typ a prodleva se uplatní až při zpevnění do mapy, kde se hlídají porušené návaznosti. Vazba se ukládá u následníka; opačný směr je v seznamu Navazující procesy.',
+ 'process.tasks':'Úkoly odpovědnosti\nÚkoly (s termínem od–do a stavem), které plní gestor nebo spolugestoři procesu. Úkol lze zadat jen těm, kdo jsou u procesu vybraní; kdo není vybraný, nemá ani tlačítko ＋ Úkol.\nDopad: evidence práce uvnitř procesu — termíny procesu ani vazby se tím nemění. Při změně nebo odebrání gestora úkoly zůstanou a ukážou se jako „bez gestora“, dokud je nepřiřadíte. Do mapy se úkoly zkopírují při zpevnění.',
  'process.msEnd':'Milníky na konci procesu\nMilník se posouvá spolu s koncem procesu.\nDopad: zamčený milník se nehýbe a pozdější konec procesu se zvýrazní červeně jako porušený termín.',
  'process.msStart':'Milníky na začátku procesu\nMilník se posouvá spolu se začátkem procesu.\nDopad: změna začátku procesu posune datum nezamčeného milníku.',
  'link.type':'Typ vazby\nneutrální = jen spojnice bez časového významu; FS = následník začne po konci předchůdce; SS = oba začínají současně; FF = oba končí současně.\nDopad: v konceptu se neuplatňuje, při zpevnění do mapy se použije pro hlídání a přepočet termínů.',
