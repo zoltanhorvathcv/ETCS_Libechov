@@ -884,6 +884,10 @@ body.pm-view #pm-viewbar{display:flex;position:fixed;z-index:50;gap:6px;
   max-height:118px;overflow:auto}
 /* karta Vazeb nese dva seznamy (předchůdci i následníci) — potřebuje víc místa */
 .pm-rib-body.tall{max-height:236px}
+.pm-rib-grip{height:9px;cursor:row-resize;background:var(--panel2);border-top:1px solid var(--border);position:relative}
+.pm-rib-grip::after{content:"";position:absolute;left:50%;top:3px;width:34px;height:3px;margin-left:-17px;border-radius:2px;background:var(--text3);opacity:.6}
+.pm-rib-grip:hover::after{background:var(--accent);opacity:1}
+body.pm-ribdrag{cursor:row-resize;user-select:none}
 .pm-rib-body>div{flex:0 1 168px;min-width:128px}
 .pm-rib-body>div.wide{flex:2 1 300px}
 .pm-rib-body>div.full{flex:1 1 100%}
@@ -1425,9 +1429,9 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
         <text class="rl" x="500" y="40">vznikají procesy mapy</text><text class="rl" x="730" y="40">Potvrdit</text>
         <path class="rel rel-pm" d="M120 160C120 270 620 270 620 162"/><text class="rl" x="250" y="262">Opakované zpevnění: nové / změněné / odstraněné procesy; konflikt u procesů ručně upravených v mapě</text>
         <rect class="ent ent-dash" x="20" y="300" width="470" height="100" rx="10"/><text class="et" x="34" y="324">Do mapy se přenáší</text>
-          <text class="ef" x="34" y="344">název · popis · gestor · spolugestoři · dotčení</text><text class="ef" x="34" y="358">stav plnění · termíny (s posunem) · pruh</text><text class="ef" x="34" y="372">nadřazený proces · vazby (s typem a prodlevou)</text><text class="ef" x="34" y="386">milníky na konci procesu</text>
+          <text class="ef" x="34" y="344">název · popis · gestor · spolugestoři · dotčení</text><text class="ef" x="34" y="358">stav plnění · termíny (s posunem) · pruh</text><text class="ef" x="34" y="372">nadřazený proces · vazby (s typem a prodlevou)</text><text class="ef" x="34" y="386">barva fáze · úkoly odpovědnosti · milníky na konci</text>
         <rect class="ent ent-dash" x="520" y="300" width="450" height="100" rx="10"/><text class="et rl-bad" x="534" y="324" style="fill:#ff8a5c">Nepřenáší se</text>
-          <text class="ef" x="534" y="344">barva fáze (mapa tak barvy streamů nemá — k opravě)</text><text class="ef" x="534" y="358">rámečky · milníky na začátku procesu</text>
+          <text class="ef" x="534" y="344">rámečky (patří vždy jedné variantě nebo mapě)</text><text class="ef" x="534" y="358">milníky na začátku procesu</text>
           <text class="et et-dim" x="534" y="380">Společné pro koncept i mapu</text><text class="ef" x="534" y="394">milníky (jeden záznam) · osoby a útvary</text>
       </svg></div>
       <div class="dm-notes">
@@ -4508,6 +4512,43 @@ function pmFitHeight(){
 }
 
 /* ================= INSPEKTOR VYBRANÉHO PROCESU ================= */
+/* Výška pásu karet: výchozí / ruční (px) / celý obsah ('full') */
+function pmRibBodyStyle(){
+  const h=PM.ribH;
+  if(h==='full')return 'max-height:none;overflow:visible';
+  if(+h>0)return 'max-height:'+Math.round(+h)+'px';
+  return '';
+}
+function pmRibHSave(){try{localStorage.setItem('pm-rib-h',PM.ribH==null?'':String(PM.ribH))}catch(e){}}
+function pmRibExpand(){
+  PM.ribH=PM.ribH==='full'?null:'full'; pmRibHSave();
+  PM.panelLock=false; pmRenderInspector(); pmFitHeight&&pmFitHeight();
+  if($('#view-pmap').classList.contains('active'))renderPMap();
+}
+(function(){
+  try{const v=localStorage.getItem('pm-rib-h');PM.ribH=v==='full'?'full':(+v>0?+v:null)}catch(e){PM.ribH=null}
+  let drag=null;
+  document.addEventListener('pointerdown',e=>{
+    const g=e.target.closest&&e.target.closest('.pm-rib-grip'); if(!g)return;
+    const body=g.parentNode.querySelector('.pm-rib-body'); if(!body)return;
+    e.preventDefault();
+    drag={y:e.clientY,h:body.getBoundingClientRect().height,body:body};
+    document.body.classList.add('pm-ribdrag');
+  });
+  window.addEventListener('pointermove',e=>{
+    if(!drag)return;
+    const max=Math.round(window.innerHeight*0.75);
+    const h=Math.max(60,Math.min(max,Math.round(drag.h+(e.clientY-drag.y))));
+    PM.ribH=h; drag.body.style.maxHeight=h+'px'; drag.body.style.overflow='auto';
+  });
+  window.addEventListener('pointerup',()=>{
+    if(!drag)return; drag=null; document.body.classList.remove('pm-ribdrag');
+    pmRibHSave(); if($('#view-pmap').classList.contains('active'))renderPMap();
+  });
+  document.addEventListener('dblclick',e=>{
+    if(e.target.closest&&e.target.closest('.pm-rib-grip')){PM.ribH=null;pmRibHSave();PM.panelLock=false;pmRenderInspector();renderPMap()}
+  });
+})();
 function pmRenderInspector(){
   if(PM.panelLock)return;                       // neruší rozepsané pole v pásu karet
   const host=$('#pm-inspector'); if(!host)return;
@@ -4723,10 +4764,12 @@ function pmRenderRibbon(host,p){
         ${!p.parent&&(pmVert()||pmAll().some(x=>x.parent===p.id))?pmStreamMoveBtns(p):''}
         ${!p.parent&&pmAll().some(x=>x.parent===p.id)?`<button class="btn ghost sm" title="Smazat celý stream včetně všech podprocesů" onclick="pmDeleteStream('${p.id}')">Smazat stream</button>`:''}
         <button class="btn ghost sm" title="Smazat proces" onclick="pmDeleteProcess('${p.id}')">Smazat</button>
+        <button class="btn ghost sm" onclick="pmRibExpand()">${PM.ribH==='full'?'⤒ Sbalit':'⤓ Roztáhnout'}</button>
         <button class="btn ghost sm" title="Zavřít pás karet a zrušit výběr" onclick="PM.sel=[];PM.link=null;renderPMap()">✕</button>
       </span>
     </div>
-    <div class="pm-rib-body${PM.tab==='vazby'?' tall':''}">${tab.keys.map(k=>pmRibbonField(p,k)).join('')}</div>
+    <div class="pm-rib-body${PM.tab==='vazby'?' tall':''}" style="${pmRibBodyStyle()}">${tab.keys.map(k=>pmRibbonField(p,k)).join('')}</div>
+    <div class="pm-rib-grip" data-tip="Výška pásu karet\nTažením dolů nebo nahoru změníte výšku, aby bylo vidět vše bez posouvání. Dvojklik vrátí výchozí výšku. Volba se pamatuje."></div>
   </div>`;
   /* dílčí editory zapisují rovnou do procesu a překreslí plátno */
   subCtx.onChange=()=>{
@@ -6017,6 +6060,7 @@ function pmDiff(){
     if(!t){added.push({src:p,label:`${p.id} · ${p.name}`,detail:`${st} → ${en}`});return}
     const diffs=[];
     if(t.name!==p.name)diffs.push(`název: <span class="was">${escXml(t.name)}</span>${escXml(p.name)}`);
+    if((t.color||'')!==(p.color||''))diffs.push(`barva fáze: <span class="was">${escXml(t.color||'—')}</span>${escXml(p.color||'—')}`);
     if(t.gestor!==p.gestor)diffs.push(`gestor: <span class="was">${escXml(actorName(t.gestor))||'—'}</span>${escXml(actorName(p.gestor))}`);
     if(t.start!==st)diffs.push(`začátek: <span class="was">${t.start}</span>${st}`);
     if(t.end!==en)diffs.push(`konec: <span class="was">${t.end}</span>${en}`);
@@ -6064,7 +6108,7 @@ function pmApplyPromotion(){
     Object.assign(t,{name:p.name,desc:p.desc,gestor:p.gestor,
       cogestors:JSON.parse(JSON.stringify(p.cogestors||[])),affected:(p.affected||[]).slice(),
       tasks:JSON.parse(JSON.stringify(p.tasks||[])),
-      status:p.status,start:st,end:en,lane:p.lane,
+      status:p.status,start:st,end:en,lane:p.lane,color:p.color||'',
       msStart:(p.msStart||[]).slice(),msEnd:(p.msEnd||[]).slice()});
     if(t.state!=='potvrzeny')t.state='odvozeny';
     idMap[p.id]=t.id;
@@ -8062,6 +8106,7 @@ const PM_TIPS_BTN={
  'pmAddParallel':'Paralelně\nPřidá proces, který běží souběžně s tímto, ve stejném streamu — stejný začátek i konec. Je-li vedlejší sloupec volný, použije se; jinak streamu přibude sloupec. Nic nepřekryje.',
  'pmMoveStream':'Posun streamu\nPřesune celý stream (všechny jeho sloupce a podprocesy) o jedno místo. Dopad: změní se pořadí a číslování streamů i jejich podprocesů. Vazby, termíny a rodiče zůstanou. Zkratka: Alt + šipka, ve svislé ose lze záhlaví i táhnout.',
  'pmDeleteStream':'Smazat stream\nSmaže celý stream včetně všech podprocesů a vazeb ostatních procesů na ně. Prázdné sloupce zmizí a koncept se přečísluje. Jde vrátit tlačítkem Zpět.',
+ 'pmRibExpand':'Roztáhnout pás karet\nZobrazí celý obsah karty bez posouvání; plátno pod ním se odpovídajícím způsobem zmenší. Druhým kliknutím se vrátí výchozí výška. Výšku lze nastavit i tažením spodního okraje pásu. Volba se pamatuje.',
  'pmDeleteProcess':'Smazat proces\nSmaže tento proces; jeho podprocesy se přesunou o úroveň výš a vazby ostatních procesů na něj se odstraní. Jde vrátit tlačítkem Zpět.',
  'pmConfirm':'Potvrdit\nOznačí termíny a vazby procesu v mapě za potvrzené (odsouhlasené).',
  'pmToggleLinkFocus':'Zvýraznit všechny vazby\nNa plátně zvýrazní všechny vazby tohoto procesu najednou, ne jen jednu kliknutou. Jen zobrazení.',
