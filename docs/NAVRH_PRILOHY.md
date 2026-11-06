@@ -1,6 +1,6 @@
 # Přílohy k procesům a podprocesům — koncept řešení
 
-Stav: návrh k odsouhlasení (nic z toho není v aplikaci implementováno).
+Stav: odloženo do budoucna — viz [BACKLOG](BACKLOG.md). Nic z toho zatím není v aplikaci implementováno.
 
 ## 1. Principy
 - Soubor se **nikdy nepřepisuje**. Každá nová verze je nový soubor v úložišti; starší verze zůstávají dostupné.
