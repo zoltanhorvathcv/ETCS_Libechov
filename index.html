@@ -730,8 +730,10 @@ body.pm-full #view-pmap.active{padding:10px 14px 12px}
 #printdoc.mapmode table.lt td.k{white-space:nowrap;font-weight:700;width:7%;color:#000}
 #printdoc.mapmode table.lt td.s{white-space:nowrap;width:14%;color:#333}
 #printdoc.mapmode table.lt td.s i{color:#777;font-style:normal}
-#printdoc.mapmode table.lt td.c{width:34%}
+#printdoc.mapmode table.lt td.c{width:30%}
 #printdoc.mapmode table.lt td.p{color:#333}
+#printdoc.mapmode table.lt td.r{width:20%;color:#222}
+#printdoc.mapmode table.lt td.s i,#printdoc.mapmode table.lt td.r i{color:#777;font-style:normal}
 #printdoc.mapmode table.lt tr.succ td.s{color:#0b5f36}
 #printdoc.mapmode table.lt tr.pred td.s{color:#8a3b10}
 #printdoc.mapmode .lcols{column-count:2;column-gap:10mm}
@@ -1339,6 +1341,8 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       <button class="on" data-t="core" onclick="dmTab('core')">Projektové řízení</button>
       <button data-t="pm" onclick="dmTab('pm')">Procesní mapa</button>
       <button data-t="who" onclick="dmTab('who')">Osoby a útvary</button>
+      <button data-t="roles" onclick="dmTab('roles')">Role a přiřazení</button>
+      <button data-t="impact" onclick="dmTab('impact')">Dopady změn</button>
       <button data-t="life" onclick="dmTab('life')">Koncept → mapa</button>
       <button data-t="ai" onclick="dmTab('ai')">AI pipeline (ukázka)</button>
     </div>
@@ -1470,9 +1474,73 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
           <tr><td>Osoba</td><td>Útvar</td><td><code>staff[kód].unit</code></td></tr>
           <tr><td>Proces</td><td>Osoba nebo útvar</td><td><code>gestor</code> (kód osoby, nebo <code>@</code> + kód útvaru)</td></tr>
           <tr><td>Proces</td><td>Osoba nebo útvar</td><td><code>cogestors[].who</code> + odpovědnost, <code>affected[]</code></td></tr>
-          <tr><td>Úkol odpovědnosti (součást procesu)</td><td>Osoba nebo útvar</td><td><code>tasks[].who</code> — jen z gestora a spolugestorů téhož procesu</td></tr>
+          <tr><td>Úkol odpovědnosti (součást procesu)</td><td>Osoba nebo útvar</td><td><code>tasks[].who</code> — jen z gestora a spolugestorů téhož procesu; řešitelé <code>tasks[].assignees[].who</code> (kdokoli)</td></tr>
         </tbody></table>
         <ul><li>Vlastník milníku, úkolu a dalších záznamů je jen osoba; gestor procesu může být osoba i útvar.</li></ul>
+      </div>
+    </div>
+
+
+    <!-- Role a přiřazení -->
+    <div class="dm-panel" id="dm-roles">
+      <div class="card dm-wrap"><svg class="dm-svg" viewBox="0 0 900 470" xmlns="http://www.w3.org/2000/svg">
+        <rect class="ent ent-core" x="20" y="80" width="170" height="52" rx="10" fill="url(#gA)"/><text class="et" x="34" y="102">Osoba</text><text class="ef" x="34" y="118">kód · jméno · útvar</text>
+        <rect class="ent ent-core" x="20" y="260" width="170" height="52" rx="10" fill="url(#gA)"/><text class="et" x="34" y="282">Útvar</text><text class="ef" x="34" y="298">odbor · oddělení · jiné</text>
+        <rect class="ent ent-pm" x="360" y="170" width="180" height="76" rx="10" fill="url(#gC)"/><text class="et" x="374" y="192">Role</text><text class="ef" x="374" y="208">název · barva</text><text class="ef" x="374" y="220">pro koho: osoba / útvar / obojí</text><text class="ef" x="374" y="234">společný číselník projektu</text>
+        <rect class="ent ent-pm" x="710" y="70" width="170" height="66" rx="10" fill="url(#gC)"/><text class="et" x="724" y="92">Proces</text><text class="ef" x="724" y="108">gestor · spolugestoři</text><text class="ef" x="724" y="120">dotčení</text>
+        <rect class="ent ent-pm" x="710" y="260" width="170" height="66" rx="10" fill="url(#gC)"/><text class="et" x="724" y="282">Úkol odpovědnosti</text><text class="ef" x="724" y="298">název · od–do · stav</text><text class="ef" x="724" y="310">patří gestoru</text>
+        <path class="rel" d="M190 106C260 106 300 170 358 196"/><text class="rl" x="215" y="100">má role (staff.roles)</text>
+        <path class="rel" d="M190 286C260 286 300 250 358 224"/><text class="rl" x="215" y="320">má role (orgUnits.roles)</text>
+        <path class="rel rel-pm" d="M710 100C640 100 600 170 542 196"/><text class="rl" x="722" y="154">role v přiřazení:</text><text class="rl" x="722" y="166">gestorRoles</text><text class="rl" x="722" y="178">cogestors[].roles</text><text class="rl" x="722" y="190">affRoles</text>
+        <path class="rel rel-pm" d="M710 290C640 290 600 250 542 224"/><text class="rl" x="722" y="224">role řešitele:</text><text class="rl" x="722" y="236">assignees[].roles</text>
+        <path class="rel rel-pm" d="M710 90C600 20 300 20 190 90"/><text class="rl" x="330" y="32">gestor · spolugestor · dotčený (osoba nebo útvar)</text>
+        <path class="rel rel-pm" d="M710 310C600 430 300 430 190 296"/><text class="rl" x="300" y="440">řešitelé úkolu — tasks[].assignees[].who (osoby i útvary)</text>
+        <text class="rl" x="20" y="462">Role je volitelná; u řešitele mimo útvar gestora se zobrazí upozornění, ale povolen je</text>
+      </svg></div>
+      <div class="dm-notes">
+        <h4>Ověřené vazby</h4>
+        <table class="dm-tbl"><thead><tr><th>Odkud</th><th>Kam</th><th>Pole</th></tr></thead><tbody>
+          <tr><td>Osoba</td><td>Role</td><td><code>staff[kód].roles[]</code></td></tr>
+          <tr><td>Útvar</td><td>Role</td><td><code>orgUnits[kód].roles[]</code></td></tr>
+          <tr><td>Proces — gestor</td><td>Role</td><td><code>gestorRoles[]</code></td></tr>
+          <tr><td>Proces — spolugestor</td><td>Role</td><td><code>cogestors[].roles[]</code></td></tr>
+          <tr><td>Proces — dotčený</td><td>Role</td><td><code>affRoles{kód:[role]}</code></td></tr>
+          <tr><td>Úkol odpovědnosti</td><td>Osoba nebo útvar (řešitel)</td><td><code>tasks[].assignees[].who</code></td></tr>
+          <tr><td>Úkol odpovědnosti</td><td>Role řešitele</td><td><code>tasks[].assignees[].roles[]</code></td></tr>
+        </tbody></table>
+        <ul>
+          <li>Role se odkazuje podle klíče, proto přejmenování nebo změna barvy platí všude. Smazání role ji odebere všem osobám, útvarům i přiřazením.</li>
+          <li>Role vybraná při přiřazení, kterou aktér zatím nemá, se přidá i jemu.</li>
+          <li>Při změně gestora, spolugestora nebo dotčené osoby se role u tohoto přiřazení vynulují.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Dopady změn -->
+    <div class="dm-panel" id="dm-impact">
+      <div class="card dm-wrap"><svg class="dm-svg" viewBox="0 0 900 330" xmlns="http://www.w3.org/2000/svg">
+        <rect class="ent ent-pm" x="10" y="60" width="180" height="90" rx="10" fill="url(#gC)"/><text class="et" x="24" y="84">Data aplikace</text><text class="ef" x="24" y="102">procesy · úkoly · role</text><text class="ef" x="24" y="114">osoby a útvary · milníky</text>
+        <rect class="ent ent-core" x="250" y="60" width="180" height="90" rx="10" fill="url(#gA)"/><text class="et" x="264" y="84">Kontrola</text><text class="ef" x="264" y="102">počítá se z dat po každé</text><text class="ef" x="264" y="114">změně — nic se neloguje</text><text class="ef" x="264" y="126">ručně</text>
+        <rect class="ent ent-pm" x="490" y="60" width="180" height="90" rx="10" fill="url(#gC)"/><text class="et" x="504" y="84">Otevřené dopady</text><text class="ef" x="504" y="102">chyba · upozornění</text><text class="ef" x="504" y="114">informace</text>
+        <rect class="ent ent-dash" x="730" y="60" width="160" height="90" rx="10"/><text class="et et-dim" x="744" y="84">Přejít a opravit</text><text class="ef" x="744" y="102">otevře koncept či mapu,</text><text class="ef" x="744" y="114">proces a pole k opravě</text>
+        <path class="rel rel-pm" d="M190 105h58"/><path class="rel rel-pm" d="M430 105h58"/><path class="rel rel-pm" d="M670 105h58"/>
+        <rect class="ent ent-pm" x="250" y="210" width="180" height="70" rx="10"/><text class="et" x="264" y="234">Příčina a čas vzniku</text><text class="ef" x="264" y="252">kdo · kdy · která akce</text><text class="ef" x="264" y="264">impact.open</text>
+        <rect class="ent ent-pm" x="490" y="210" width="180" height="70" rx="10"/><text class="et" x="504" y="234">Vyřešeno (historie)</text><text class="ef" x="504" y="252">posledních 200 položek</text><text class="ef" x="504" y="264">impact.done</text>
+        <path class="rel rel-pm" d="M340 150v58"/><text class="rl" x="348" y="184">uloží při vzniku</text>
+        <path class="rel rel-pm" d="M580 150v58"/><text class="rl" x="588" y="184">po opravě</text>
+        <text class="rl" x="10" y="312">Položka zmizí z otevřených, jakmile problém přestane platit — i když se opraví mimo seznam</text>
+      </svg></div>
+      <div class="dm-notes">
+        <h4>Co se kontroluje</h4>
+        <table class="dm-tbl"><thead><tr><th>Závažnost</th><th>Kontrola</th></tr></thead><tbody>
+          <tr><td>Chyba</td><td>úkol bez platného gestora · úkol končí před začátkem · odkaz na smazanou osobu, útvar, roli nebo milník · neexistující nadřazený proces</td></tr>
+          <tr><td>Upozornění</td><td>úkol přesahuje termín procesu · řešitel mimo útvar gestora</td></tr>
+          <tr><td>Informace</td><td>text zmiňuje číslo procesu, které už nikomu nepatří</td></tr>
+        </tbody></table>
+        <ul>
+          <li>Příčina se zapíše z akce, která problém způsobila (smazání role, přesun streamu, změna gestora …); jinak „úprava dat“.</li>
+          <li>Historie se do sdílené databáze ukládá jen při přihlášení správce.</li>
+        </ul>
       </div>
     </div>
 
@@ -1491,7 +1559,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
         <text class="rl" x="500" y="40">vznikají procesy mapy</text><text class="rl" x="730" y="40">Potvrdit</text>
         <path class="rel rel-pm" d="M120 160C120 270 620 270 620 162"/><text class="rl" x="250" y="262">Opakované zpevnění: nové / změněné / odstraněné procesy; konflikt u procesů ručně upravených v mapě</text>
         <rect class="ent ent-dash" x="20" y="300" width="470" height="100" rx="10"/><text class="et" x="34" y="324">Do mapy se přenáší</text>
-          <text class="ef" x="34" y="344">název · popis · gestor · spolugestoři · dotčení</text><text class="ef" x="34" y="358">stav plnění · termíny (s posunem) · pruh</text><text class="ef" x="34" y="372">nadřazený proces · vazby (s typem a prodlevou)</text><text class="ef" x="34" y="386">barva fáze · úkoly odpovědnosti · milníky na konci</text>
+          <text class="ef" x="34" y="344">název · popis · gestor · spolugestoři · dotčení</text><text class="ef" x="34" y="358">stav plnění · termíny (s posunem) · pruh</text><text class="ef" x="34" y="372">nadřazený proces · vazby (s typem a prodlevou)</text><text class="ef" x="34" y="386">barva fáze · úkoly a role · milníky na konci</text>
         <rect class="ent ent-dash" x="520" y="300" width="450" height="100" rx="10"/><text class="et rl-bad" x="534" y="324" style="fill:#ff8a5c">Nepřenáší se</text>
           <text class="ef" x="534" y="344">rámečky (patří vždy jedné variantě nebo mapě)</text><text class="ef" x="534" y="358">milníky na začátku procesu</text>
           <text class="et et-dim" x="534" y="380">Společné pro koncept i mapu</text><text class="ef" x="534" y="394">milníky (jeden záznam) · osoby a útvary</text>
@@ -7592,14 +7660,22 @@ function pmTaskListHTML(rootId,scope,nadpis){
   const radky=pmTaskRows(rootId,scope); if(!radky.length)return '';
   let predchozi='';
   const stav=k=>(STATUS[k]||STATUS.idle)[0];
+  const rl=ids=>(ids||[]).filter(i=>roles[i]).map(i=>roles[i].name).join(', ');
+  /* gestor nebo spolugestor, ke kterému úkol patří, s rolemi, které u procesu zastává */
+  const strana=(p,who)=>{
+    const ids=[]; if(p.gestor===who)ids.push(...(p.gestorRoles||[]));
+    (p.cogestors||[]).forEach(c=>{if(c.who===who)ids.push(...(c.roles||[]))});
+    const t=rl([...new Set(ids)]); return escXml(actorName(who)||'—')+(t?` <i>(${escXml(t)})</i>`:'');
+  };
+  const reseni=t=>(t.assignees||[]).map(a=>{const r=rl(a.roles);return escXml(actorName(a.who))+(r?` <i>(${escXml(r)})</i>`:'')}).join('<br>')||'<span class="miss">—</span>';
   const tr=radky.map(r=>{
     const klic=pmNumLabel(r.p)||r.p.name, krok=klic===predchozi?'':escXml(klic); predchozi=klic;
     const termin=(r.t.start||r.t.end)?`${r.t.start?pmCz(r.t.start):'…'} – ${r.t.end?pmCz(r.t.end):'…'}`:'<span class="miss">—</span>';
-    return `<tr><td class="k">${krok}</td><td class="s">${escXml(actorName(r.t.who)||'—')}</td>
-      <td class="c">${escXml(r.t.t||'(bez názvu)')}</td><td class="p">${termin} · ${escXml(stav(r.t.status))}</td></tr>`;
+    return `<tr><td class="k">${krok}</td><td class="s">${strana(r.p,r.t.who)}</td>
+      <td class="c">${escXml(r.t.t||'(bez názvu)')}</td><td class="r">${reseni(r.t)}</td><td class="p">${termin} · ${escXml(stav(r.t.status))}</td></tr>`;
   }).join('');
   return `<div class="lnk"><div class="lh">${escXml(nadpis||'Úkoly odpovědnosti')}</div><table class="lt">
-    <tr><th>Krok</th><th>Řešitel</th><th>Úkol</th><th>Termín od – do · stav</th></tr>${tr}</table></div>`;
+    <tr><th>Krok</th><th>Gestor / spolugestor</th><th>Úkol</th><th>Řešitelé (role)</th><th>Termín od – do · stav</th></tr>${tr}</table></div>`;
 }
 function pmLinkListHTML(rootId,scope,nadpis){
   const radky=pmLinkRows(rootId,scope);
@@ -8382,7 +8458,7 @@ const PM_HELP={
  'mex.unit':'Dělení časové osy\nPo týdnech, měsících nebo čtvrtletích; automaticky podle délky období.\nDopad: mění jen popisky osy ve výstupu, ne data.',
  'mex.light':'Světlé barvy pro tisk\nSvětlejší barvy, které se hezky tisknou a šetří toner.\nDopad: pouze vzhled výstupu, ne data.',
  'mex.roots':'Jen hlavní procesy\nVýstup bez podprocesů — přehled na úrovni fází.\nDopad: výstup je přehlednější, podprocesy v něm nejsou. Platí jen pro „Jeden velký list“.',
- 'mex.tasks':'Úkoly odpovědnosti\nVypíše úkoly zadané u procesů: řešitel (gestor nebo spolugestor), název, termín od–do a stav, seřazené podle kroků.\nDopad: u „Jeden velký list“ přibude samostatná stránka s úkoly, u dělení po fázích se tabulka přidá pod schéma a zmenší jeho měřítko. Výchozí stav je vypnuto.',
+ 'mex.tasks':'Úkoly odpovědnosti\nVypíše úkoly zadané u procesů: gestor nebo spolugestor s jeho rolemi, název úkolu, řešitelé s rolemi, termín od–do a stav, seřazené podle kroků a podle pořadí, které jste úkolům nastavili.\nDopad: u „Jeden velký list“ přibude samostatná stránka s úkoly, u dělení po fázích se tabulka přidá pod schéma a zmenší jeho měřítko. Výchozí stav je vypnuto.',
  'mex.links':'Seznam vazeb\nPod schématem se vypíšou vazby vedoucí mimo fázi, včetně předmětu a popisu.\nDopad: přibude samostatný list nebo blok s tabulkou vazeb.'
 };
 /* Tlačítka podle id nebo volané funkce (a prvního argumentu) */
@@ -8724,7 +8800,7 @@ function impactRender(){
   host.innerHTML=rows.length?rows.map(it=>{
     const r=impacts.open[it.key]||{};
     return `<div class="imp-item ${it.sev}"><div class="imp-top"><span class="imp-sev ${it.sev}">${IMPACT_SEV[it.sev][0]}</span><b>${esc(it.title)}</b>
-      <button class="btn primary sm" onclick="impactGo('${esc(it.key).replace(/'/g,"\\'")}')">Přejít a opravit ›</button></div>
+      <button class="btn primary sm" data-tip="Přejít a opravit\nOtevře koncept nebo mapu, vybere dotčený proces, přepne na správnou kartu a zvýrazní místo k opravě. Po opravě položka z otevřených sama zmizí." onclick="impactGo('${esc(it.key).replace(/'/g,"\\'")}')">Přejít a opravit ›</button></div>
       <div class="imp-det">${esc(it.detail)}</div>
       <div class="imp-meta">Kde: ${esc(it.where)} · ${esc(impactScope(it.scope))} · příčina: ${esc(r.cause||'—')} · vznik ${esc(impactFmtTime(r.since))}${r.by?' · '+esc(r.by):''}</div></div>`}).join('')
     :`<div class="pm-hint" style="padding:18px 4px">${IMPACT.last.length?'Filtru neodpovídá žádná položka.':'Žádné otevřené dopady — vše je v pořádku.'}</div>`;
