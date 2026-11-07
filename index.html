@@ -93,7 +93,7 @@ body::before{content:'';position:fixed;inset:0;background:
 .app{display:none;grid-template-columns:236px 1fr;min-height:100vh;position:relative;z-index:1}
 body.in-app #landing{display:none}
 body.in-app .app{display:grid}
-.sidebar{position:sticky;top:0;height:100vh;background:var(--bg2);border-right:1px solid var(--border);padding:22px 14px;display:flex;flex-direction:column;gap:4px}
+.sidebar{position:sticky;top:0;height:100vh;height:100dvh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--bg2);border-right:1px solid var(--border);padding:22px 14px;display:flex;flex-direction:column;gap:4px}
 .logo{display:flex;align-items:center;gap:10px;padding:4px 10px 22px}
 #landing .logo{padding:0}
 .logo-badge{background:#fff;border-radius:8px;padding:7px 11px;display:flex;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.28);flex:none}
@@ -484,8 +484,10 @@ body.editing #exec-name:hover{color:var(--accent)}
 @media(max-width:1240px){.kpis{grid-template-columns:repeat(3,1fr)}.board{grid-template-columns:repeat(5,262px)}.ai-layout{grid-template-columns:1fr}.ai-input{position:static}.delta-cards{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:900px){
   .app{grid-template-columns:1fr}
-  .sidebar{position:fixed;z-index:90;width:250px;transform:translateX(-100%);transition:transform .3s}
+  /* na telefonu: výška podle viditelné plochy (ne pod lištou prohlížeče), panel se dá posouvat až dolů */
+  .sidebar{position:fixed;top:0;bottom:0;left:0;z-index:90;width:250px;height:100vh;height:100dvh;max-height:100dvh;overflow-y:auto;padding-bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-100%);transition:transform .3s}
   .sidebar.open{transform:none}
+  .sidebar>*{flex-shrink:0}
   .burger{display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--border);border-radius:8px;background:var(--panel);color:var(--text2);cursor:pointer}
   .view{padding:20px 16px 70px}
   .topbar{padding:12px 16px}
