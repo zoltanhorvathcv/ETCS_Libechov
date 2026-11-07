@@ -399,6 +399,17 @@ body.pm-tdrag,body.pm-tdrag *{cursor:grabbing!important;user-select:none}
 .rchip.as.warn{border-color:rgba(255,138,92,.8);background:rgba(255,138,92,.08)}
 .rchip.as .rpbtn{padding:0 6px;font-size:10px}
 .pm-tas .as-add{width:auto;max-width:150px;font-size:11px;padding:3px 5px}
+.imp-item{border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin:0 0 10px;background:rgba(255,255,255,.02)}
+.imp-item.error{border-left:3px solid #ff5c6a}.imp-item.warn{border-left:3px solid #ffb020}.imp-item.info{border-left:3px solid #5cc6f5}.imp-item.done{opacity:.75;border-left:3px solid #3ddc97}
+.imp-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.imp-top b{flex:1;min-width:200px;font-size:13.5px}
+.imp-sev{font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:2px 8px;border-radius:999px}
+.imp-sev.error{background:rgba(255,92,106,.15);color:#ff7a86}.imp-sev.warn{background:rgba(255,176,32,.15);color:#ffb020}.imp-sev.info{background:rgba(92,198,245,.15);color:#5cc6f5}
+.imp-det{font-size:12.5px;color:var(--text2);margin:6px 0 4px;line-height:1.5}
+.imp-meta{font-size:11px;color:var(--text3);line-height:1.5}
+.nav-item .count.hot{background:#ff5c6a;color:#fff}
+.imp-pill{color:#ffb020!important;border-color:rgba(255,176,32,.5)!important}
+.imp-flash{animation:impflash 2.2s ease-out}
+@keyframes impflash{0%,40%{outline:3px solid var(--accent);outline-offset:2px;background:rgba(255,82,0,.12)}100%{outline:3px solid transparent;outline-offset:2px}}
 .pm-tgrp.bad{border-color:rgba(255,138,92,.6)}
 .pm-tgrp-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;font-size:12.5px}
 .pm-tresp{font-size:11px;color:var(--text3)}
@@ -1067,6 +1078,7 @@ body.pm-ribdrag{cursor:row-resize;user-select:none}
   <div class="nav-item" data-view="issues"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 114.1 1.9c-.8.7-1.6 1.2-1.6 2.3M12 17h.01"/></svg>Log otázek<span class="count" id="nav-iss">5</span></div>
   <div class="nav-item" data-view="changes"><svg viewBox="0 0 24 24"><path d="M12 8v4l3 2M21 12a9 9 0 11-9-9c2.5 0 4.8 1 6.4 2.7L21 8"/><path d="M21 3v5h-5"/></svg>Co se změnilo<span class="count" id="nav-chg">7</span></div>
   <div class="nav-label">Systém</div>
+  <div class="nav-item" data-view="impact"><svg viewBox="0 0 24 24"><path d="M12 3l9 16H3L12 3zM12 10v4M12 17h.01"/></svg>Dopady změn<span class="count" id="nav-imp" style="display:none">0</span></div>
   <div class="nav-item" data-view="model"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8 7.5l2.5 8M16 7.5l-2.5 8M8.5 6h7"/></svg>Datový model</div>
   <div class="sidebar-foot">
     <span class="back-link" onclick="exitApp()">← Zpět na úvodní stránku</span>
@@ -1281,6 +1293,17 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
   </section>
 
   <!-- ================= DATOVÝ MODEL ================= -->
+  <section class="view" id="view-impact">
+    <div class="section-title" style="margin-top:0"><h2>Dopady změn</h2><span>problémy, které vznikly po smazání, přesunu nebo změně — počítají se z aktuálních dat a po opravě samy zmizí</span></div>
+    <div class="dm-tabs" id="imp-tabs">
+      <button class="on" data-t="open" onclick="impactTab('open')">Otevřené (<span id="imp-n-open">0</span>)</button>
+      <button data-t="done" onclick="impactTab('done')">Vyřešeno (<span id="imp-n-done">0</span>)</button>
+      <select id="imp-sev" class="pm-sel" onchange="impactRender()" style="margin-left:auto"><option value="all">Všechny závažnosti</option><option value="error">Chyby</option><option value="warn">Upozornění</option><option value="info">Informace</option></select>
+      <select id="imp-scope" class="pm-sel" onchange="impactRender()"><option value="all">Všechny koncepty a mapa</option></select>
+    </div>
+    <div class="card" style="padding:14px 18px"><div id="imp-list"></div></div>
+  </section>
+
   <section class="view" id="view-model">
     <div class="section-title" style="margin-top:0"><h2>Konceptuální datový model</h2><span>ověřeno proti kódu a datům aplikace · rozdělen do samostatných diagramů</span></div>
     <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -2046,9 +2069,10 @@ function renderLandStats(){
 }
 
 /* ================= NAV ================= */
-const viewNames={overview:'Přehled',board:'Milníková nástěnka',meetings:'Schůzky',ai:'AI analytik',pmap:'Procesní mapa',decisions:'Log rozhodnutí',issues:'Log otázek',changes:'Co se změnilo',model:'Datový model'};
+const viewNames={overview:'Přehled',board:'Milníková nástěnka',meetings:'Schůzky',ai:'AI analytik',pmap:'Procesní mapa',impact:'Dopady změn',decisions:'Log rozhodnutí',issues:'Log otázek',changes:'Co se změnilo',model:'Datový model'};
 function go(v){
   if(v==='pmap'){PM.gallery=true;PM.sel=[];setTimeout(()=>{pmFitHeight();renderPMap()},30)}
+  if(v==='impact'){setTimeout(()=>{impactSync()},0)}
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===v));
   document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id==='view-'+v));
   $('#crumb-view').textContent=viewNames[v];
@@ -2715,6 +2739,7 @@ function hydrate(rows){
   if(by.units&&by.units[0])orgUnits=by.units[0];
   if(by.staff&&by.staff[0])staff=by.staff[0];
   if(by.roles&&by.roles[0])roles=by.roles[0];
+  if(by.impact&&by.impact[0])impacts=Object.assign({init:false,open:{},done:[]},by.impact[0]);
   if(by.milestone)milestones=by.milestone; if(by.meeting)meetings=by.meeting;
   if(by.question)questions=by.question; if(by.decision)decisions=by.decision;
   if(by.task)tasks=by.task; if(by.risk)risks=by.risk; if(by.evidence)evidence=by.evidence;
@@ -2728,7 +2753,8 @@ async function persistAll(){
   const rows=[rowFor('project',project,0),rowFor('people',people,0),
     {project_id:SUPA.projectId,entity:'units',id:'meta',sort:0,data:orgUnits},
     {project_id:SUPA.projectId,entity:'staff',id:'meta',sort:0,data:staff},
-    {project_id:SUPA.projectId,entity:'roles',id:'meta',sort:0,data:roles}];
+    {project_id:SUPA.projectId,entity:'roles',id:'meta',sort:0,data:roles},
+    {project_id:SUPA.projectId,entity:'impact',id:'meta',sort:0,data:impacts}];
   [['milestone',milestones],['meeting',meetings],['question',questions],['decision',decisions],['task',tasks],['risk',risks],['evidence',evidence],['concept',concepts],['process',processes],['pmgroup',pmgroups]]
     .forEach(([e,arr])=>arr.forEach((o,i)=>rows.push(rowFor(e,o,i))));
   // people uložíme jako celý objekt pod jedním id
@@ -2748,8 +2774,8 @@ async function persistMeta(){ if(ONLINE)try{await sb.from('pi_entities').upsert(
 /* ================= AUTH (veřejné čtení / zápis jen správce) ================= */
 let AUTH=false;
 async function refreshAuth(){
-  if(sb){try{const {data}=await sb.auth.getSession();AUTH=!!(data&&data.session)}catch(e){AUTH=false}}else AUTH=false;
-  applyAuthUI(); syncTip();
+  if(sb){try{const {data}=await sb.auth.getSession();AUTH=!!(data&&data.session);IMPACT.user=AUTH?(((data.session||{}).user||{}).email||''):''}catch(e){AUTH=false}}else AUTH=false;
+  applyAuthUI(); syncTip(); impactSoon();
   if(AUTH&&typeof pmSeedTemplate==='function')pmSeedTemplate();
 }
 function applyAuthUI(){
@@ -4927,6 +4953,7 @@ function pmRenderRibbon(host,p){
       ${PM_TABS.map(t=>`<button class="${t.id===PM.tab?'on':''}" title="Dvojklik na aktivní kartu pás sbalí" onclick="pmRibTab('${t.id}')" ondblclick="pmRibCollapse()">${t.l}</button>`).join('')}
       <span class="rmeta">
         <span class="code">${p.id}</span><b title="${escXml(p.name)}">${escXml(p.name)}</b>${chip(p.status)}
+        ${impactCountFor(p.id)?`<button class="btn ghost sm imp-pill" data-tip="Dopady změn\nU tohoto procesu jsou otevřené dopady (${impactCountFor(p.id)}). Kliknutím otevřete seznam dopadů." onclick="go('impact')">⚠ ${impactCountFor(p.id)}</button>`:''}
         ${pmDepth(p)<PM_MAX_DEPTH-1?`<button class="btn ghost sm" title="Založit podproces pod tímto procesem" onclick="pmNewSub('${p.id}')">＋ Podproces</button>`:''}
         ${PM.mode==='map'&&p.state!=='potvrzeny'?`<button class="btn primary sm" title="Označit termíny a vazby za potvrzené" onclick="pmConfirm('${p.id}')">Potvrdit</button>`:''}
         ${p.parent?`<button class="btn ghost sm" title="Přidat proces, který běží souběžně s tímto, ve stejném streamu — stejný začátek i konec" onclick="pmAddParallel('${p.id}')">＋ Paralelně</button>`:''}
@@ -8587,6 +8614,160 @@ document.addEventListener('pointerdown',e=>{
   pmRpPopHide();
 },true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&RPOP.el&&RPOP.el.style.display==='block'){pmRpPopHide();e.stopPropagation()}},true);
+
+/* ================= DOPADY ZMĚN =================
+   Seznam problémů se počítá vždy znovu z aktuálních dat (proto sám zmizí, jakmile
+   se problém napraví jakýmkoli způsobem). Ke každé položce se uloží příčina, čas
+   vzniku a kdo změnu provedl; vyřešené položky zůstanou v historii. */
+let impacts={init:false,open:{},done:[]};
+const IMPACT={cause:'',t:0,user:'',last:[],timer:0,tab:'open'};
+const IMPACT_SEV={error:['Chyba',1],warn:['Upozornění',2],info:['Informace',3]};
+const impactCauseNow=()=>(Date.now()-IMPACT.t<8000&&IMPACT.cause)?IMPACT.cause:'';
+function impactScope(sc){
+  if(sc==='map')return 'Procesní mapa';
+  const c=concepts.find(x=>'concept:'+x.id===sc); return c?('Koncept „'+c.name+'“'):sc;
+}
+function impactScan(){
+  const out=[], all=processes;
+  const byId=new Map(all.map(p=>[p.id,p]));
+  const numsByScope={};
+  all.forEach(p=>{(numsByScope[p.scope]=numsByScope[p.scope]||new Set()).add(pmNumOf(p))});
+  const actorOk=c=>!c||(actorIsUnit(c)?!!orgUnits[String(c).slice(1)]:!!people[c]);
+  const label=p=>(pmNumLabel(p)?pmNumLabel(p)+' ':'')+(pmNameOf(p)||'(bez názvu)');
+  const fmt=d=>d?pmCz(d):'…';
+  const push=(p,o)=>out.push(Object.assign({scope:p.scope,pid:p.id,where:label(p)},o,{key:o.kind+'|'+p.id+'|'+(o.extra||'')}));
+  const roleOk=id=>!!roles[id];
+  const numRe=/(^|[^\w.\/-])(\d+(?:\.\d+)+)(?![\d\w])/g;
+  all.forEach(p=>{
+    if(p.parent&&!byId.has(p.parent))push(p,{kind:'parent-missing',sev:'error',tab:'cas',title:'Nadřazený proces neexistuje',detail:'Proces odkazuje na nadřazený proces, který už není. Vyberte nový nadřazený proces.'});
+    [...(p.msStart||[]),...(p.msEnd||[])].forEach(m=>{if(!milestones.some(x=>x.id===m))push(p,{kind:'ms-missing',sev:'error',tab:'milniky',extra:m,title:`Odkaz na neexistující milník ${m}`,detail:'Milník byl smazán. Odeberte ho z procesu nebo vyberte jiný.'})});
+    const chk=(code,role,extra)=>{if(code&&!actorOk(code))push(p,{kind:'actor-missing',sev:'error',tab:'lide',extra:role+code+(extra||''),title:`Neexistující ${role} „${String(code).replace(UNIT_PREFIX,'')}“`,detail:'Odkaz na osobu nebo útvar, které už nejsou v seznamu. Vyberte jiného aktéra.'})};
+    chk(p.gestor,'gestor'); (p.cogestors||[]).forEach(r=>chk(r.who,'spolugestor')); (p.affected||[]).forEach(a=>chk(a,'dotčený'));
+    const rl=(ids,kde,extra)=>(ids||[]).forEach(id=>{if(!roleOk(id))push(p,{kind:'role-missing',sev:'error',tab:'lide',extra:kde+id+(extra||''),title:`Přiřazená role „${id}“ neexistuje`,detail:`Role byla smazána, ale zůstala u ${kde}. Vyberte jinou roli.`})});
+    rl(p.gestorRoles,'gestora'); (p.cogestors||[]).forEach(r=>rl(r.roles,'spolugestora',r.who)); Object.keys(p.affRoles||{}).forEach(k=>rl(p.affRoles[k],'dotčeného',k));
+    /* úkoly odpovědnosti */
+    const parties=new Set([p.gestor].concat((p.cogestors||[]).map(r=>r.who)).filter(Boolean));
+    (p.tasks||[]).forEach(t=>{
+      const nm=t.t||'(bez názvu)';
+      if(!parties.has(t.who))push(p,{kind:'task-nogestor',sev:'error',tab:'lide',taskId:t.id,extra:t.id,title:`Úkol „${nm}“ nemá platného gestora`,
+        detail:`Úkol je přiřazen ${t.who?`„${actorName(t.who)}“`:'nikomu'}, ${t.who?'ale ten už u procesu není gestorem ani spolugestorem':'gestor ani spolugestor není vybrán'}. Přiřaďte ho vybranému gestorovi nebo spolugestorovi.`});
+      if(t.start&&t.end&&t.end<t.start)push(p,{kind:'task-dates',sev:'error',tab:'lide',taskId:t.id,extra:t.id,title:`Úkol „${nm}“ končí před začátkem`,detail:`Termín ${fmt(t.start)} – ${fmt(t.end)}.`});
+      else if((t.start&&p.start&&t.start<p.start)||(t.end&&p.end&&t.end>p.end))push(p,{kind:'task-range',sev:'warn',tab:'lide',taskId:t.id,extra:t.id,title:`Úkol „${nm}“ přesahuje termín procesu`,detail:`Úkol ${fmt(t.start)} – ${fmt(t.end)}, proces ${fmt(p.start)} – ${fmt(p.end)}.`});
+      const exp=actorIsUnit(t.who)?String(t.who).slice(1):((staff[t.who]||{}).unit||'');
+      (t.assignees||[]).forEach(a=>{
+        chk(a.who,'řešitel',t.id);
+        (a.roles||[]).forEach(id=>{if(!roleOk(id))push(p,{kind:'role-missing',sev:'error',tab:'lide',taskId:t.id,extra:'r'+t.id+a.who+id,title:`Role „${id}“ u řešitele úkolu „${nm}“ neexistuje`,detail:'Role byla smazána. Vyberte jinou roli řešitele.'})});
+        if(!actorIsUnit(a.who)&&actorOk(a.who)&&exp&&((staff[a.who]||{}).unit||'')!==exp)
+          push(p,{kind:'assignee-outside',sev:'warn',tab:'lide',taskId:t.id,extra:t.id+a.who,title:`Řešitel „${actorName(a.who)}“ úkolu „${nm}“ je mimo útvar gestora`,
+            detail:`Gestor: ${orgUnits[exp]?orgUnits[exp].name:exp}; řešitel patří do: ${(orgUnits[(staff[a.who]||{}).unit]||{}).name||'žádného útvaru'}. Je to povolené, jen na to upozorňujeme.`});
+      });
+    });
+    /* texty s čísly procesů, která už nikomu nepatří */
+    const nums=numsByScope[p.scope]||new Set();
+    const scanText=(txt,field,tab)=>{
+      const seen=new Set(); String(txt||'').replace(numRe,(m,a,n)=>{
+        const parts=n.split('.'); if(parts.some(x=>x==='0'||(x.length>1&&x[0]==='0'))||+parts[0]>60||parts.some(x=>x.length>3)||nums.has(n)||seen.has(n))return m;   // 3.6.0 apod. je číslo verze či specifikace, ne proces
+        seen.add(n); push(p,{kind:'num-ref',sev:'info',tab:tab,extra:field+n,title:`Text zmiňuje číslo ${n}, které nepatří žádnému procesu`,
+          detail:`Pole „${field}“: „${String(txt).slice(0,120)}“. Po přečíslování nebo přesunu mohlo číslo zaniknout — zkontrolujte odkaz.`});return m});
+    };
+    scanText(p.desc,'popis','zaklad');
+    (p.links||[]).forEach(l=>{scanText(l.subj,'předmět vazby','vazby');scanText(l.note,'popis vazby','vazby')});
+  });
+  out.sort((a,b)=>IMPACT_SEV[a.sev][1]-IMPACT_SEV[b.sev][1]);
+  return out;
+}
+function impactSync(){
+  IMPACT.timer=0;
+  if(!Array.isArray(impacts.done))impacts.done=[];
+  if(!impacts.open||typeof impacts.open!=='object')impacts.open={};
+  const scan=impactScan(); IMPACT.last=scan;
+  const now=new Date().toISOString(), keys=new Set(scan.map(x=>x.key));
+  let changed=false;
+  const cause=impactCauseNow()||(impacts.init?'úprava dat':'zjištěno při první kontrole');
+  scan.forEach(it=>{
+    const r=impacts.open[it.key];
+    if(!r){impacts.open[it.key]={kind:it.kind,sev:it.sev,since:now,cause:cause,by:IMPACT.user||'',title:it.title,where:it.where,scope:impactScope(it.scope)};changed=true}
+    else if(r.title!==it.title||r.where!==it.where){r.title=it.title;r.where=it.where;r.scope=impactScope(it.scope);changed=true}
+  });
+  Object.keys(impacts.open).forEach(k=>{
+    if(!keys.has(k)){const r=impacts.open[k];impacts.done.unshift(Object.assign({key:k},r,{resolved:now,resolvedBy:IMPACT.user||''}));delete impacts.open[k];changed=true}
+  });
+  if(impacts.done.length>200)impacts.done.length=200;
+  if(!impacts.init){impacts.init=true;changed=true}
+  if(changed&&ONLINE&&AUTH){try{sb.from('pi_entities').upsert({project_id:SUPA.projectId,entity:'impact',id:'meta',sort:0,data:impacts}).then(()=>{},e=>console.warn(e))}catch(e){console.warn(e)}}
+  impactBadge();
+  const v=$('#view-impact'); if(v&&v.classList.contains('active'))impactRender();
+}
+function impactSoon(){if(IMPACT.timer)return;IMPACT.timer=setTimeout(impactSync,600)}
+function impactBadge(){
+  const n=IMPACT.last.length, b=$('#nav-imp'); if(!b)return;
+  b.textContent=n; b.style.display=n?'':'none';
+  b.classList.toggle('hot',IMPACT.last.some(x=>x.sev==='error'));
+}
+const impactCountFor=pid=>IMPACT.last.filter(x=>x.pid===pid).length;
+function impactTab(t){IMPACT.tab=t;impactRender()}
+function impactFmtTime(iso){try{const d=new Date(iso);return d.toLocaleDateString('cs-CZ')+' '+d.toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'})}catch(e){return iso||''}}
+function impactRender(){
+  const host=$('#imp-list'); if(!host)return;
+  const sev=($('#imp-sev')||{}).value||'all', scope=($('#imp-scope')||{}).value||'all';
+  const scopes=[...new Set(IMPACT.last.map(x=>x.scope))];
+  const sc=$('#imp-scope'); if(sc){const cur=sc.value;sc.innerHTML='<option value="all">Všechny koncepty a mapa</option>'+scopes.map(s=>`<option value="${esc(s)}" ${s===cur?'selected':''}>${esc(impactScope(s))}</option>`).join('')}
+  document.querySelectorAll('#imp-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===IMPACT.tab));
+  $('#imp-n-open').textContent=IMPACT.last.length; $('#imp-n-done').textContent=(impacts.done||[]).length;
+  if(IMPACT.tab==='done'){
+    const rows=(impacts.done||[]);
+    host.innerHTML=rows.length?rows.map(r=>`<div class="imp-item done"><div class="imp-top"><span class="chip ok">Vyřešeno</span><b>${esc(r.title||r.key)}</b></div>
+      <div class="imp-meta">Kde: ${esc(r.where||'')} · ${esc(r.scope||'')} · příčina: ${esc(r.cause||'—')} · vznik ${esc(impactFmtTime(r.since))} · vyřešeno ${esc(impactFmtTime(r.resolved))}${r.resolvedBy?' · '+esc(r.resolvedBy):''}</div></div>`).join(''):'<div class="pm-hint">Zatím nic vyřešeno.</div>';
+    return;
+  }
+  const rows=IMPACT.last.filter(x=>(sev==='all'||x.sev===sev)&&(scope==='all'||x.scope===scope));
+  host.innerHTML=rows.length?rows.map(it=>{
+    const r=impacts.open[it.key]||{};
+    return `<div class="imp-item ${it.sev}"><div class="imp-top"><span class="imp-sev ${it.sev}">${IMPACT_SEV[it.sev][0]}</span><b>${esc(it.title)}</b>
+      <button class="btn primary sm" onclick="impactGo('${esc(it.key).replace(/'/g,"\\'")}')">Přejít a opravit ›</button></div>
+      <div class="imp-det">${esc(it.detail)}</div>
+      <div class="imp-meta">Kde: ${esc(it.where)} · ${esc(impactScope(it.scope))} · příčina: ${esc(r.cause||'—')} · vznik ${esc(impactFmtTime(r.since))}${r.by?' · '+esc(r.by):''}</div></div>`}).join('')
+    :`<div class="pm-hint" style="padding:18px 4px">${IMPACT.last.length?'Filtru neodpovídá žádná položka.':'Žádné otevřené dopady — vše je v pořádku.'}</div>`;
+}
+function impactGo(key){
+  const it=IMPACT.last.find(x=>x.key===key); if(!it){toast('Položka už neplatí');impactRender();return}
+  if(AUTH&&!editMode)setEdit(true);
+  go('pmap');
+  if(it.scope==='map')pmOpenMap(); else pmOpenConcept(it.scope.replace('concept:',''));
+  PM.sel=[it.pid]; PM.tab=it.tab||'zaklad';
+  setTimeout(()=>{
+    renderPMap();
+    setTimeout(()=>{
+      let el=null; const insp=$('#pm-inspector');
+      if(it.taskId){const p=pmById(it.pid),i=p?(p.tasks||[]).findIndex(t=>t.id===it.taskId):-1;if(i>-1)el=insp.querySelector(`.pm-task[data-i="${i}"]`)}
+      if(!el)el=insp.querySelector('.pm-rib-body')||insp;
+      if(el){el.scrollIntoView({block:'center',behavior:'smooth'});el.classList.add('imp-flash');setTimeout(()=>el.classList.remove('imp-flash'),2400)}
+    },120);
+  },60);
+}
+/* Příčina: krátce před změnou se zapíše, co uživatel dělá */
+function impactWrap(name,fn){
+  const o=window[name]; if(typeof o!=='function')return;
+  window[name]=function(){try{const c=fn.apply(null,arguments);if(c){IMPACT.cause=c;IMPACT.t=Date.now()}}catch(e){} return o.apply(this,arguments)};
+}
+(function(){
+  const pn=id=>{const p=pmById(id);return p?((pmNumLabel(p)?pmNumLabel(p)+' ':'')+pmNameOf(p)):id};
+  impactWrap('pmRpDelete',id=>`smazána role „${roleName(id)}“`);
+  impactWrap('pplRoleDelete',id=>`smazána role „${PPL&&PPL.roles[id]?PPL.roles[id].name:id}“`);
+  impactWrap('pplRemove',c=>`odebrána osoba ${actorName(c)}`);
+  impactWrap('pplRemoveUnit',u=>`odebrán útvar ${(orgUnits[u]||{}).name||u}`);
+  impactWrap('personReplace',c=>`osoba nebo útvar ${actorName(c)} nahrazen či odebrán`);
+  impactWrap('pmMoveStreamTo',id=>`přesun streamu ${pn(id)}`);
+  impactWrap('pmDeleteProcess',id=>`smazán proces ${pn(id)}`);
+  impactWrap('pmDeleteStream',id=>`smazán stream ${pn(id)}`);
+  impactWrap('pmDeleteSelected',()=>'smazány vybrané procesy');
+  impactWrap('pmRibSet',(k)=>{const p=pmById(pmPrimary());const t={gestor:'změna gestora',parent:'změna nadřazeného procesu',start:'změna začátku',end:'změna konce'}[k];return t&&p?`${t} u procesu ${pn(p.id)}`:null});
+  impactWrap('pmPersonPick',(sel,key)=>{const p=subCtx&&subCtx.obj;return p?`změna ${key==='cogestors'?'spolugestora':'dotčené osoby'} u procesu ${pn(p.id)}`:null});
+  impactWrap('pmTaskAssDel',()=>'odebrán řešitel úkolu');
+  /* kontrola po každém překreslení mapy a po změně číselníků */
+  const rp=window.renderPMap; window.renderPMap=function(){const r=rp.apply(this,arguments);impactSoon();return r};
+  const pm=window.persistMeta; window.persistMeta=function(){const r=pm.apply(this,arguments);impactSoon();return r};
+})();
 
 /* ================= SKRYTÍ PANELŮ ================= */
 (function(){
