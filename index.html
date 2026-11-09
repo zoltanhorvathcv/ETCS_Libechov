@@ -3533,20 +3533,22 @@ function pmVLayout(list,availW){
   const boxLanes=new Set(), bandLanes=new Set();
   list.forEach(p=>(isBand[p.id]?bandLanes:boxLanes).add(p.lane||0));
   const lanes=list.map(p=>p.lane||0);
+  const NEST=pmNestOn(), nplan=NEST?pmNestPlan(list,kidsOf):null;
   const foc=!!PM.focus&&!PM.print&&lanes.length>0;      // při proklikem do procesu se prázdné sloupce ostatních streamů vynechají
   const minL=foc?Math.min(...lanes):Math.min(0,...lanes), maxL=foc?Math.max(...lanes):Math.max(0,...lanes);
   const cols=[];
-  for(let l=minL;l<=maxL;l++)if(boxLanes.has(l)||!bandLanes.has(l))cols.push(l);
+  if(NEST){for(let i=0;i<nplan.total;i++)cols.push(i)}
+  else for(let l=minL;l<=maxL;l++)if(boxLanes.has(l)||!bandLanes.has(l))cols.push(l);
   const content=cols.length;
   const colX=i=>PMV_RAIL+PMV_PADX+i*pitch;
   /* zásoba prázdných sloupců vpravo — aby šlo táhnout a zakládat do volna */
   let spare=0;
   if(!PM.print)spare=Math.max(2,Math.ceil(((availW||0)-colX(content))/pitch)+1)+(PM.extra||0);
-  let nx=Math.max(maxL,content?cols[content-1]:maxL);
+  let nx=NEST?(content?cols[content-1]:-1):Math.max(maxL,content?cols[content-1]:maxL);
   for(let i=0;i<spare;i++)cols.push(++nx);
   const idxOf={}; cols.forEach((l,i)=>idxOf[l]=i);
   const desc=id=>{const out=[];const w=i=>(kidsOf[i]||[]).forEach(k=>{out.push(k);w(k.id)});w(id);return out};
-  const bands=list.filter(p=>isBand[p.id]).map(r=>{
+  const bands=NEST?nplan.bands.map(x=>({p:x.p,c0:x.c0,c1:x.c1})):list.filter(p=>isBand[p.id]).map(r=>{
     const ix=desc(r.id).filter(k=>!isBand[k.id]).map(k=>idxOf[k.lane||0]).filter(i=>i!=null);
     return ix.length?{p:r,c0:Math.min(...ix),c1:Math.max(...ix)}:null;
   }).filter(Boolean).sort((a,b)=>a.c0-b.c0||b.c1-a.c1);
@@ -3582,7 +3584,7 @@ function pmVLayout(list,availW){
   });
   const head=nrow?(man?headH:Math.round(rowY[nrow-1]+rowH[nrow-1]+10)):30;
   const laneX=l=>{let i=idxOf[l];if(i==null){i=cols.findIndex(c=>c>l);if(i<0)i=cols.length}return colX(i)};
-  return {cols,content,colW,gap,pitch,head,headAuto:nrow?Math.round(autoHead-0):30,bands,bandOf,isBand,idxOf,colX,laneX,W:colX(cols.length)+PMV_PADX};
+  return {nest:nplan,cols,content,colW,gap,pitch,head,headAuto:nrow?Math.round(autoHead-0):30,bands,bandOf,isBand,idxOf,colX,laneX,W:colX(cols.length)+PMV_PADX};
 }
 /* ručně nastavená výška záhlaví streamů — u konceptu na konceptu, v mapě v projektu */
 function pmHeadManual(){
@@ -3671,8 +3673,7 @@ function pmRenderV(host,list,SK,rBefore){
   ${PM.print?`<rect width="${W}" height="${H}" fill="#fff"/>`:''}${pmDefsSVG(SK)}`;
 
   /* sloupce, pásy fází a časová mřížka */
-  /* v odsazeném stromu stojí podprocesy v dílčích sloupcích uvnitř rodiče, ne v pruzích osy — střídavé pruhy by neseděly */
-  if(!PM._nest)L.cols.forEach((l,i)=>{if(i%2)s+=`<rect x="${L.colX(i)-L.gap/2}" y="${L.head}" width="${L.pitch}" height="${H-L.head}" fill="${SK.lane}"/>`});
+  L.cols.forEach((l,i)=>{if(i%2)s+=`<rect x="${L.colX(i)-L.gap/2}" y="${L.head}" width="${L.pitch}" height="${H-L.head}" fill="${SK.lane}"/>`});
   L.bands.forEach(bd=>{
     const col=pmTone(pmColorOf(bd.p)||'#8b97b1');
     const x0=L.colX(bd.c0)-L.gap/2+2, x1=L.colX(bd.c1)+L.colW+L.gap/2-2;
@@ -5446,10 +5447,15 @@ function pmTasksToSubs(id){
     o.lane=V?pmLaneInStream(root,start,end,null,o):pmFreeLane((p.lane||0)+1,start,end);
     persist('process',o,processes.length-1);
   });
-  p.tasks=(p.tasks||[]).filter(t=>!T.includes(t)); p.collapsed=false; pmQueue(p);
+  p.tasks=(p.tasks||[]).filter(t=>!T.includes(t)); p.collapsed=false;
+  /* nadřazený proces musí obsáhnout své podprocesy — úkoly mohly mít termíny mimo jeho původní termín */
+  let ext=false; const mn=made.reduce((m,k)=>k.start<m?k.start:m,p.start), mx=made.reduce((m,k)=>k.end>m?k.end:m,p.end);
+  if(mn<p.start){p.start=mn;ext=true} if(mx>p.end){p.end=mx;ext=true}
+  if(ext)pmSyncMilestones(p);
+  pmQueue(p);
   pmFitRoot(root); pmRenumberScope(p.scope); pmFlush();
   PM.sel=[p.id]; renderPMap();
-  toast(`Vytvořeno ${made.length} podprocesů pod „${pmNameOf(p)}“`);
+  toast(`Vytvořeno ${made.length} podprocesů pod „${pmNameOf(p)}“`+(ext?` — termín procesu se roztáhl na ${pmCz(p.start)} → ${pmCz(p.end)}, aby je obsáhl`:''));
 }
 function pmPlaceSub(parId,at,fromBtn){
   const par=pmById(parId); if(!par)return;
@@ -9162,22 +9168,21 @@ function impactWrap(name,fn){
 const PMV_INDENT=14;
 const pmViewMode=()=>PM.mode==='map'?(project.mapView||''):((pmConcept()||{}).view||'');
 const pmNestOn=()=>!PM.gallery&&pmViewMode()==='nest'&&pmVert();
-function pmNestCompute(list,L,b){
-  const px=pmPx(), rz=PM.rowZoom||1, top=L.head+PMV_TOP;
-  const Y=ms=>top+(ms-b.t0)/PMDAY*px;
-  const minH=Math.max(12,24*Math.min(1,rz));
-  const kids={}; list.forEach(p=>{if(p.parent)(kids[p.parent]=kids[p.parent]||[]).push(p)});
-  const ext={};
+/* Plán sloupců: každý box zabírá celé sloupce plátna. Podprocesy souběžné v čase stojí ve vlastních
+   sloupcích uvnitř rodiče (rodič se rozšíří přes tolik sloupců, kolik jich potřebuje); podprocesy
+   jdoucí po sobě sdílejí tentýž sloupec. Streamy pak vyplní jen sloupce, které opravdu potřebují. */
+function pmNestPlan(list,kidsOf){
+  const ext={}, plan={nodes:{},bands:[],total:0};
   const calc=p=>{
     let a=pmD(p.start), e=pmD(p.end);
-    (kids[p.id]||[]).forEach(k=>{const r=calc(k);a=Math.min(a,r[0]);e=Math.max(e,r[1])});
-    ext[p.id]=[a,e]; return ext[p.id];
+    (kidsOf[p.id]||[]).forEach(k=>{const r=calc(k);a=Math.min(a,r[0]);e=Math.max(e,r[1])});
+    return ext[p.id]=[a,e];
   };
-  const out={};
-  const place=(nodes,x,w)=>{
+  const spanOf={}, relOf={};
+  /* vrací šířku (ve sloupcích) skupiny sourozenců a jejich posun uvnitř rodiče */
+  const lay=nodes=>{
     const ns=nodes.slice().sort((p,q)=>ext[p.id][0]-ext[q.id][0]||pmNumCmp(p,q));
-    /* shluky vzájemně se překrývajících sourozenců → sloupce uvnitř shluku */
-    let i=0;
+    let total=0, i=0;
     while(i<ns.length){
       let j=i, end=ext[ns[i].id][1];
       while(j+1<ns.length&&ext[ns[j+1].id][0]<end){j++;end=Math.max(end,ext[ns[j].id][1])}
@@ -9187,20 +9192,45 @@ function pmNestCompute(list,L,b){
         if(c<0){c=colEnd.length;colEnd.push(0)}
         colEnd[c]=ext[n.id][1]; colOf[n.id]=c;
       });
-      const nc=colEnd.length, cw=Math.max(56,w/nc);
-      grp.forEach(n=>{
-        const nx=x+colOf[n.id]*cw, nw=cw-(nc>1?4:0);
-        const [a,e]=ext[n.id], ks=kids[n.id]||[];
-        out[n.id]={x:nx,y:Y(a),w:nw,h:Math.max(minH,(e-a)/PMDAY*px),container:ks.length>0};
-        if(ks.length)place(ks,nx+PMV_INDENT,nw-PMV_INDENT-5);
-      });
+      const w=colEnd.map(()=>1);
+      grp.forEach(n=>{spanOf[n.id]=measure(n);w[colOf[n.id]]=Math.max(w[colOf[n.id]],spanOf[n.id])});
+      const off=[]; let acc=0; w.forEach((x,c)=>{off[c]=acc;acc+=x});
+      grp.forEach(n=>{relOf[n.id]=off[colOf[n.id]]});
+      total=Math.max(total,acc);
       i=j+1;
     }
+    return total;
   };
-  L.bands.forEach(bd=>{
-    const x0=L.colX(bd.c0), w0=L.colX(bd.c1)+L.colW-x0, ks=kids[bd.p.id]||[];
-    ks.forEach(k=>calc(k));
-    if(ks.length)place(ks,x0,w0);
+  const measure=n=>{const ks=kidsOf[n.id]||[];return ks.length?Math.max(1,lay(ks)):1};
+  const roots=list.filter(p=>!p.parent).sort((a,b)=>(a.lane||0)-(b.lane||0)||pmD(a.start)-pmD(b.start));
+  roots.forEach(r=>calc(r));
+  let col=0;
+  const put=(n,i0,L)=>{
+    const ks=kidsOf[n.id]||[];
+    plan.nodes[n.id]={i:i0,k:spanOf[n.id]||1,L,a:ext[n.id][0],e:ext[n.id][1],container:ks.length>0};
+    ks.forEach(k=>put(k,i0+(relOf[k.id]||0),L+1));
+  };
+  roots.forEach(r=>{
+    const ks=kidsOf[r.id]||[];
+    if(ks.length){
+      const k=Math.max(1,lay(ks));
+      plan.bands.push({p:r,c0:col,c1:col+k-1});
+      ks.forEach(c=>put(c,col+(relOf[c.id]||0),0));
+      col+=k;
+    }else{
+      spanOf[r.id]=1; put(r,col,0); col++;
+    }
+  });
+  plan.total=col;
+  return plan;
+}
+function pmNestCompute(list,L,b){
+  const px=pmPx(), rz=PM.rowZoom||1, top=L.head+PMV_TOP;
+  const minH=Math.max(12,24*Math.min(1,rz));
+  const out={}, pl=L.nest; if(!pl)return out;
+  Object.keys(pl.nodes).forEach(id=>{
+    const n=pl.nodes[id], ind=n.L*PMV_INDENT, x=L.colX(n.i)+ind;
+    out[id]={x,y:top+(n.a-b.t0)/PMDAY*px,w:Math.max(24,n.k*L.pitch-L.gap-ind-(n.L?5:0)),h:Math.max(minH,(n.e-n.a)/PMDAY*px),container:n.container};
   });
   return out;
 }
