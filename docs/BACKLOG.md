@@ -1,6 +1,8 @@
 # Backlog — funkce k dokončení v budoucnu
 
 ## Přílohy k procesům a podprocesům
+
+> **Aktualizace:** po zavedení entity Výstup (🡒 karta Výstupy, okno 📦 Výstupy) patří soubory přirozeně k **výstupu**, ne k procesu. Při realizaci se karta Přílohy a symbol 📎 přesunou z procesu na výstup (zafixované verze v mapě se vážou na mapový výstup se `srcId`).
 - **Stav:** odloženo, nic není v aplikaci implementováno.
 - **Cíl:** k procesu a podprocesu přidat libovolný soubor s popisem, verzováním a možností přidružit více příloh do sady (popis sady platí pro všechny soubory v ní, každý soubor se verzuje samostatně).
 - **Podklady:**

@@ -1062,6 +1062,8 @@ body.pm-ribdrag{cursor:row-resize;user-select:none}
       <input type="checkbox" id="mex-links" onchange="pmMapPreview()" style="width:auto"> Pod schématem vypsat vazby vedoucí mimo fázi <span data-help="mex.links"></span></label>
     <label style="display:flex;align-items:center;gap:9px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text2);margin-top:8px">
       <input type="checkbox" id="mex-tasks" onchange="pmMapPreview()" style="width:auto"> Vypsat úkoly odpovědnosti (řešitel, termín od–do, stav) <span data-help="mex.tasks"></span></label>
+    <label style="display:flex;align-items:center;gap:9px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text2);margin-top:8px">
+      <input type="checkbox" id="mex-outputs" onchange="pmMapPreview()" style="width:auto"> Vypsat výstupy (tvůrci, spotřebitelé, termín, stav) <span data-help="mex.outputs"></span></label>
     <div class="mex-info" id="mex-info"></div>
     <div class="m-actions">
       <button class="btn ghost" onclick="closeMapExp()">Zrušit</button>
@@ -1451,7 +1453,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
 
     <!-- 2) Procesní mapa -->
     <div class="dm-panel" id="dm-pm">
-      <div class="card dm-wrap"><svg class="dm-svg" viewBox="0 0 900 400" xmlns="http://www.w3.org/2000/svg">
+      <div class="card dm-wrap"><svg class="dm-svg" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
         <rect class="ent ent-pm" x="40" y="60" width="170" height="60" rx="10" fill="url(#gC)"/><text class="et" x="54" y="82">Varianta konceptu</text><text class="ef" x="54" y="98">název · osa · T0</text><text class="ef" x="54" y="110">zdroj mapy · orientace</text>
         <rect class="ent ent-pm" x="290" y="60" width="200" height="60" rx="10" fill="url(#gC)"/><text class="et" x="304" y="82">Proces</text><text class="ef" x="304" y="98">název · termín · pruh · stav</text><text class="ef" x="304" y="110">zralost · barva · popis</text>
         <rect class="ent ent-pm" x="560" y="60" width="130" height="60" rx="10"/><text class="et" x="574" y="82">Rámeček</text><text class="ef" x="574" y="98">název · barva</text><text class="ef" x="574" y="110">členové (procesy)</text>
@@ -1464,16 +1466,20 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
         <rect class="ent ent-pm" x="270" y="174" width="160" height="60" rx="10"/><text class="et" x="284" y="196">Vazba (v procesu)</text><text class="ef" x="284" y="212">typ FS/SS/FF · prodleva · ↔</text><text class="ef" x="284" y="224">předmět · popis</text>
         <rect class="ent ent-pm" x="470" y="174" width="170" height="60" rx="10"/><text class="et" x="484" y="196">Úkol odpovědnosti</text><text class="ef" x="484" y="212">název · od–do · stav</text><text class="ef" x="484" y="224">součást procesu (tasks)</text>
         <rect class="ent" x="680" y="174" width="190" height="60" rx="10"/><text class="et" x="694" y="196">Osoba / útvar</text><text class="ef" x="694" y="212">gestor · spolugestoři</text><text class="ef" x="694" y="224">dotčení</text>
-        <rect class="ent ent-dash" x="270" y="262" width="200" height="50" rx="10"/><text class="et et-dim" x="284" y="282">Příloha (plánováno)</text><text class="ef" x="284" y="298">soubor · verze · sada — BACKLOG</text>
+        <rect class="ent ent-dash" x="520" y="262" width="230" height="50" rx="10"/><text class="et et-dim" x="534" y="282">Příloha (plánováno)</text><text class="ef" x="534" y="298">soubor · verze — patří k výstupu · BACKLOG</text>
+        <rect class="ent ent-pm" x="290" y="340" width="200" height="64" rx="10" fill="url(#gC)"/><text class="et" x="304" y="362">Výstup</text><text class="ef" x="304" y="378">název · druh · stav · gestor</text><text class="ef" x="304" y="392">creators[] · main ★ · srcId · scope</text>
+        <path class="rel rel-pm" d="M444 120V338"/><text class="rl" x="396" y="296">tvoří</text>
+        <path class="rel rel-pm" d="M462 338V122"/><text class="rl" x="468" y="262">používá</text><text class="rl" x="468" y="274">(inputs)</text>
+        <path class="rel rel-pm" d="M520 302C500 320 500 340 492 352" stroke-dasharray="4 4"/>
         <path class="rel rel-pm" d="M125 120v52"/><text class="rl" x="134" y="150">zpevnění</text>
         <path class="rel rel-pm" d="M210 200C250 200 270 160 300 122"/><text class="rl" x="222" y="170">srcId</text>
         <path class="rel rel-pm" d="M350 120v52"/><text class="rl" x="358" y="150">předchůdci (links.from)</text>
         <path class="rel rel-pm" d="M470 120L520 172"/><text class="rl" x="500" y="138">tasks</text>
         <path class="rel rel-pm" d="M640 204H678"/><text class="rl" x="634" y="196">who</text>
         <path class="rel rel-pm" d="M490 112C600 120 700 130 760 172"/><text class="rl" x="640" y="132">gestor · spolugestor · dotčený</text>
-        <text class="rl" x="20" y="344">Procesy varianty nebo mapy se rozliší polem scope (concept:K-xx / map) · nadřazený proces s podprocesy = stream</text>
-        <text class="rl" x="20" y="362">Úkol odpovědnosti smí dostat jen vybraný gestor nebo spolugestor procesu · rámečky do mapy nekopírujeme</text>
-        <text class="rl rl-bad" x="20" y="380">Globální úkoly (Projektové řízení) s procesy propojeny nejsou · kolej / úsek ani balíček prací aplikace jako objekt nezná</text>
+        <text class="rl" x="20" y="434">Procesy varianty nebo mapy se rozliší polem scope (concept:K-xx / map) · nadřazený proces s podprocesy = stream</text>
+        <text class="rl" x="20" y="452">Úkol odpovědnosti smí dostat jen vybraný gestor nebo spolugestor procesu · rámečky do mapy nekopírujeme</text>
+        <text class="rl rl-bad" x="20" y="470">Globální úkoly (Projektové řízení) s procesy propojeny nejsou · kolej / úsek ani balíček prací aplikace jako objekt nezná</text>
       </svg></div>
       <div class="dm-notes">
         <h4>Ověřené vazby</h4>
@@ -1484,12 +1490,17 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
           <tr><td>Proces</td><td>Milník</td><td><code>msStart[]</code>, <code>msEnd[]</code></td></tr>
           <tr><td>Proces</td><td>Osoba / útvar</td><td><code>gestor</code>, <code>cogestors[]</code>, <code>affected[]</code></td></tr>
           <tr><td>Úkol odpovědnosti (v procesu)</td><td>Osoba / útvar</td><td><code>tasks[].who</code> — jen gestor nebo spolugestor téhož procesu; <code>start</code>–<code>end</code>, <code>status</code></td></tr>
+          <tr><td>Výstup</td><td>Proces (tvůrce)</td><td><code>creators[]</code> + <code>main</code> — právě jeden hlavní tvůrce, ostatní přispívají</td></tr>
+          <tr><td>Proces</td><td>Výstup (spotřebitel)</td><td><code>inputs[]</code> — nesmí být tvůrcem, předkem ani potomkem tvůrce; kruh přes vazby a výstupy se odmítne</td></tr>
+          <tr><td>Mapový výstup</td><td>Výstup konceptu</td><td><code>srcId</code></td></tr>
           <tr><td>Mapový proces</td><td>Proces konceptu</td><td><code>srcId</code></td></tr>
           <tr><td>Rámeček</td><td>Proces</td><td><code>members[]</code></td></tr>
         </tbody></table>
         <ul>
           <li>Milníky jsou společné pro všechny varianty i mapu: termín nezamčeného milníku se posouvá s procesem v kterékoli z nich.</li>
           <li>Vazba se ukládá jen u následníka; opačný směr se dopočítává.</li>
+          <li><b>Termín nadřazeného procesu</b> se neukládá ručně, odvozuje se z podprocesů (nejdřívější začátek, nejpozdější konec). <b>Datum výstupu</b> je konec jeho nejpozdějšího tvůrce; spotřebitel má začít až po něm (v konceptu upozornění, v mapě chyba v Dopadech změn).</li>
+          <li>Předměty vazeb zapsané textem lze převést na výstupy (stejné texty se sloučí); text vazby zůstává jako poznámka.</li>
         </ul>
       </div>
     </div>
@@ -6750,6 +6761,26 @@ function pmApplyPromotion(){
       l.subj?{subj:l.subj}:{},l.note?{note:l.note}:{},l.bi?{bi:true}:{}));
   });
 
+  /* výstupy: kopie se srcId, tvůrci a vstupy se přepíšou na id mapových procesů */
+  const sScope=srcList.length?srcList[0].scope:'';
+  if(sScope&&sScope!=='map'){
+    const srcOuts=outputs.filter(o=>o.scope===sScope), bySrcO={}, outMap={};
+    outputs.forEach(o=>{if(o.scope==='map'&&o.srcId)bySrcO[o.srcId]=o});
+    const mp=id=>idMap[id]||'';
+    srcOuts.forEach(so=>{
+      let mo=bySrcO[so.id];
+      if(!mo){mo={id:nextId('output'),scope:'map',srcId:so.id,mapEdited:false};outputs.push(mo)}
+      else if(mo.mapEdited){outMap[so.id]=mo.id;return}           // upraveno přímo v mapě — nepřepisuje se
+      Object.assign(mo,{name:so.name,desc:so.desc||'',kind:so.kind,status:so.status,gestor:so.gestor||'',
+        creators:(so.creators||[]).map(mp).filter(Boolean),main:mp(so.main)});
+      if(!mo.main&&mo.creators.length)mo.main=mo.creators[0];
+      outMap[so.id]=mo.id; persist('output',mo,outputs.indexOf(mo));
+    });
+    srcList.forEach(p=>{const t=pmById(idMap[p.id]); if(t)t.inputs=(p.inputs||[]).map(id=>outMap[id]).filter(Boolean)});
+    outputs.filter(o=>o.scope==='map'&&o.srcId&&!srcOuts.some(x=>x.id===o.srcId)&&!o.mapEdited)
+      .forEach(o=>{outputs.splice(outputs.indexOf(o),1);persistDelete('output',o)});
+  }
+
   /* milníky z kroku 4 */
   Object.keys(PW.ms).forEach(sid=>{
     const cfg=PW.ms[sid], t=pmById(idMap[sid]), s=pmById(sid);
@@ -7982,7 +8013,7 @@ function pmMapSVG(o){
 }
 
 /* ---- dialog s parametry ---- */
-const MEX={split:'one',paper:'auto',unit:'auto',light:true,rootsOnly:false,links:true,tasks:false,autoSplit:true};
+const MEX={split:'one',paper:'auto',unit:'auto',light:true,rootsOnly:false,links:true,tasks:false,outputs:false,autoSplit:true};
 /* Ve schématu je vidět jen tvar vazby, ne co po ní teče. Seznam pod schématem
    proto vypisuje vazby, které z fáze vedou ven — u každé směr, protistranu,
    předmět i popis. Vazby uvnitř fáze seznam neopakuje, ty schéma ukazuje samo. */
@@ -8038,6 +8069,26 @@ function pmTaskListHTML(rootId,scope,nadpis){
   return `<div class="lnk"><div class="lh">${escXml(nadpis||'Úkoly odpovědnosti')}</div><table class="lt">
     <tr><th>Krok</th><th>Gestor / spolugestor</th><th>Úkol</th><th>Řešitelé (role)</th><th>Termín od – do · stav</th></tr>${tr}</table></div>`;
 }
+/* Výstupy ve výpisu fáze: každý výstup, který některý proces fáze tvoří nebo používá */
+function pmOutRows(rootId,scope){
+  const root=pmById(rootId); if(!root)return [];
+  const fam=new Set([root].concat(pmDescOf(rootId)).filter(x=>x.scope===scope).map(x=>x.id));
+  return outputs.filter(o=>o.scope===scope&&((o.creators||[]).some(id=>fam.has(id))||pmOutConsumers(o).some(k=>fam.has(k.id))))
+    .sort((a,b)=>String(a.id).localeCompare(String(b.id),'cs',{numeric:true}));
+}
+function pmOutListHTML(rootId,scope,nadpis){
+  const radky=pmOutRows(rootId,scope); if(!radky.length)return '';
+  const lab=p=>escXml(pmNumLabel(p)||p.name);
+  const tr=radky.map(o=>{
+    const cr=pmOutCreators(o), main=pmOutMain(o), kons=pmOutConsumers(o), d=pmOutDate(o), st=(OUT_ST[o.status]||OUT_ST.plan)[0];
+    return `<tr><td class="k">${escXml(o.id)}</td><td class="c">${escXml(o.name||'(bez názvu)')}<br><i>${escXml(OUT_KINDS[o.kind]||'')}${o.gestor?' · '+escXml(actorName(o.gestor)):''}</i></td>
+      <td class="s">${cr.map(p=>lab(p)+(main&&main.id===p.id&&cr.length>1?' ★':'')).join(', ')||'<span class="miss">—</span>'}</td>
+      <td class="r">${kons.map(lab).join(', ')||'<span class="miss">—</span>'}</td>
+      <td class="p">${d?pmCz(d):'—'} · ${escXml(st)}</td></tr>`;
+  }).join('');
+  return `<div class="lnk"><div class="lh">${escXml(nadpis||'Výstupy')}</div><table class="lt">
+    <tr><th>Výstup</th><th>Název, druh, gestor</th><th>Tvoří</th><th>Používají</th><th>Termín · stav</th></tr>${tr}</table></div>`;
+}
 function pmLinkListHTML(rootId,scope,nadpis){
   const radky=pmLinkRows(rootId,scope);
   const hlava=`<div class="lh">${escXml(nadpis||'Vazby mimo tuto fázi')}</div>`;
@@ -8071,6 +8122,7 @@ function pmMapDialog(){
   $('#mex-light').checked=MEX.light; $('#mex-roots').checked=MEX.rootsOnly;
   const lb=$('#mex-links'); if(lb)lb.checked=MEX.links;
   const tb=$('#mex-tasks'); if(tb)tb.checked=MEX.tasks;
+  const ob=$('#mex-outputs'); if(ob)ob.checked=MEX.outputs;
   $('#mapexp').classList.add('open');
   pmMapPreview();
 }
@@ -8081,6 +8133,7 @@ function pmMapRead(){
   MEX.rootsOnly=$('#mex-roots').checked;
   const lb=$('#mex-links'); if(lb)MEX.links=lb.checked;
   const tb=$('#mex-tasks'); if(tb)MEX.tasks=tb.checked;
+  const ob=$('#mex-outputs'); if(ob)MEX.outputs=ob.checked;
   $('#mex-paper').disabled=MEX.split!=='one';
   $('#mex-roots').disabled=MEX.split!=='one';
 }
@@ -8107,7 +8160,7 @@ function pmMapPreview(){
     let nad=0;
     roots.forEach(r=>{
       const m=pmMapSVG({concept:c.id,solo:r.id,unit:MEX.unit,light:MEX.light,availMm:pmAvailMm(pap)});
-      const nT=MEX.tasks?pmTaskRows(r.id,sc).length:0;
+      const nT=(MEX.tasks?pmTaskRows(r.id,sc).length:0)+(MEX.outputs?pmOutRows(r.id,sc).length:0);
       if(pmFixedPaper(pap,m.w,m.h,(MEX.links?pmLinkReserveMm(pmLinkRows(r.id,sc).length):0)+(nT?pmLinkReserveMm(nT):0),true).scale<0.7)nad++;
     });
     out.innerHTML=`<b>${roots.length} listů ${pap} ${pmVert()?'na výšku':'na šířku'}</b> — na každém jeden hlavní proces
@@ -8146,6 +8199,14 @@ function pmMapRun(){
         <div class="lcols">${bloky}</div></section>`);
       else toast('Ve variantě nejsou žádné úkoly odpovědnosti — stránka s úkoly se nevytvořila');
     }
+    if(MEX.outputs){
+      const sc=pmScopeOf(c.id);
+      const rs=processes.filter(x=>x.scope===sc&&!x.parent).sort(pmNumCmp);
+      const bloky=rs.map(r=>pmOutListHTML(r.id,sc,r.name+' — výstupy')).join('');
+      if(bloky)strany.push(`<section class="page mappage">${zahlavi('Výstupy',m,pap)}
+        <div class="lcols">${bloky}</div></section>`);
+      else toast('Ve variantě nejsou žádné výstupy — stránka s výstupy se nevytvořila');
+    }
   } else {
     const papName=MEX.split==='a4'?'A4':'A3';
     const roots=processes.filter(x=>x.scope===pmScopeOf(c.id)&&!x.parent)
@@ -8155,12 +8216,12 @@ function pmMapRun(){
     const sc=pmScopeOf(c.id);
     roots.forEach(r=>{
       const m=pmMapSVG({concept:c.id,solo:r.id,unit:MEX.unit,light:MEX.light,availMm:pmAvailMm(papName)});
-      const nTask=MEX.tasks?pmTaskRows(r.id,sc).length:0;
+      const nTask=(MEX.tasks?pmTaskRows(r.id,sc).length:0)+(MEX.outputs?pmOutRows(r.id,sc).length:0);
       const rez=(MEX.links?pmLinkReserveMm(pmLinkRows(r.id,sc).length):0)+(nTask?pmLinkReserveMm(nTask):0);
       const pap=pmFixedPaper(papName,m.w,m.h,rez,true);
       strany.push(`<section class="page mappage">${zahlavi(r.name,m,pap)}
         <div class="mapbox" style="width:${(pap.wmm*pap.scale).toFixed(1)}mm">${m.svg}</div>
-        ${MEX.links?pmLinkListHTML(r.id,sc):''}${MEX.tasks?pmTaskListHTML(r.id,sc):''}</section>`);
+        ${MEX.links?pmLinkListHTML(r.id,sc):''}${MEX.tasks?pmTaskListHTML(r.id,sc):''}${MEX.outputs?pmOutListHTML(r.id,sc):''}</section>`);
     });
   }
   /* velikost papíru se do @page vkládá až teď — formát závisí na mapě */
@@ -8787,8 +8848,8 @@ const PM_HELP={
  'process.status':'Stav plnění\nJak daleko proces je — nezahájeno, běží, hotovo apod.\nDopad: mění označení procesu na plátně a přehledy rozpracovanosti. Neposouvá termíny.',
  'process.state':'Zralost\nkoncept = pracovní obrys, odvozený = vznikl zpevněním konceptu do mapy, potvrzený = termíny a vazby jsou odsouhlasené.\nDopad: v konceptu jde jen o označení (čárkovaný obrys); termíny se tím nemění.',
  'process.color':'Barva fáze\nBarva streamu (záhlaví i boxů). Podprocesy ji dědí, pokud nemají vlastní.\nDopad: když podproces přesunete pod jiný proces nebo stream, převezme barvu nového streamu. Barvu používá i legenda a PDF.',
- 'process.start':'Začátek\nDen, kdy proces začíná — určuje polohu na časové ose.\nDopad: podle začátku se podprocesy číslují (po změně se číslování upraví při přečíslování). Posune nezamčené milníky navázané na začátek. Nesmí být po konci. V konceptu vazby termíny nehlídají.',
- 'process.end':'Konec\nDen, kdy proces končí — určuje délku boxu.\nDopad: posune nezamčené milníky navázané na konec. Zamčený milník se nehýbe a při pozdějším konci procesu se zvýrazní červeně jako porušený termín. Nesmí být před začátkem.',
+ 'process.start':'Začátek\nDen, kdy proces začíná — určuje polohu na časové ose.\nU nadřazeného procesu (s podprocesy) se začátek odvozuje z podprocesů a pole je zamčené.\nDopad: podle začátku se podprocesy číslují (po změně se číslování upraví při přečíslování). Posune nezamčené milníky navázané na začátek. Nesmí být po konci. V konceptu vazby termíny nehlídají.',
+ 'process.end':'Konec\nDen, kdy proces končí — určuje délku boxu.\nU nadřazeného procesu (s podprocesy) se konec odvozuje z podprocesů a pole je zamčené.\nDopad: posune nezamčené milníky navázané na konec. Zamčený milník se nehýbe a při pozdějším konci procesu se zvýrazní červeně jako porušený termín. Nesmí být před začátkem.',
  'process.lane':'Pruh (souběh)\nČíslo sloupce (ve vodorovné ose řádku), ve kterém proces stojí. Ve stejném pruhu jdou procesy za sebou, v různých pruzích běží souběžně.\nDopad: změna pruhu proces přesune do jiného sloupce, ale nezmění, ke kterému streamu patří. Pro přesun do jiného streamu změňte raději Nadřazený proces.',
  'process.parent':'Nadřazený proces\nKterému procesu (streamu) proces patří. Prázdná volba = kořenová úroveň, tedy samostatný stream. Zanoření je nejvýš na tři úrovně.\nDopad: proces se přesune do sloupců nového streamu, převezme jeho barvu a celý koncept se přečísluje (7.3 → 4.1 apod.). Rodič a potomek nemohou být vázáni časovou vazbou.',
  'process.gestor':'Gestor\nOsoba nebo útvar, který za proces odpovídá.\nDopad: zobrazuje se u procesu a v přehledech odpovědnosti. Nový podproces vzniká bez gestora, doplňujete ho sami.',
@@ -8822,6 +8883,7 @@ const PM_HELP={
  'mex.unit':'Dělení časové osy\nPo týdnech, měsících nebo čtvrtletích; automaticky podle délky období.\nDopad: mění jen popisky osy ve výstupu, ne data.',
  'mex.light':'Světlé barvy pro tisk\nSvětlejší barvy, které se hezky tisknou a šetří toner.\nDopad: pouze vzhled výstupu, ne data.',
  'mex.roots':'Jen hlavní procesy\nVýstup bez podprocesů — přehled na úrovni fází.\nDopad: výstup je přehlednější, podprocesy v něm nejsou. Platí jen pro „Jeden velký list“.',
+ 'mex.outputs':'Výstupy\nVypíše výstupy, které procesy fáze tvoří nebo používají: číslo, název, druh a gestor, tvůrci (★ hlavní), spotřebitelé, datum a stav. Datum výstupu je konec jeho nejpozdějšího tvůrce.',
  'mex.tasks':'Úkoly odpovědnosti\nVypíše úkoly zadané u procesů: gestor nebo spolugestor s jeho rolemi, název úkolu, řešitelé s rolemi, termín od–do a stav, seřazené podle kroků a podle pořadí, které jste úkolům nastavili.\nDopad: u „Jeden velký list“ přibude samostatná stránka s úkoly, u dělení po fázích se tabulka přidá pod schéma a zmenší jeho měřítko. Výchozí stav je vypnuto.',
  'mex.links':'Seznam vazeb\nPod schématem se vypíšou vazby vedoucí mimo fázi, včetně předmětu a popisu.\nDopad: přibude samostatný list nebo blok s tabulkou vazeb.'
 };
@@ -9529,7 +9591,7 @@ function pmOutCheck(o,pid,role){
   }
   return '';
 }
-function pmOutSave(o){persist('output',o,outputs.indexOf(o))}
+function pmOutSave(o){if(o.scope==='map'&&o.srcId)o.mapEdited=true; persist('output',o,outputs.indexOf(o))}
 function pmOutRefresh(){
   PM._vl=null; PM._nest=null;
   if($('#out-modal')&&$('#out-modal').classList.contains('open'))pmOutRender();
