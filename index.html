@@ -5271,6 +5271,7 @@ function pmRenderRibbon(host,p){
       <span class="rmeta">
         <span class="code">${p.id}</span><b title="${escXml(p.name)}">${escXml(p.name)}</b>${chip(p.status)}
         ${impactCountFor(p.id)?`<button class="btn ghost sm imp-pill" data-tip="Dopady změn\nU tohoto procesu jsou otevřené dopady (${impactCountFor(p.id)}). Kliknutím otevřete seznam dopadů." onclick="go('impact')">⚠ ${impactCountFor(p.id)}</button>`:''}
+        ${(p.tasks||[]).length&&pmDepth(p)<PM_MAX_DEPTH-1?`<button class="btn ghost sm" data-tip="Úkoly → podprocesy\nKaždý úkol odpovědnosti tohoto procesu se stane podprocesem pod ním (název, termíny, gestor, řešitelé, stav). Úkoly se z procesu odeberou; jde vrátit tlačítkem Zpět." onclick="pmTasksToSubs('${p.id}')">↳ Úkoly na podprocesy</button>`:''}
         ${pmDepth(p)<PM_MAX_DEPTH-1?`<button class="btn ghost sm" title="Založit podproces pod tímto procesem" onclick="pmNewSub('${p.id}')">＋ Podproces</button>`:''}
         ${PM.mode==='map'&&p.state!=='potvrzeny'?`<button class="btn primary sm" title="Označit termíny a vazby za potvrzené" onclick="pmConfirm('${p.id}')">Potvrdit</button>`:''}
         ${p.parent?`<button class="btn ghost sm" title="Přidat proces, který běží souběžně s tímto, ve stejném streamu — stejný začátek i konec" onclick="pmAddParallel('${p.id}')">＋ Paralelně</button>`:''}
@@ -5405,6 +5406,35 @@ function pmFreeLane(lane,start,end){
   if(volny(base+1))return base+1;
   pmAll().forEach(q=>{if((q.lane||0)>=base+1){q.lane=(q.lane||0)+1;pmQueue(q)}});
   return base+1;
+}
+/* Úkoly odpovědnosti → podprocesy. Každý úkol se stane podprocesem pod stejným procesem:
+   název a termíny zůstávají, gestorem je útvar/osoba úkolu, řešitelé úkolu se stanou
+   spolugestory s týmiž rolemi, stav se přenese. Úkoly se z procesu odeberou (jsou teď
+   podprocesy); krok jde vrátit tlačítkem Zpět. */
+function pmTasksToSubs(id){
+  const p=pmById(id); if(!p)return;
+  const T=(p.tasks||[]).filter(t=>(t.t||'').trim());
+  if(!T.length){toast('Proces nemá žádné úkoly odpovědnosti');return}
+  if(pmDepth(p)>=PM_MAX_DEPTH-1){toast('Zanoření je omezené na tři úrovně — úkoly nelze převést na podprocesy');return}
+  if(!confirm(`Převést ${T.length} úkolů procesu „${pmNameOf(p)}“ na podprocesy?\n\nKaždý úkol se stane podprocesem (název, termíny, gestor, řešitelé jako spolugestoři, stav). Úkoly se z procesu odeberou. Jde vrátit tlačítkem Zpět.`))return;
+  histPush();
+  const root=pmRootOf(p), V=pmVert();
+  const ST={done:'done',track:'track',risk:'risk',blocked:'blocked',replanned:'replanned',idle:'idle'};
+  const made=[];
+  T.forEach(t=>{
+    const start=pmClampDate(t.start||p.start), end0=pmClampDate(t.end||t.start||p.end), end=end0<start?start:end0;
+    const co=(t.assignees||[]).filter(a=>a&&a.who&&a.who!==t.who).map(a=>({who:a.who,resp:'',roles:(a.roles||[]).slice()}));
+    const o={id:nextId('process'),scope:p.scope,name:pmJoinName('',(t.t||'').trim()),desc:'',
+      gestor:t.who||'',gestorRoles:[],cogestors:co,affected:[],parent:p.id,state:p.state,
+      status:ST[t.status]||'idle',start,end,lane:0,links:[],msStart:[],msEnd:[],collapsed:false};
+    processes.push(o); made.push(o);
+    o.lane=V?pmLaneInStream(root,start,end,null,o):pmFreeLane((p.lane||0)+1,start,end);
+    persist('process',o,processes.length-1);
+  });
+  p.tasks=(p.tasks||[]).filter(t=>!T.includes(t)); p.collapsed=false; pmQueue(p);
+  pmFitRoot(root); pmRenumberScope(p.scope); pmFlush();
+  PM.sel=[p.id]; renderPMap();
+  toast(`Vytvořeno ${made.length} podprocesů pod „${pmNameOf(p)}“`);
 }
 function pmPlaceSub(parId,at,fromBtn){
   const par=pmById(parId); if(!par)return;
