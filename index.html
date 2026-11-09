@@ -418,6 +418,9 @@ body.pm-tdrag,body.pm-tdrag *{cursor:grabbing!important;user-select:none}
 .vopt{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:12px 14px;margin:0 0 10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.02);color:var(--text2);cursor:pointer;font-family:inherit}
 .vopt:hover{border-color:var(--accent);color:var(--text)}.vopt.on{border-color:var(--accent);background:rgba(255,82,0,.08);color:var(--accent)}
 .vopt span{display:flex;flex-direction:column;gap:3px;min-width:0}.vopt b{font-size:13.5px;color:var(--text)}.vopt small{font-size:12px;line-height:1.45;color:var(--text3)}
+.pm-focusbar,#pm-focusbar{align-items:center;gap:8px;flex-wrap:wrap;padding:7px 12px;margin:0 0 8px;border:1px solid var(--accent);border-radius:10px;background:rgba(255,82,0,.07);font-size:12.5px;color:var(--text2)}
+#pm-focusbar b{color:var(--text)}#pm-focusbar a{color:var(--accent);cursor:pointer}#pm-focusbar a:hover{text-decoration:underline}
+#pm-focusbar .sep{color:var(--text3)}#pm-focusbar .cnt{margin-left:auto;color:var(--text3);font-size:11.5px}
 .pm-tree{padding:0 0 14px;font-size:12.5px;min-width:960px}
 .tr-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;position:sticky;top:0;z-index:3;background:var(--panel2,#161b23);border-bottom:1px solid var(--border)}
 .tr-tools .tr-sp{flex:1}.tr-hint{font-size:11px;color:var(--text3);margin-left:6px}.tr-lv{font-size:11px;color:var(--text3);display:inline-flex;align-items:center;gap:4px}
@@ -1688,6 +1691,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       <button class="btn primary sm ed-only" id="pm-promote" onclick="pmOpenWizard()" title="Převést zdrojový koncept do procesní mapy">Zpevnit do mapy</button>
     </div>
 
+    <div id="pm-focusbar" style="display:none"></div>
     <div id="pm-inspector"></div>
 
     <div class="pm-stage">
@@ -3159,7 +3163,7 @@ let processes=[
 ];
 
 const PM={mode:'concept',conceptId:'K-01',unit:'month',sel:[],splitMode:false,tab:'zaklad',panelLock:false,zoom:1,snapX:null,
-  filter:[],legHidden:false,ribCollapsed:false,extra:0,gallery:true,print:false,link:null,solo:null,viewBack:null,cursor:null,rowZoom:1,linkFocus:null,
+  filter:[],legHidden:false,ribCollapsed:false,extra:0,gallery:true,print:false,link:null,solo:null,focus:null,viewBack:null,cursor:null,rowZoom:1,linkFocus:null,
   padL:0,padR:0,padTop:1,revealed:null,rel:false};
 /* Výběr je pole; poslední vybraný je „primární“ a zobrazí se v pásu karet. */
 const pmSelHas=id=>PM.sel.indexOf(id)>-1;
@@ -3311,6 +3315,13 @@ function pmVisible(){
     while(cur&&g++<8){if(cur.id===PM.solo)return true;cur=cur.parent?by[cur.parent]:null}
     return false;
   });
+  /* PM.focus = prokliknutí do procesu: jen on, jeho podprocesy a nadřazené záhlaví streamu */
+  if(PM.focus&&!PM.solo&&!PM.print&&by[PM.focus]){
+    const keep=new Set([PM.focus]); let cur=by[PM.focus],g=0;
+    while(cur&&cur.parent&&g++<8){keep.add(cur.parent);cur=by[cur.parent]}
+    pmDescOf(PM.focus).forEach(d=>keep.add(d.id));
+    list=list.filter(p=>keep.has(p.id));
+  }
   return list.sort((a,b)=>(a.lane||0)-(b.lane||0));
 }
 /* nejbližší viditelný předek — kvůli povýšení vazby při sbalení */
@@ -3521,7 +3532,8 @@ function pmVLayout(list,availW){
   const boxLanes=new Set(), bandLanes=new Set();
   list.forEach(p=>(isBand[p.id]?bandLanes:boxLanes).add(p.lane||0));
   const lanes=list.map(p=>p.lane||0);
-  const minL=Math.min(0,...lanes), maxL=Math.max(0,...lanes);
+  const foc=!!PM.focus&&!PM.print&&lanes.length>0;      // při proklikem do procesu se prázdné sloupce ostatních streamů vynechají
+  const minL=foc?Math.min(...lanes):Math.min(0,...lanes), maxL=foc?Math.max(...lanes):Math.max(0,...lanes);
   const cols=[];
   for(let l=minL;l<=maxL;l++)if(boxLanes.has(l)||!bandLanes.has(l))cols.push(l);
   const content=cols.length;
@@ -3956,7 +3968,7 @@ function renderPMap(){
     const nb=$('#nav-pm'); if(nb)nb.textContent=processes.length;   // v rozcestníku počítáme všechno
     return;
   }
-  pmSyncControls();
+  pmFocusValid(); pmSyncControls(); pmFocusBar();
   host.classList.toggle('pm-placing',!!PM.placing);
   const list=pmVisible(), b=pmBounds(list), px=pmPx(), head=pmHeadH();
   /* pruhy i mřížka vyplní celou viditelnou plochu, ne jen výšku obsahu */
@@ -4494,7 +4506,7 @@ function pmSyncControls(){
     : (c&&c.src?'zdrojová varianta — jen tuto lze zpevnit do mapy':'varianta k porovnání — zpevnit lze pouze zdrojový koncept');
   const nb=$('#nav-pm'); if(nb)nb.textContent=processes.filter(p=>p.scope==='map').length||pmAll().length;
 }
-function pmSetMode(m){PM.mode=m;PM.sel=[];PM.link=null;if(m==='map')pmSetSplit(false);renderPMap()}
+function pmSetMode(m){PM.focus=null;PM.mode=m;PM.sel=[];PM.link=null;if(m==='map')pmSetSplit(false);renderPMap()}
 function pmPickConcept(id){PM.conceptId=id;PM.sel=[];PM.link=null;pmCenterToday()}
 function pmSetUnit(u){PM.unit=u;renderPMap()}
 /* zoom mění měřítko osy tlačítky — bez tažítka */
@@ -5271,6 +5283,7 @@ function pmRenderRibbon(host,p){
       <span class="rmeta">
         <span class="code">${p.id}</span><b title="${escXml(p.name)}">${escXml(p.name)}</b>${chip(p.status)}
         ${impactCountFor(p.id)?`<button class="btn ghost sm imp-pill" data-tip="Dopady změn\nU tohoto procesu jsou otevřené dopady (${impactCountFor(p.id)}). Kliknutím otevřete seznam dopadů." onclick="go('impact')">⚠ ${impactCountFor(p.id)}</button>`:''}
+        ${pmKidsOf(p.id).length&&PM.focus!==p.id?`<button class="btn ghost sm" data-tip="Proklik do procesu\nZobrazí jen tento proces, jeho podprocesy a záhlaví streamu nad ním; ostatní streamy se skryjí. Zpět vedou tlačítko ◂ Všechny streamy nad plátnem nebo klávesa Esc. Údaje se nemění. Zkratka: dvojklik na proces." onclick="pmFocus('${p.id}')">🔍 Otevřít</button>`:''}
         ${(p.tasks||[]).length&&pmDepth(p)<PM_MAX_DEPTH-1?`<button class="btn ghost sm" data-tip="Úkoly → podprocesy\nKaždý úkol odpovědnosti tohoto procesu se stane podprocesem pod ním (název, termíny, gestor, řešitelé, stav). Úkoly se z procesu odeberou; jde vrátit tlačítkem Zpět." onclick="pmTasksToSubs('${p.id}')">↳ Úkoly na podprocesy</button>`:''}
         ${pmDepth(p)<PM_MAX_DEPTH-1?`<button class="btn ghost sm" title="Založit podproces pod tímto procesem" onclick="pmNewSub('${p.id}')">＋ Podproces</button>`:''}
         ${PM.mode==='map'&&p.state!=='potvrzeny'?`<button class="btn primary sm" title="Označit termíny a vazby za potvrzené" onclick="pmConfirm('${p.id}')">Potvrdit</button>`:''}
@@ -5847,6 +5860,7 @@ function pmKeyDown(e){
   const mod=e.ctrlKey||e.metaKey;
   if(mod&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?histRedo():histUndo();return}
   if(mod&&e.key.toLowerCase()==='y'){e.preventDefault();histRedo();return}
+  if(e.key==='Escape'&&PM.focus&&!PM.placing&&!document.querySelector('.modal-veil.open')){e.preventDefault();pmUnfocus();return}
   if(e.code==='Space'&&!e.repeat){pmSpace=true;$('#pm-canvas').classList.add('panready');e.preventDefault();return}
   if(mod&&e.key.toLowerCase()==='a'){
     e.preventDefault(); PM.sel=pmVisible().map(p=>p.id); renderPMap(); return;
@@ -5971,6 +5985,7 @@ function pmDeleteSelected(){
 function pmDblClick(e){
   if(e.target.closest('.pmvres')){pmHeadAuto();return}
   const g=e.target.closest('.pmb'); if(!g)return;
+  if(!PM.focus&&pmKidsOf(g.dataset.id).length){pmFocus(g.dataset.id);return}   // dvojklik na proces s podprocesy = proklik do něj
   PM.sel=[g.dataset.id]; PM.tab='zaklad'; renderPMap();   // editorem je pás karet pod plátnem
 }
 
@@ -7465,7 +7480,7 @@ const pmStamp=v=>{
   return isNaN(d)?'—':d.toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric',year:'numeric'})
     +(v.length>10?' '+d.toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'}):'');
 };
-function pmShowGallery(){PM.gallery=true;PM.sel=[];PM.link=null;renderPMap()}
+function pmShowGallery(){PM.focus=null;PM.gallery=true;PM.sel=[];PM.link=null;renderPMap()}
 /* Otevření konceptu (nebo mapy) vždy začíná na dnešku uprostřed a s asi
    3/4 celého rozsahu vidět najednou — ne tam, kde zůstal zoom z minula. */
 function pmCenterToday(){
@@ -7495,11 +7510,11 @@ function pmCenterToday(){
   host.scrollLeft=Math.min(maxScroll,Math.max(0,todayX-host.clientWidth/2));
 }
 function pmOpenConcept(id){
-  PM.gallery=false; PM.mode='concept'; PM.conceptId=id; PM.sel=[]; PM.link=null; PM.extra=0; PM.padL=PM.padR=0; PM.padTop=1;
+  PM.focus=null; PM.gallery=false; PM.mode='concept'; PM.conceptId=id; PM.sel=[]; PM.link=null; PM.extra=0; PM.padL=PM.padR=0; PM.padTop=1;
   pmFitHeight(); pmCenterToday();
 }
 function pmOpenMap(){
-  PM.gallery=false; PM.mode='map'; PM.sel=[]; PM.link=null; PM.extra=0; PM.padL=PM.padR=0; PM.padTop=1;
+  PM.focus=null; PM.gallery=false; PM.mode='map'; PM.sel=[]; PM.link=null; PM.extra=0; PM.padL=PM.padR=0; PM.padTop=1;
   pmFitHeight(); pmCenterToday();
 }
 function pmRenderGallery(){
@@ -7848,7 +7863,7 @@ function pmPaperByHeight(lanes){
    aby se podle nich dal zvolit papír. */
 function pmMapSVG(o){
   const keep={g:PM.gallery,m:PM.mode,c:PM.conceptId,u:PM.unit,z:PM.zoom,rz:PM.rowZoom,s:PM.sel.slice(),
-    e:PM.extra,f:PM.filter.slice(),lh:PM.legHidden,so:PM.solo,pr:PM.print,lk:PM.link};
+    e:PM.extra,f:PM.filter.slice(),lh:PM.legHidden,so:PM.solo,pr:PM.print,lk:PM.link,fo:PM.focus};
   const scope=pmScopeOf(o.concept);
   const all=processes.filter(x=>x.scope===scope);
   const keepCol=all.map(x=>x.collapsed), keepLane=all.map(x=>x.lane);
@@ -7858,7 +7873,7 @@ function pmMapSVG(o){
   PM.gallery=false; PM.mode=o.concept==='map'?'map':'concept';
   if(o.concept!=='map')PM.conceptId=o.concept;
   PM.zoom=1; PM.rowZoom=1; PM.sel=[]; PM.link=null; PM.extra=0; PM.filter=[]; PM.legHidden=true;
-  PM.solo=o.solo||null; PM.print=o.light!==false;
+  PM.solo=o.solo||null; PM.focus=null; PM.print=o.light!==false;
   /* rozbalit, ať jsou vidět všechny podprocesy; u „jen hlavní procesy“ sbalit */
   all.forEach(x=>{if(all.some(y=>y.parent===x.id))x.collapsed=!!o.rootsOnly});
   /* pruhy stáhnout k sobě — po sbalení či v solo režimu zbývají prázdné */
@@ -7903,7 +7918,7 @@ function pmMapSVG(o){
 
   all.forEach((x,i)=>{x.collapsed=keepCol[i];x.lane=keepLane[i]});
   Object.assign(PM,{gallery:keep.g,mode:keep.m,conceptId:keep.c,unit:keep.u,zoom:keep.z,rowZoom:keep.rz,
-    sel:keep.s,extra:keep.e,filter:keep.f,legHidden:keep.lh,solo:keep.so,print:keep.pr,link:keep.lk});
+    sel:keep.s,extra:keep.e,filter:keep.f,legHidden:keep.lh,solo:keep.so,print:keep.pr,link:keep.lk,focus:keep.fo});
   if(wasGal&&view)view.classList.add('gal');
   renderPMap();
   return {svg:out,w,h,pocet:vis.length,rozsah,unit};
@@ -9367,6 +9382,39 @@ window.addEventListener('pointerup',()=>{
   pmTreeReparent(d.id,d.drop.parent);
 });
 
+/* ================= PROKLIK DO PROCESU =================
+   Proces s podprocesy lze „otevřít“: plátno ukáže jen jeho, jeho podprocesy a záhlaví
+   streamu nad ním, ostatní streamy se skryjí. Údaje se nemění, jde jen o pohled. */
+function pmFocusValid(){
+  if(!PM.focus)return false;
+  if(!pmAll().some(x=>x.id===PM.focus)||!pmKidsOf(PM.focus).length){PM.focus=null;return false}
+  return true;
+}
+function pmFocus(id){
+  const p=pmById(id); if(!p)return;
+  if(!pmKidsOf(id).length){toast('Proces nemá žádné podprocesy, do kterých by šlo proklikem vstoupit');return}
+  PM.focus=id; PM.sel=[id]; PM.link=null; PM._vl=null; PM._nest=null;
+  PM.padL=PM.padR=0; PM.extra=0; PM.padTop=1;
+  p.collapsed=false;
+  renderPMap();
+  pmFitHeight&&pmFitHeight(); renderPMap();
+  const host=$('#pm-canvas'); if(host){host.scrollTop=0;host.scrollLeft=0}
+}
+function pmUnfocus(){
+  if(!PM.focus)return;
+  const was=PM.focus; PM.focus=null; PM._vl=null; PM._nest=null; PM.sel=pmById(was)?[was]:[];
+  renderPMap();
+}
+function pmFocusBar(){
+  const bar=$('#pm-focusbar'); if(!bar)return;
+  if(PM.gallery||PM.print||!pmFocusValid()){bar.style.display='none';bar.innerHTML='';return}
+  const path=[]; let cur=pmById(PM.focus),g=0;
+  while(cur&&g++<8){path.unshift(cur);cur=cur.parent?pmById(cur.parent):null}
+  bar.innerHTML=`<button class="btn ghost sm" onclick="pmUnfocus()" title="Vrátit zobrazení všech streamů (Esc)">◂ Všechny streamy</button>
+    ${path.map(x=>`<span class="sep">›</span>${x.id===PM.focus?`<b>${escXml(pmNameOf(x)?(pmNumLabel(x)+' '+pmNameOf(x)).trim():x.name)}</b>`:`<a onclick="pmFocus('${x.id}')">${escXml((pmNumLabel(x)+' '+pmNameOf(x)).trim())}</a>`}`).join('')}
+    <span class="cnt">${pmDescOf(PM.focus).length} podprocesů · ostatní procesy jsou skryté, údaje se nemění</span>`;
+  bar.style.display='flex';
+}
 /* ================= SKRYTÍ PANELŮ ================= */
 (function(){
   const get=k=>{try{return localStorage.getItem(k)==='1'}catch(e){return false}};
