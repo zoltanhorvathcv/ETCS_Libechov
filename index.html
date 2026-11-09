@@ -415,6 +415,30 @@ body.pm-tdrag,body.pm-tdrag *{cursor:grabbing!important;user-select:none}
 .pm-tresp{font-size:11px;color:var(--text3)}
 .pm-tlab{display:inline-flex;align-items:center;gap:4px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)}
 .pm-rib-body .pm-tlab input,.pm-tlab input{width:140px;flex:none}
+.pm-tree{padding:0 0 14px;font-size:12.5px;min-width:960px}
+.tr-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;position:sticky;top:0;z-index:3;background:var(--panel2,#161b23);border-bottom:1px solid var(--border)}
+.tr-tools .tr-sp{flex:1}.tr-hint{font-size:11px;color:var(--text3);margin-left:6px}.tr-lv{font-size:11px;color:var(--text3);display:inline-flex;align-items:center;gap:4px}
+.tr{display:grid;grid-template-columns:20px minmax(260px,2.4fr) 150px 172px minmax(150px,1fr) 190px 96px;gap:8px;align-items:center;padding:5px 10px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer}
+.tr:hover{background:rgba(255,255,255,.035)}
+.tr.sel{background:rgba(255,82,0,.10);box-shadow:inset 3px 0 0 var(--accent)}
+.tr.root{background:rgba(255,255,255,.04);font-weight:600}
+.tr.root.sel{background:rgba(255,82,0,.12)}
+.tr.thead{position:sticky;top:45px;z-index:2;background:var(--panel2,#161b23);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);cursor:default;font-weight:600}
+.tr.thead:hover{background:var(--panel2,#161b23)}
+.tr-name{display:flex;align-items:center;gap:6px;min-width:0}.tr-name b{font-weight:inherit;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-num{font-family:var(--mono);font-size:11px;color:var(--text3);flex:none}
+.tr-dot{width:9px;height:9px;border-radius:3px;flex:none;display:block}
+.tr-tog{width:18px;height:18px;flex:none;border:0;background:none;color:var(--text2);cursor:pointer;padding:0;font-size:12px}.tr-tog.sp{cursor:default}
+.tr-cnt{font-size:10px;color:var(--text3);border:1px solid var(--border);border-radius:999px;padding:0 6px}
+.tr-g,.tr-d{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)}.tr-d{font-family:var(--mono);font-size:11px}
+.tr-bar{position:relative;height:10px;border-radius:5px;background:rgba(255,255,255,.06)}
+.tr-b{position:absolute;top:1px;bottom:1px;border-radius:4px;opacity:.9;display:block}.tr-today{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--accent);display:block}
+.tr-l{display:flex;flex-wrap:wrap;gap:3px;min-width:0}
+.tr-chip{font-family:var(--mono);font-size:10.5px;padding:0 6px;border:1px solid var(--border2);border-radius:999px;color:var(--text2);cursor:pointer}
+.tr-chip:hover{color:var(--accent);border-color:var(--accent)}.tr-chip.bad{border-color:#ff5c6a;color:#ff7a86}.tr-more{font-size:10.5px;color:var(--text3)}
+.tr-handle{cursor:grab;color:var(--text3);user-select:none;letter-spacing:-2px}.tr-handle:hover{color:var(--accent)}
+.tr.dragging{opacity:.45}.tr.tr-into{outline:2px solid var(--accent);outline-offset:-2px;background:rgba(255,82,0,.12)}.tr.tr-bad{outline:2px dashed #ff5c6a;outline-offset:-2px}
+.tr-rootzone{margin:10px;padding:10px;border:1px dashed var(--border2);border-radius:8px;text-align:center;font-size:11px;color:var(--text3)}.tr-rootzone.on{border-color:var(--accent);color:var(--accent);background:rgba(255,82,0,.08)}
 .dm-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
 .dm-tabs button{font:600 12px Inter,sans-serif;color:var(--text2);background:rgba(255,255,255,.04);border:1px solid var(--border);padding:7px 13px;border-radius:8px;cursor:pointer}
 .dm-tabs button:hover{color:var(--text)}
@@ -1650,6 +1674,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       <button class="btn ghost sm ed-only" id="pm-editvar" onclick="pmEditConcept()" title="Upravit název, osu a T0 této varianty">✎ Varianta</button>
       <button class="btn ghost sm ed-only" onclick="pmNewProcess()" title="Přidat nový proces na volný pruh — ve svislé ose se ve sloupci streamu založí jako jeho podproces">＋ Proces</button>
       <button class="btn ghost sm ed-only" id="pm-newstream" onclick="pmNewStream()" title="Přidat nový stream — nový sloupec s vlastní barvou a číslem, vpravo za ostatními">＋ Stream</button>
+      <button class="btn ghost sm" id="pm-tree" onclick="pmToggleTree()">🌲 Strom</button>
       <button class="btn ghost sm" id="pm-orient" onclick="pmToggleOrient()" title="Přepne časovou osu mezi vodorovnou a svislou — svisle plyne čas shora dolů a souběžné procesy stojí ve sloupcích">↕ Svislá osa</button>
       <button class="btn ghost sm" id="pm-rel" onclick="pmToggleRel()" title="Zvýrazní všechny souvislosti právě vybraného procesu nebo vazby — vazby i procesy na jejich druhém konci">🔗 Souvislosti</button>
       <button class="btn ghost sm" id="pm-mapexp" onclick="pmMapDialog()" title="Vytisknout nebo uložit mapu se všemi procesy a vazbami do PDF">⎙ Mapa do PDF</button>
@@ -2368,7 +2393,7 @@ function renderRiskCompact(){
     <div style="display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--border)">
       <span class="prio ${r.sev==='Vysoká'?'p1':r.sev==='Střední'?'p2':'p3'}" style="margin-top:2px;flex:none">${r.sev}</span>
       <div><div style="font-size:12.5px;font-weight:600">${r.t}</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:2px">${r.id} · ${people[r.owner].split(' ')[0]} · vyřešit do ${fdate(r.due)}</div></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">${r.id} · ${(people[r.owner]||r.owner||"—").split(' ')[0]} · vyřešit do ${fdate(r.due)}</div></div>
     </div>`).join('');
 }
 
@@ -3917,6 +3942,7 @@ function renderPMap(){
     pmRenderLegend();
     return;
   }
+  if(pmTreeOn()){pmRenderTree(host);return}
   if(pmVert()){pmRenderV(host,list,SK,rBefore);return}
 
   let s=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
@@ -4407,7 +4433,10 @@ function pmSyncControls(){
   const rb=$('#pm-rel'); if(rb)rb.classList.toggle('on',!!PM.rel);
   const ob=$('#pm-orient');
   if(ob){const v=pmVert(); ob.classList.toggle('on',v); ob.textContent=v?'↔ Vodorovná osa':'↕ Svislá osa'}
-  const sb2=$('#pm-newstream'); if(sb2)sb2.style.display=pmVert()?'':'none';
+  const tr=pmTreeOn(), tb=$('#pm-tree');
+  if(tb){tb.classList.toggle('on',tr);tb.textContent=tr?'⏱ Časová osa':'🌲 Strom'}
+  ['pm-orient','pm-zoom','pm-unit','pm-axis'].forEach(id=>{const el=$('#'+id);if(el)el.style.display=tr?'none':''});
+  const sb2=$('#pm-newstream'); if(sb2)sb2.style.display=(pmVert()&&!tr)?'':'none';
   document.querySelectorAll('#pm-mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===PM.mode));
   document.querySelectorAll('#pm-unit button').forEach(b=>b.classList.toggle('on',b.dataset.u===PM.unit));
   const v=$('#pm-variant'), ax=$('#pm-axis');
@@ -5423,6 +5452,7 @@ function pmLocal(cx,cy){
 }
 function pmPointerDown(e){
   const host=$('#pm-canvas');
+  if(pmTreeOn()&&e.target.closest&&e.target.closest('.pm-tree'))return;     // strom si klikání řeší sám
   if(PM.placing){                       // probíhá vkládání podprocesu
     e.preventDefault();
     const par=PM.placing; PM.placing=null;
@@ -5763,6 +5793,7 @@ function pmKeyDown(e){
     const v=pmVert(), d=(e.key==='ArrowLeft'||e.key==='ArrowUp')?-1:1;
     if((v&&/Left|Right/.test(e.key))||(!v&&/Up|Down/.test(e.key))){e.preventDefault();pmMoveStream(sel[0].id,d);return}
   }
+  if(pmTreeOn()&&/^Arrow/.test(e.key))return;       // šipky ve stromu nesmí posouvat termíny
   const step=e.shiftKey?7:1;
   /* ve svislé ose posouvají šipky nahoru/dolů v čase a do stran mezi sloupci */
   if(pmVert()&&PM._vl&&/^Arrow/.test(e.key)){
@@ -5795,6 +5826,7 @@ function pmKeyUp(e){
 }
 /* Ctrl+kolečko = zoom, s udržením data pod kurzorem */
 function pmWheel(e){
+  if(pmTreeOn())return;       // ve stromu se jen posouvá
   if(!(e.ctrlKey||e.metaKey)){pmGrowSpanOnWheel(e);return}
   e.preventDefault();
   const host=$('#pm-canvas');
@@ -8676,6 +8708,7 @@ const PM_TIPS_BTN={
  'pmEditConcept':'Varianta — úpravy\nNázev, časová osa, T0, zdroj mapy a údaje pro podklad vedení. Změna osy nebo T0 mění zobrazení, procesy zůstávají.',
  'pmNewProcess':'Přidat proces\nVe svislé ose vznikne proces ve vybraném streamu (když není nic označeno, aplikace se zeptá, ve kterém). Vzniká bez názvu a gestora a nikdy nepřekryje jiný proces.',
  'pmNewStream':'Přidat stream\nNový sloupec (fáze) vpravo za ostatními, s vlastní barvou a dalším číslem a prvním podprocesem. Stávající streamy se nemění.',
+ 'pmToggleTree':'Strom / časová osa\nPřepne zobrazení varianty: odsazený strom (streamy jako uzly nejvyšší úrovně, pod nimi podprocesy) nebo časová osa. Jde jen o jiné zobrazení týchž dat — nic se nemění, volba se ukládá k variantě. Ve stromu lze podproces přetažením přesunout pod jiný proces (změní se číslování a barva). Mapa do PDF zatím tiskne časovou osu.',
  'pmToggleOrient':'Osa svisle / vodorovně\nPřepne zobrazení času. Svisle plyne čas shora dolů a souběžné procesy stojí ve sloupcích streamů. Procesy ani termíny se nemění, orientace se ukládá k variantě.',
  'pmToggleRel':'Souvislosti\nZvýrazní vazby i procesy na jejich druhém konci pro právě vybraný proces nebo vazbu. Jen zobrazení.',
  'pmMapDialog':'Mapa do PDF\nVytiskne nebo uloží mapu včetně vazeb. Otevře se dialog s volbou formátu a rozdělení; nic se nemění v datech.',
@@ -9034,6 +9067,172 @@ function impactWrap(name,fn){
   const rp=window.renderPMap; window.renderPMap=function(){const r=rp.apply(this,arguments);impactSoon();return r};
   const pm=window.persistMeta; window.persistMeta=function(){const r=pm.apply(this,arguments);impactSoon();return r};
 })();
+
+/* ================= ZOBRAZENÍ STROMEM =================
+   Jiné zobrazení týchž dat (nic se neukládá navíc kromě volby zobrazení): streamy jsou uzly
+   nejvyšší úrovně a pod nimi odsazené podprocesy. Pořadí se řídí číslem (tedy časem). */
+const pmTreeOn=()=>!PM.print&&!PM.gallery&&(PM.mode==='map'?project.mapView==='tree':!!(pmConcept()&&pmConcept().view==='tree'));
+function pmToggleTree(){
+  if(PM.mode==='map'){
+    if(project.mapView==='tree')delete project.mapView; else project.mapView='tree';
+    persistMeta();
+  } else {
+    const c=pmConcept(); if(!c)return;
+    if(c.view==='tree')delete c.view; else c.view='tree';
+    c.touched=new Date().toISOString(); persist('concept',c,concepts.indexOf(c));
+  }
+  PM.sel=PM.sel.slice(0,1); PM._vl=null;
+  renderPMap();
+  toast(pmTreeOn()?'Zobrazení stromem — podprocesy jsou odsazené pod svým procesem':'Zobrazení časovou osou');
+}
+function pmTreeBuild(){
+  const list=pmAll(), kids={}; list.forEach(p=>{(kids[p.parent||'']=kids[p.parent||'']||[]).push(p)});
+  Object.keys(kids).forEach(k=>kids[k].sort(pmNumCmp));
+  const roots=(kids['']||[]).slice();
+  const orphans=list.filter(p=>p.parent&&!list.some(q=>q.id===p.parent));
+  return {kids,roots:roots.concat(orphans)};
+}
+function pmTreeHTML(){
+  const T=pmTreeBuild(), list=pmAll();
+  const t0=Math.min(...list.map(p=>pmD(p.start))), t1=Math.max(...list.map(p=>pmD(p.end))), span=Math.max(1,t1-t0);
+  const today=pmD(typeof TODAY!=='undefined'?TODAY:pmISO(Date.now())), tp=today>=t0&&today<=t1?((today-t0)/span*100):null;
+  const edit=document.body.classList.contains('editing');
+  const sel=new Set(PM.sel);
+  const numOf=id=>{const q=pmById(id);return q?(pmNumLabel(q)||pmNameOf(q)):id};
+  const chips=(ids,sym,max)=>{
+    const a=ids.slice(0,max).map(([id,bad])=>`<span class="tr-chip${bad?' bad':''}" title="${escXml((pmById(id)||{}).name||'')}" onclick="event.stopPropagation();pmTreeGo('${id}')">${sym} ${escXml(numOf(id))}</span>`).join('');
+    return a+(ids.length>max?`<span class="tr-more" title="${escXml(ids.slice(max).map(([id])=>numOf(id)).join(', '))}">+${ids.length-max}</span>`:'');
+  };
+  const rows=[];
+  const walk=(p,d)=>{
+    const ks=T.kids[p.id]||[], open=!p.collapsed;
+    const col=pmColorOf(p)||'#8b97b1';
+    const preds=(p.links||[]).map(l=>[l.from,pmViolated(l,p)]);
+    const succ=list.filter(q=>(q.links||[]).some(l=>l.from===p.id)).sort(pmNumCmp).map(q=>[q.id,false]);
+    const left=((pmD(p.start)-t0)/span*100).toFixed(2), wid=Math.max(0.6,(pmD(p.end)-pmD(p.start))/span*100).toFixed(2);
+    rows.push(`<div class="tr d${d}${sel.has(p.id)?' sel':''}${d===0?' root':''}" data-id="${p.id}" data-d="${d}" onclick="pmTreeClick(event,'${p.id}')" ondblclick="pmTreeDbl('${p.id}')">
+      <span class="tr-hd">${edit?'<span class="tr-handle" title="Přetažením pod jiný proces změníte nadřazený proces">⋮⋮</span>':''}</span>
+      <span class="tr-name" style="padding-left:${d*22}px">
+        ${ks.length?`<button type="button" class="tr-tog" onclick="event.stopPropagation();pmTreeToggle('${p.id}')" title="${open?'Sbalit':'Rozbalit'} (${ks.length})">${open?'▾':'▸'}</button>`:'<span class="tr-tog sp"></span>'}
+        <i class="tr-dot" style="background:${esc(col)}"></i><span class="tr-num">${escXml(pmNumLabel(p)||'—')}</span><b>${escXml(pmNameOf(p)||'(bez názvu)')}</b>${ks.length&&!open?`<span class="tr-cnt">${pmDescOf(p.id).length}</span>`:''}</span>
+      <span class="tr-g" title="${escXml(actorName(p.gestor)||'')}">${escXml(pmGestorLabel(p.gestor)||'—')}</span>
+      <span class="tr-d">${pmCz(p.start)} – ${pmCz(p.end)}</span>
+      <span class="tr-bar"><i class="tr-b" style="left:${left}%;width:${wid}%;background:${esc(col)}"></i>${tp!=null?`<i class="tr-today" style="left:${tp.toFixed(2)}%"></i>`:''}</span>
+      <span class="tr-l">${chips(preds,'←',3)}${chips(succ,'→',3)}</span>
+      <span class="tr-s">${chip(p.status)}</span></div>`);
+    if(open)ks.forEach(k=>walk(k,d+1));
+  };
+  T.roots.forEach(r=>walk(r,0));
+  const tools=`<div class="tr-tools">
+    <button class="btn ghost sm" onclick="pmTreeAll(false)" data-tip="Rozbalit vše\\nZobrazí všechny úrovně podprocesů.">⊞ Rozbalit vše</button>
+    <button class="btn ghost sm" onclick="pmTreeAll(true)" data-tip="Sbalit vše\\nZůstanou jen streamy (kořenové procesy).">⊟ Sbalit vše</button>
+    <span class="tr-lv">Úroveň:
+      <button class="btn ghost sm" onclick="pmTreeLevel(1)">1</button><button class="btn ghost sm" onclick="pmTreeLevel(2)">2</button><button class="btn ghost sm" onclick="pmTreeLevel(3)">3</button></span>
+    ${edit?`<span class="tr-sp"></span>
+    <button class="btn ghost sm" onclick="pmNewStream(null)" data-tip="Nový stream\\nPřidá kořenový proces (nový stream) s prvním podprocesem.">＋ Stream</button>
+    <button class="btn ghost sm" onclick="pmTreeAddChild()" data-tip="Podproces\\nPřidá podproces pod vybraný proces (bez názvu a gestora).">＋ Podproces</button>`:''}
+    <span class="tr-hint">${edit?'Přetažením za ⋮⋮ přesunete proces pod jiný. ':''}Kliknutím vyberete proces, chip ← → přejde na souvislý proces.</span></div>`;
+  const head=`<div class="tr thead"><span></span><span>Proces</span><span>Gestor</span><span>Termín</span><span>Časová poloha</span><span>Vazby</span><span>Stav</span></div>`;
+  return `<div class="pm-tree">${tools}${head}${rows.join('')}${edit?'<div class="tr-rootzone" id="tr-rootzone">↧ Pustit sem = z procesu se stane samostatný stream (kořenová úroveň)</div>':''}</div>`;
+}
+function pmRenderTree(host){
+  const keep=host.scrollTop;
+  host.innerHTML=pmTreeHTML(); host.scrollTop=keep;
+  const n=pmAll().length; $('#pm-count').textContent=`${n} procesů`;
+  pmRenderLegend(); pmRenderInspector();
+}
+function pmTreeClick(e,id){
+  if(e.target.closest('.tr-handle,.tr-tog,.tr-chip'))return;
+  if(e.shiftKey)pmSelToggle(id,true); else PM.sel=[id];
+  PM.link=null; renderPMap();
+}
+function pmTreeDbl(id){PM.sel=[id];PM.tab='zaklad';renderPMap()}
+function pmTreeGo(id){
+  PM.sel=[id]; renderPMap();
+  const r=document.querySelector(`#pm-canvas .tr[data-id="${id}"]`); if(r)r.scrollIntoView({block:'center',behavior:'smooth'});
+}
+function pmTreeToggle(id){const p=pmById(id);if(!p)return;p.collapsed=!p.collapsed;pmQueue(p);renderPMap()}
+function pmTreeAll(collapse){
+  pmAll().forEach(p=>{if(pmAll().some(x=>x.parent===p.id)&&!!p.collapsed!==collapse){p.collapsed=collapse;pmQueue(p)}});
+  renderPMap();
+}
+function pmTreeLevel(n){
+  pmAll().forEach(p=>{
+    if(!pmAll().some(x=>x.parent===p.id))return;
+    const want=pmDepth(p)>=n-1;
+    if(!!p.collapsed!==want){p.collapsed=want;pmQueue(p)}
+  });
+  renderPMap();
+}
+function pmTreeAddChild(){
+  const p=pmById(pmPrimary());
+  if(!p){toast('Nejdřív vyberte proces, pod který se má podproces přidat');return}
+  pmPlaceSub(p.id,{day:pmD(p.start),lane:(p.lane||0)+1});
+}
+/* přesun pod jiný proces přetažením */
+function pmTreeHeight(p){let h=0;pmKidsOf(p.id).forEach(k=>{h=Math.max(h,1+pmTreeHeight(k))});return h}
+function pmTreeCheck(p,newParentId){
+  if(!newParentId)return '';
+  if(newParentId===p.id)return 'Proces nelze přesunout sám pod sebe';
+  const np=pmById(newParentId); if(!np)return 'Cílový proces neexistuje';
+  if(pmIsAncestor(p.id,np))return 'Proces nelze přesunout pod vlastní podproces';
+  if(pmDepth(np)+1+pmTreeHeight(p)>PM_MAX_DEPTH-1)return 'Zanoření je omezené na tři úrovně';
+  if(p.parent===newParentId)return 'Proces už pod tímto procesem je';
+  /* nadřazený a podřízený proces nesmí být vázáni časovou vazbou */
+  const chain=[np]; let c=np,g=0; while(c&&c.parent&&g++<8){c=pmById(c.parent);if(c)chain.push(c)}
+  const sub=[p].concat(pmDescOf(p.id));
+  for(const q of sub)for(const a of chain){
+    if((q.links||[]).some(l=>l.from===a.id)||(a.links||[]).some(l=>l.from===q.id))
+      return `Přesun by vytvořil vazbu mezi nadřazeným a podřízeným procesem (${pmNumLabel(q)||q.name} ↔ ${pmNumLabel(a)||a.name}) — nejdřív vazbu odeberte`;
+  }
+  return '';
+}
+function pmTreeReparent(id,newParentId){
+  const p=pmById(id); if(!p)return;
+  if(!newParentId&&!p.parent){return}
+  const bad=pmTreeCheck(p,newParentId); if(bad){toast(bad);return}
+  histPush();
+  const oldRoot=pmRootOf(p), oldColor=pmColorOf(p);
+  p.parent=newParentId||'';
+  if(!p.parent&&!p.color){const k=(PM_COLORS.find(c=>c[1]===oldColor)||[])[0];if(k)p.color=k}   // samostatný stream si ponechá dosavadní barvu
+  pmAfterReparent(p,oldRoot); PM._vl=null;
+  const np=newParentId?pmById(newParentId):null;
+  if(np){np.collapsed=false;pmQueue(np)}
+  PM.sel=[id]; renderPMap();
+  toast(newParentId?`Přesunuto pod ${pmNumLabel(np)||np.name} — číslování a barva se upravily`:'Proces je nyní samostatný stream');
+}
+let TRDRAG=null;
+document.addEventListener('pointerdown',e=>{
+  const h=e.target.closest&&e.target.closest('.tr-handle'); if(!h||!pmTreeOn())return;
+  const row=h.closest('.tr'); if(!row)return;
+  e.preventDefault();
+  TRDRAG={id:row.dataset.id,row:row,moved:false,y:e.clientY,drop:null};
+  row.classList.add('dragging'); document.body.classList.add('pm-tdrag');
+});
+window.addEventListener('pointermove',e=>{
+  if(!TRDRAG)return;
+  if(!TRDRAG.moved&&Math.abs(e.clientY-TRDRAG.y)>4)TRDRAG.moved=true;
+  if(!TRDRAG.moved)return;
+  document.querySelectorAll('.tr-into,.tr-bad,.tr-rootzone.on').forEach(x=>x.classList.remove('tr-into','tr-bad','on'));
+  TRDRAG.drop=null;
+  const el=document.elementFromPoint(e.clientX,e.clientY); if(!el)return;
+  const zone=el.closest('#tr-rootzone'), tr=el.closest('.tr[data-id]');
+  const p=pmById(TRDRAG.id); if(!p)return;
+  if(zone){const bad=p.parent?'':'x';if(!bad){zone.classList.add('on');TRDRAG.drop={parent:''}}return}
+  if(tr&&tr!==TRDRAG.row&&!tr.classList.contains('thead')){
+    const bad=pmTreeCheck(p,tr.dataset.id);
+    tr.classList.add(bad?'tr-bad':'tr-into');
+    TRDRAG.drop={parent:tr.dataset.id,bad:bad};
+  }
+});
+window.addEventListener('pointerup',()=>{
+  if(!TRDRAG)return;
+  const d=TRDRAG; TRDRAG=null; document.body.classList.remove('pm-tdrag');
+  document.querySelectorAll('.tr-into,.tr-bad,.tr-rootzone.on,.tr.dragging').forEach(x=>x.classList.remove('tr-into','tr-bad','on','dragging'));
+  if(!d.moved||!d.drop)return;
+  if(d.drop.bad){toast(d.drop.bad);return}
+  pmTreeReparent(d.id,d.drop.parent);
+});
 
 /* ================= SKRYTÍ PANELŮ ================= */
 (function(){
