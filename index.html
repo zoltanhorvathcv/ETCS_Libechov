@@ -1802,6 +1802,20 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
 </div>
 
 <!-- Správa osob -->
+<div class="modal-veil" id="save-fail" style="z-index:400">
+  <div class="modal" style="width:480px;border-color:rgba(255,92,106,.6)">
+    <h3 style="color:#ff7a86">⚠ Změny se neuložily</h3>
+    <div id="sf-msg" style="white-space:pre-line;font-size:13.5px;line-height:1.55;color:var(--text)"></div>
+    <div style="font-size:12px;color:var(--text3);margin-top:10px;line-height:1.5">Data zůstala v aplikaci, ale v databázi nejsou. Neobnovujte stránku — nejdřív zkuste uložení zopakovat. Pokud potíž trvá, přihlaste se znovu.</div>
+    <div id="sf-state" style="font-size:12.5px;margin-top:8px"></div>
+    <div class="m-actions">
+      <button class="btn ghost" onclick="saveFailClose();saveShowInfo()">Podrobnosti</button>
+      <button class="btn ghost" onclick="saveFailClose()">Zavřít</button>
+      <button class="btn primary" id="sf-retry" onclick="saveFailRetry()">Zkusit znovu uložit</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-veil" id="save-modal" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="width:560px">
     <h3>Stav ukládání</h3>
@@ -2873,7 +2887,7 @@ async function dbRun(key,label,make,expect){
     const msg=saveErrText(e);
     SAVE.lastErr=msg; SAVE.failed.set(key,{key,label,make,expect}); SAVE.errors.unshift({t:Date.now(),label,msg}); if(SAVE.errors.length>20)SAVE.errors.length=20;
     console.warn('Uložení selhalo',label,e);
-    if(Date.now()-SAVE.lastToast>8000){SAVE.lastToast=Date.now();toast('⚠ Změny se NEUložily do databáze: '+msg)}
+    if(Date.now()-SAVE.lastToast>8000){SAVE.lastToast=Date.now();saveFailShow('Změny se nepodařilo uložit do databáze: '+msg)}
     return {ok:false,error:msg};
   }finally{SAVE.pending--;saveUI()}
 }
@@ -2954,6 +2968,22 @@ function saveShowInfo(){
     ${errs?`<div class="si-row"><b>Poslední chyby:</b><ul>${errs}</ul></div>`:''}
     <div id="si-result" class="si-row"></div>`;
   $('#save-modal').classList.add('open');
+}
+/* Selhání uložení = dialog uprostřed stránky (ne hláška nahoře) */
+function saveFailShow(msg){
+  const d=$('#save-fail'); if(!d)return;
+  $('#sf-msg').textContent=msg||SAVE.lastErr||'Neznámá chyba.';
+  $('#sf-state').textContent='';
+  d.classList.add('open');
+}
+function saveFailClose(){const d=$('#save-fail');if(d)d.classList.remove('open')}
+async function saveFailRetry(){
+  const st=$('#sf-state'),btn=$('#sf-retry'); st.textContent='Zkouším znovu uložit…'; btn.disabled=true;
+  for(const it of [...SAVE.failed.values()]){await dbRun(it.key,it.label,it.make,it.expect)}
+  pmFlush();
+  btn.disabled=false;
+  if(SAVE.failed.size){st.innerHTML='<span style="color:var(--blocked)">Stále se nepodařilo uložit: '+escXml(SAVE.lastErr)+'</span>'}
+  else{saveFailClose();toast('Změny se uložily')}
 }
 async function saveRetry(){
   const r=$('#si-result'); if(r)r.textContent='Zkouším znovu uložit…';
@@ -4698,10 +4728,10 @@ async function pplSave(){
   const sum=`${Object.keys(people).length} osob, ${Object.keys(orgUnits).length} útvarů, ${Object.keys(roles).length} rolí`;
   const r=await persistMeta();
   if(r&&r.demo){pplHide();renderAll();toast('DEMO režim — změny platí jen v tomto okně a do databáze se neukládají');return}
-  if(!r||!r.ok){toast('⚠ Osoby, útvary a role se NEUložily: '+((r&&r.error)||'neznámá chyba')+' — dialog zůstává otevřený, zkuste to znovu');PPL.dirty=true;return}
+  if(!r||!r.ok){PPL.dirty=true;saveFailShow('Osoby, útvary a role se neuložily: '+((r&&r.error)||'neznámá chyba')+'\nDialog Osoby a útvary zůstává otevřený, změny v něm nejsou ztraceny.');return}
   const v=await dbVerifyRows(saveMetaRows());
   pplHide(); renderAll();
-  toast(v.ok?`Uloženo a ověřeno čtením z databáze: ${sum}`:'⚠ Uloženo, ale ověření nesouhlasí: '+v.diff.slice(0,2).join('; '));
+  if(v.ok)toast(`Uloženo a ověřeno čtením z databáze: ${sum}`); else saveFailShow('Uloženo, ale ověření čtením z databáze nesouhlasí: '+v.diff.slice(0,2).join('; '));
 }
 
 /* ================= CELÁ OBRAZOVKA ================= */
@@ -5373,7 +5403,7 @@ function pmFlush(){
     return persist(ent,o,i).then(r=>({r,row:rowFor(ent,o,i)}));
   }).filter(Boolean);
   if(jobs.length&&ONLINE)Promise.all(jobs).then(res=>{
-    if(res.every(x=>x.r&&x.r.ok))dbVerifyRows(res.slice(0,80).map(x=>x.row)).then(v=>{if(!v.ok){SAVE.lastErr='ověření po uložení selhalo: '+v.diff.slice(0,2).join('; ');saveUI();toast('⚠ Uloženo, ale ověření čtením z databáze nesouhlasí — viz stav ukládání')}});
+    if(res.every(x=>x.r&&x.r.ok))dbVerifyRows(res.slice(0,80).map(x=>x.row)).then(v=>{if(!v.ok){SAVE.lastErr='ověření po uložení selhalo: '+v.diff.slice(0,2).join('; ');saveUI();saveFailShow('Zápis proběhl, ale ověření čtením z databáze nesouhlasí s tím, co je v aplikaci: '+v.diff.slice(0,2).join('; '))}});
   });
 }
 /* milník sleduje proces; zamčený se neposune */
