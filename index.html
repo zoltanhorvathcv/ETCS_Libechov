@@ -421,6 +421,24 @@ body.pm-tdrag,body.pm-tdrag *{cursor:grabbing!important;user-select:none}
 .pm-focusbar,#pm-focusbar{align-items:center;gap:8px;flex-wrap:wrap;padding:7px 12px;margin:0 0 8px;border:1px solid var(--accent);border-radius:10px;background:rgba(255,82,0,.07);font-size:12.5px;color:var(--text2)}
 #pm-focusbar b{color:var(--text)}#pm-focusbar a{color:var(--accent);cursor:pointer}#pm-focusbar a:hover{text-decoration:underline}
 #pm-focusbar .sep{color:var(--text3)}#pm-focusbar .cnt{margin-left:auto;color:var(--text3);font-size:11.5px}
+.oitem{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:0 0 10px;background:rgba(255,255,255,.02)}
+.oitem.flash{box-shadow:0 0 0 2px var(--accent)}
+.oitem .orow1,.oitem .orow2,.oitem .orow3{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 7px}
+.oitem label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;min-width:58px}
+.oitem input,.oitem select{background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font:inherit;font-size:12.5px;padding:5px 8px}
+.oitem select{width:auto;max-width:240px}.oitem input{width:auto}.oitem .orow2 select{flex:0 1 240px}
+.oitem .oname{flex:1;min-width:200px;font-weight:600}.oitem .orow2 input{flex:1;min-width:200px}
+.oid,.pm-subrow .oid{font-family:var(--mono);font-size:11.5px;color:var(--accent)}
+.odate{font-family:var(--mono);font-size:11.5px;color:var(--text2)}
+.olink{cursor:pointer;color:var(--text);text-decoration:underline dotted}
+.ochips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:1}.ochips em{color:var(--text3);font-size:12px}
+.oc{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);border-radius:999px;padding:2px 4px 2px 9px;font-size:12px;background:rgba(255,255,255,.03)}
+.oc.main{border-color:var(--accent)}.oc.bad{border-color:#ff5c6a;color:#ff5c6a}
+.oc button{background:none;border:0;color:var(--text3);cursor:pointer;padding:0 4px;font-size:12px}.oc .star{color:var(--accent);padding:0 2px}
+.oc button:hover{color:var(--text)}
+.oiss{display:flex;flex-wrap:wrap;gap:10px;font-size:12px}.oiss .error{color:#ff5c6a}.oiss .warn{color:#f2b84b}.oiss .info{color:var(--text3)}
+.oempty{padding:26px;text-align:center;color:var(--text3);font-size:13px}
+.pmout:hover path{stroke-width:2.4}
 .pm-tree{padding:0 0 14px;font-size:12.5px;min-width:960px}
 .tr-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;position:sticky;top:0;z-index:3;background:var(--panel2,#161b23);border-bottom:1px solid var(--border)}
 .tr-tools .tr-sp{flex:1}.tr-hint{font-size:11px;color:var(--text3);margin-left:6px}.tr-lv{font-size:11px;color:var(--text3);display:inline-flex;align-items:center;gap:4px}
@@ -1681,6 +1699,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       <button class="btn ghost sm ed-only" onclick="pmNewProcess()" title="Přidat nový proces na volný pruh — ve svislé ose se ve sloupci streamu založí jako jeho podproces">＋ Proces</button>
       <button class="btn ghost sm ed-only" id="pm-newstream" onclick="pmNewStream()" title="Přidat nový stream — nový sloupec s vlastní barvou a číslem, vpravo za ostatními">＋ Stream</button>
       <button class="btn ghost sm" id="pm-tree" onclick="pmViewDialog()">👁 Zobrazení</button>
+      <button class="btn ghost sm" id="pm-outbtn" onclick="pmOutOpen()">📦 Výstupy</button>
       <button class="btn ghost sm" id="pm-orient" onclick="pmToggleOrient()" title="Přepne časovou osu mezi vodorovnou a svislou — svisle plyne čas shora dolů a souběžné procesy stojí ve sloupcích">↕ Svislá osa</button>
       <button class="btn ghost sm" id="pm-rel" onclick="pmToggleRel()" title="Zvýrazní všechny souvislosti právě vybraného procesu nebo vazby — vazby i procesy na jejich druhém konci">🔗 Souvislosti</button>
       <button class="btn ghost sm" id="pm-mapexp" onclick="pmMapDialog()" title="Vytisknout nebo uložit mapu se všemi procesy a vazbami do PDF">⎙ Mapa do PDF</button>
@@ -1840,6 +1859,15 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
     <h3>Zobrazení varianty <span style="font-weight:400;color:var(--text3);font-size:13px">— jen jiný pohled, data se nemění</span></h3>
     <div id="pm-view-list"></div>
     <div class="m-actions"><button class="btn ghost" onclick="$('#pm-view-modal').classList.remove('open')">Zavřít</button></div>
+  </div>
+</div>
+
+<div class="modal-veil" id="out-modal" onclick="if(event.target===this)pmOutClose()">
+  <div class="modal" style="width:min(980px,96vw);max-height:90vh;display:flex;flex-direction:column">
+    <h3 id="out-title">Výstupy</h3>
+    <p style="margin:0 0 10px;color:var(--text3);font-size:12.5px;line-height:1.5">Výstup je výsledek práce, který procesy tvoří a jiné procesy používají. Datum výstupu se odvozuje z konce jeho tvůrců (★ hlavní tvůrce); spotřebitel má začít až po něm.</p>
+    <div id="out-list" style="overflow:auto;flex:1;min-height:120px"></div>
+    <div class="m-actions"><button class="btn primary" id="out-add" onclick="pmOutAddFromDialog()">＋ Výstup</button><button class="btn ghost" onclick="pmOutClose()">Zavřít</button></div>
   </div>
 </div>
 
@@ -2887,6 +2915,7 @@ function hydrate(rows){
   if(by.change)changes=by.change;
   if(by.concept)concepts=by.concept; if(by.process)processes=by.process;
   if(by.pmgroup)pmgroups=by.pmgroup;
+  if(by.output)outputs=by.output;
 }
 function rowFor(entity,o,i){return {project_id:SUPA.projectId,entity,id:idOf(entity,o),sort:i,data:o}}
 /* ================= ULOŽENÍ DAT: kontrola, stav a ověření =================
@@ -2939,7 +2968,7 @@ async function persistAll(){
     {project_id:SUPA.projectId,entity:'staff',id:'meta',sort:0,data:staff},
     {project_id:SUPA.projectId,entity:'roles',id:'meta',sort:0,data:roles},
     {project_id:SUPA.projectId,entity:'impact',id:'meta',sort:0,data:impacts}];
-  [['milestone',milestones],['meeting',meetings],['question',questions],['decision',decisions],['task',tasks],['risk',risks],['evidence',evidence],['concept',concepts],['process',processes],['pmgroup',pmgroups]]
+  [['milestone',milestones],['meeting',meetings],['question',questions],['decision',decisions],['task',tasks],['risk',risks],['evidence',evidence],['concept',concepts],['process',processes],['pmgroup',pmgroups],['output',outputs]]
     .forEach(([e,arr])=>arr.forEach((o,i)=>rows.push(rowFor(e,o,i))));
   rows[1].id='meta';
   return dbRun('all','všechna data',()=>sb.from('pi_entities').upsert(rows).select('id'),rows.length);
@@ -2981,7 +3010,7 @@ async function dbVerifyRows(rows){
 }
 function saveAllRows(){
   const rows=saveMetaRows().concat([{project_id:SUPA.projectId,entity:'impact',id:'meta',sort:0,data:impacts}]);
-  [['milestone',milestones],['meeting',meetings],['question',questions],['decision',decisions],['task',tasks],['risk',risks],['evidence',evidence],['concept',concepts],['process',processes],['pmgroup',pmgroups]]
+  [['milestone',milestones],['meeting',meetings],['question',questions],['decision',decisions],['task',tasks],['risk',risks],['evidence',evidence],['concept',concepts],['process',processes],['pmgroup',pmgroups],['output',outputs]]
     .forEach(([e,arr])=>arr.forEach((o,i)=>rows.push(rowFor(e,o,i))));
   return rows;
 }
@@ -3180,7 +3209,7 @@ function pmSelToggle(id,add){
    Snímek se pořizuje před každou změnou; drží procesy i milníky, protože
    posun procesu přesouvá i milníky na jeho hranicích. */
 const HIST={un:[],re:[],max:50};
-const histState=()=>({p:JSON.stringify(processes),m:JSON.stringify(milestones)});
+const histState=()=>({p:JSON.stringify(processes),m:JSON.stringify(milestones),o:JSON.stringify(outputs)});
 function histPush(){
   HIST.un.push(histState());
   if(HIST.un.length>HIST.max)HIST.un.shift();
@@ -3189,7 +3218,9 @@ function histPush(){
 function histRestore(st){
   const before=processes.map(x=>x.id);
   processes=JSON.parse(st.p); milestones=JSON.parse(st.m);
+  const beforeO=outputs.map(x=>x.id); if(st.o)outputs=JSON.parse(st.o);
   pmNormalize(); computePositions();
+  if(st.o){const nowO=new Set(outputs.map(x=>x.id)); beforeO.forEach(id=>{if(!nowO.has(id))persistDelete('output',{id})}); outputs.forEach((x,i)=>persist('output',x,i))}
   const now=new Set(processes.map(x=>x.id));
   before.forEach(id=>{if(!now.has(id))persistDelete('process',{id})});
   processes.forEach((x,i)=>persist('process',x,i));
@@ -3457,6 +3488,7 @@ function pmColorOf(p){
 /* Rámečky — volné seskupení libovolných procesů; obdélník se sám
    přizpůsobuje poloze svých členů. */
 let pmgroups=[];
+let outputs=[];
 const pmGroupsIn=()=>pmgroups.filter(g=>g.scope===pmScope());
 
 /* Vedení vazby: místo diagonály přes celé plátno jde vazba vodorovně,
@@ -3905,7 +3937,7 @@ function pmRenderV(host,list,SK,rBefore){
     <line x1="0" y1="${L.head}" x2="${PMV_RAIL}" y2="${L.head}" stroke="${SK.rule}"/>
     <line x1="${PMV_RAIL}" y1="0" x2="${PMV_RAIL}" y2="${L.head}" stroke="${SK.rule}"/>
     ${!PM.print&&!document.body.classList.contains('pm-view')?`<rect class="pmvres" x="0" y="${L.head-4}" width="${PMV_RAIL}" height="8" fill="transparent" style="cursor:row-resize"/>`:''}</g>`;
-  s+=rl+hd+cn+`</svg>`;
+  s+=rl+hd+cn+pmOutMarksSVG(list,b,true,SK)+`</svg>`;
 
   const keepL=host.scrollLeft, keepT=host.scrollTop;
   host.innerHTML=s;
@@ -3971,7 +4003,7 @@ function renderPMap(){
     const nb=$('#nav-pm'); if(nb)nb.textContent=processes.length;   // v rozcestníku počítáme všechno
     return;
   }
-  pmFocusValid(); pmSyncControls(); pmFocusBar();
+  pmFocusValid(); pmDeriveDates(); pmSyncControls(); pmFocusBar();
   host.classList.toggle('pm-placing',!!PM.placing);
   const list=pmVisible(), b=pmBounds(list), px=pmPx(), head=pmHeadH();
   /* pruhy i mřížka vyplní celou viditelnou plochu, ne jen výšku obsahu */
@@ -4273,7 +4305,7 @@ function renderPMap(){
   /* záhlaví osy úplně nahoře v pořadí kreslení — při svislém posunu se
      posouvá s plátnem (pmSyncSticky) a obsah mizí pod ním */
   if(mo)s+=`<g class="pmhead">${pmAxisSVG(mo,W,head)}</g>`;
-  s+=`</svg>`;
+  s+=pmOutMarksSVG(list,b,false,SK)+`</svg>`;
   const keepL=host.scrollLeft, keepT=host.scrollTop;
   host.innerHTML=s;
   host.scrollLeft=keepL; host.scrollTop=keepT;
@@ -5142,9 +5174,11 @@ const PM_TABS=[
   {id:'cas',l:'Termíny a poloha',keys:['start','end','lane','parent']},
   {id:'lide',l:'Odpovědnost',keys:['gestor','cogestors','tasks','affected']},
   {id:'vazby',l:'Vazby',keys:['links']},
+  {id:'vystupy',l:'Výstupy',keys:['outs']},
   {id:'milniky',l:'Milníky',keys:['msEnd','msStart']}
 ];
 function pmRibbonField(p,k){
+  if(k==='outs')return pmOutTabHTML(p);
   const f=(SCHEMAS.process.fields||[]).find(x=>x.k===k); if(!f)return '';
   const cls=f.t==='textarea'||f.full?'wide':'';   // celý řádek si bere jen dílčí editor
   if(f.t==='roles'||f.t==='plinks'||f.t==='msrefs'||f.t==='peoplerefs'||f.t==='ptasks'){
@@ -5183,7 +5217,8 @@ function pmRibbonField(p,k){
        takže rozepsaný rok („2“ → rok 0002) by proces rovnou odstěhoval na
        začátek osy a druhý termín by se podle něj zbytečně srovnal. */
     const mm=f.min?` min="${f.min}" max="${f.max}"`:'';
-    input=`<input type="date" data-k="${k}" value="${esc(v)}" onkeydown="pmRibKey(event)"
+    const der=(k==='start'||k==='end')&&pmKidsOf(p.id).length;
+    input=`<input type="date" data-k="${k}" value="${esc(v)}"${der?' disabled title="Odvozeno z podprocesů — nejdřívější začátek a nejpozdější konec"':''} onkeydown="pmRibKey(event)"
       oninput="pmRibDateSoon(this,'${k}')" onchange="pmRibDateSoon(this,'${k}')" onblur="pmRibDateBlur(this,'${k}')"${mm}>`;
   }
   else{input=`<input type="${f.t==='number'?'number':'text'}" data-k="${k}" value="${esc(v)}" onkeydown="pmRibKey(event)" onchange="pmRibSet('${k}',this.value)">`;}
@@ -5377,6 +5412,10 @@ function pmRibSet(k,v){
       pmRenderInspector(); return;
     }
   }
+  if((k==='start'||k==='end')&&pmKidsOf(p.id).length){
+    toast('Termín nadřazeného procesu se odvozuje z podprocesů — upravte termíny podprocesů');
+    pmRenderInspector(); return;
+  }
   if(k==='start'||k==='end'){
     v=pmClampDate(v);
     if(pmDateBad(p,k,v))return;         // druhý termín se kvůli tomuhle nikdy sám neposune
@@ -5545,6 +5584,8 @@ function pmPointerDown(e){
     pmPlaceSub(par,pmPointToPlacement(e.clientX,e.clientY));
     return;
   }
+  const omk=e.target.closest('.pmout');
+  if(omk){e.preventDefault();pmOutOpen(omk.dataset.oid);return}
   const tog=e.target.closest('.pmtog');
   if(tog){const p=pmById(tog.dataset.tog);if(p){p.collapsed=!p.collapsed;pmQueue(p);renderPMap()}return}
   const gest=e.target.closest('.pmgest');
@@ -5640,9 +5681,10 @@ function pmPointerDown(e){
   const resize=grip?(grip.dataset.edge||'end'):null;   // 'start' = tažení začátku, 'end' = konce
   const V=pmVert()&&PM._vl;
   /* ve svislé ose se záhlaví fáze s boxy netáhne — posunul by se jen pás */
+  if(resize&&pmKidsOf(p.id).length){toast('Termín nadřazeného procesu se odvozuje z podprocesů — protahujte podprocesy');return}
   let group=resize?[p]:pmSelProcs().filter(q=>!(V&&PM._vl.isBand[q.id]));
-  /* v odsazeném stromu se s nadřazeným procesem posouvají i jeho podprocesy (jsou v jeho těle) */
-  if(!resize&&pmNestOn()){const ex=[];group.forEach(q=>pmDescOf(q.id).forEach(d=>{if(!group.includes(d)&&!ex.includes(d))ex.push(d)}));group=group.concat(ex)}
+  /* s nadřazeným procesem se posouvají i jeho podprocesy — jeho termín se z nich odvozuje */
+  if(!resize)group=pmWithDesc(group);
   pmDrag={p,resize,x:e.clientX,y:e.clientY,moved:false,vcols:V?PM._vl.cols.slice():null,
           orig:group.map(q=>({q,start:q.start,end:q.end,lane:q.lane||0}))};
   g.classList.add('dragging');
@@ -5889,7 +5931,7 @@ function pmKeyDown(e){
     e.preventDefault(); histPush();
     if(e.key==='ArrowUp'||e.key==='ArrowDown'){
       const d=e.key==='ArrowDown'?step:-step;
-      sel.forEach(p=>{p.start=pmClampDate(pmAdd(p.start,d));p.end=pmClampDate(pmAdd(p.end,d));pmSyncMilestones(p);pmQueue(p)});
+      pmWithDesc(sel).forEach(p=>{p.start=pmClampDate(pmAdd(p.start,d));p.end=pmClampDate(pmAdd(p.end,d));pmSyncMilestones(p);pmQueue(p)});
       computePositions();
     } else {
       const cols=PM._vl.cols.slice(), d=e.key==='ArrowRight'?1:-1;
@@ -5900,7 +5942,7 @@ function pmKeyDown(e){
   if(e.key==='ArrowLeft'||e.key==='ArrowRight'){
     e.preventDefault(); histPush();
     const d=e.key==='ArrowRight'?step:-step;
-    sel.forEach(p=>{p.start=pmClampDate(pmAdd(p.start,d));p.end=pmClampDate(pmAdd(p.end,d));pmSyncMilestones(p);pmQueue(p)});
+    pmWithDesc(sel).forEach(p=>{p.start=pmClampDate(pmAdd(p.start,d));p.end=pmClampDate(pmAdd(p.end,d));pmSyncMilestones(p);pmQueue(p)});
     computePositions(); renderPMap(); return;
   }
   if(e.key==='ArrowUp'||e.key==='ArrowDown'){
@@ -6765,6 +6807,10 @@ SCHEMAS.pmgroup={title:'Rámeček',entity:'pmgroup',arr:()=>pmgroups,idf:'id',pr
   {k:'color',l:'Barva',t:'select',opts:()=>PM_COLOR_OPTS}
 ]};
 NEW_DEFAULT.pmgroup={color:'slate',members:[]};
+SCHEMAS.output={title:'Výstup',entity:'output',arr:()=>outputs,idf:'id',prefix:'V-',fields:[
+  {k:'name',l:'Název výstupu',t:'text',full:1}
+]};
+NEW_DEFAULT.output={kind:'doc',status:'plan',creators:[],main:''};
 
 /* Seskupí vybrané procesy do rámečku. */
 function pmGroupSelected(){
@@ -8350,6 +8396,7 @@ function pmDropConcept(c){
   histPush();
   procs.forEach(x=>{processes.splice(processes.indexOf(x),1);persistDelete('process',x)});
   grps.forEach(g=>{pmgroups.splice(pmgroups.indexOf(g),1);persistDelete('pmgroup',g)});
+  outputs.filter(o=>o.scope===scope).forEach(o=>{outputs.splice(outputs.indexOf(o),1);persistDelete('output',o)});
   if(PM.conceptId===c.id){const other=concepts.find(x=>x.id!==c.id);if(other)PM.conceptId=other.id}
   PM.sel=[];
   return true;
@@ -8691,9 +8738,11 @@ function pmNormalize(){
   if(!concepts.some(c=>c.src)&&concepts[0])concepts[0].src=true;
   if(!concepts.some(c=>c.id===PM.conceptId)&&concepts[0])PM.conceptId=concepts[0].id;
   if(!Array.isArray(pmgroups))pmgroups=[];
+  if(!Array.isArray(outputs))outputs=[];
+  outputs.forEach(o=>{if(!Array.isArray(o.creators))o.creators=[];if(!o.kind)o.kind='doc';if(!o.status)o.status='plan';if(o.main==null)o.main=''});
   pmgroups.forEach(g=>{if(!Array.isArray(g.members))g.members=[]});
   processes.forEach(p=>{
-    ['cogestors','affected','links','msStart','msEnd','tasks'].forEach(k=>{if(!Array.isArray(p[k]))p[k]=[]});
+    ['cogestors','affected','links','msStart','msEnd','tasks','inputs'].forEach(k=>{if(!Array.isArray(p[k]))p[k]=[]});
     if(!p.scope)p.scope='concept:'+(concepts[0]?concepts[0].id:'K-01');
     if(!p.state)p.state='koncept';
     if(!p.status)p.status='idle';
@@ -8800,6 +8849,7 @@ const PM_TIPS_BTN={
  'pmEditConcept':'Varianta — úpravy\nNázev, časová osa, T0, zdroj mapy a údaje pro podklad vedení. Změna osy nebo T0 mění zobrazení, procesy zůstávají.',
  'pmNewProcess':'Přidat proces\nVe svislé ose vznikne proces ve vybraném streamu (když není nic označeno, aplikace se zeptá, ve kterém). Vzniká bez názvu a gestora a nikdy nepřekryje jiný proces.',
  'pmNewStream':'Přidat stream\nNový sloupec (fáze) vpravo za ostatními, s vlastní barvou a dalším číslem a prvním podprocesem. Stávající streamy se nemění.',
+ 'pmOutOpen':'Výstupy\nSeznam výstupů varianty: dokumenty, schválení a zařízení, které procesy tvoří a jiné používají. U každého je hlavní tvůrce (★), další tvůrci a spotřebitelé. Datum výstupu se odvozuje z konce tvůrců; spotřebitel má začít až po něm. Výstupy se přidávají i v pásu karet procesu na kartě Výstupy.',
  'pmViewDialog':'Zobrazení varianty\nOtevře výběr ze tří zobrazení: časová osa s boxy, časová osa s odsazeným stromem (nadřazený proces je box s podprocesy uvnitř) a přehled stromem (tabulka). Jde jen o jiný pohled na tytéž údaje — nic se nemění, volba se ukládá k variantě. Přehled stromem zatím do PDF netiskne.',
  'pmToggleOrient':'Osa svisle / vodorovně\nPřepne zobrazení času. Svisle plyne čas shora dolů a souběžné procesy stojí ve sloupcích streamů. Procesy ani termíny se nemění, orientace se ukládá k variantě.',
  'pmToggleRel':'Souvislosti\nZvýrazní vazby i procesy na jejich druhém konci pro právě vybraný proces nebo vazbu. Jen zobrazení.',
@@ -9064,6 +9114,16 @@ function impactScan(){
     scanText(p.desc,'popis','zaklad');
     (p.links||[]).forEach(l=>{scanText(l.subj,'předmět vazby','vazby');scanText(l.note,'popis vazby','vazby')});
   });
+  /* výstupy */
+  all.forEach(p=>(p.inputs||[]).forEach(id=>{if(!outputs.some(o=>o.id===id))push(p,{kind:'in-missing',sev:'error',tab:'vystupy',extra:id,title:`Proces používá neexistující výstup ${id}`,detail:'Výstup byl smazán. Odeberte vstup na kartě Výstupy.'})}));
+  outputs.forEach(o=>{
+    const m=pmOutMain(o)||pmOutCreators(o)[0], lab=pmOutLabel(o);
+    pmOutIssues(o).forEach(([sev,t])=>{
+      if(sev==='info')return;
+      out.push({scope:o.scope,pid:m?m.id:'',oid:o.id,where:lab,tab:'vystupy',kind:'out-issue',sev,extra:t,key:'out-issue|'+o.id+'|'+t,
+        title:`Výstup ${lab}: ${t}`,detail:'Opravte tvůrce nebo spotřebitele výstupu v okně 📦 Výstupy.'});
+    });
+  });
   out.sort((a,b)=>IMPACT_SEV[a.sev][1]-IMPACT_SEV[b.sev][1]);
   return out;
 }
@@ -9125,7 +9185,8 @@ function impactGo(key){
   if(AUTH&&!editMode)setEdit(true);
   go('pmap');
   if(it.scope==='map')pmOpenMap(); else pmOpenConcept(it.scope.replace('concept:',''));
-  PM.sel=[it.pid]; PM.tab=it.tab||'zaklad';
+  PM.sel=it.pid?[it.pid]:[]; PM.tab=it.tab||'zaklad';
+  if(it.oid&&!it.pid)setTimeout(()=>pmOutOpen(it.oid),200);
   setTimeout(()=>{
     renderPMap();
     setTimeout(()=>{
@@ -9415,6 +9476,226 @@ window.addEventListener('pointerup',()=>{
   if(d.drop.bad){toast(d.drop.bad);return}
   pmTreeReparent(d.id,d.drop.parent);
 });
+
+/* ================= VÝSTUPY =================
+   Výstup je výsledek práce (dokument, schválení, zařízení…), který procesy tvoří a jiné procesy
+   používají. Tvůrci jsou uloženi u výstupu (creators + main), spotřebitelé u procesu (inputs).
+   Datum výstupu se odvozuje: nejpozdější konec jeho tvůrců. Spotřebitel má začít až po něm. */
+const OUT_KINDS={doc:'Dokument',appr:'Schválení / rozhodnutí',dev:'Zařízení / dílo',other:'Jiný'};
+const OUT_ST={plan:['Plánováno','#8b97b1'],issued:['Vydáno','#f2b84b'],appr:['Schváleno','#3ddc97']};
+const pmOutsIn=scope=>outputs.filter(o=>o.scope===(scope||pmScope()));
+const pmOutById=id=>outputs.find(o=>o.id===id);
+const pmOutLabel=o=>o.id+' '+(o.name||'(bez názvu)');
+const pmOutCreators=o=>(o.creators||[]).map(id=>pmById(id)).filter(Boolean);
+const pmOutConsumers=o=>processes.filter(p=>p.scope===o.scope&&(p.inputs||[]).includes(o.id));
+const pmOutMain=o=>{const m=pmById(o.main);return m&&(o.creators||[]).includes(m.id)?m:null};
+function pmOutDate(o){
+  const c=pmOutCreators(o); if(!c.length)return '';
+  return c.reduce((m,p)=>p.end>m?p.end:m,c[0].end);
+}
+const pmEditing=()=>document.body.classList.contains('editing');
+const pmProcLabel=p=>((pmNumLabel(p)?pmNumLabel(p)+' ':'')+(pmNameOf(p)||'(bez názvu)'));
+/* souvislost dvou procesů v hierarchii (stejný, předek, potomek) */
+function pmRelated(a,b){return a===b||pmDescOf(a).some(d=>d.id===b)||pmDescOf(b).some(d=>d.id===a)}
+/* dosažitelnost po vazbách i přes výstupy: předchůdce → následník */
+function pmReach(from,to){
+  const seen=new Set(), st=[from];
+  const succ=x=>{
+    const r=[];
+    processes.forEach(q=>{if((q.links||[]).some(l=>l.from===x))r.push(q.id)});
+    outputs.forEach(o=>{if((o.creators||[]).includes(x))pmOutConsumers(o).forEach(k=>r.push(k.id))});
+    return r;
+  };
+  while(st.length){const x=st.pop(); if(x===to)return true; if(seen.has(x))continue; seen.add(x); succ(x).forEach(y=>st.push(y))}
+  return false;
+}
+/* vrací text důvodu, proč nejde proces přidat jako tvůrce / spotřebitele; prázdný = lze */
+function pmOutCheck(o,pid,role){
+  const p=pmById(pid); if(!p)return 'Proces neexistuje';
+  if(p.scope!==o.scope)return 'Proces patří do jiné varianty';
+  if(role==='creator'){
+    if((o.creators||[]).includes(pid))return 'Proces už výstup tvoří';
+    for(const k of pmOutConsumers(o)){
+      if(pmRelated(pid,k.id))return `Tvůrce nesmí být zároveň spotřebitelem ani jeho nadřazeným či podřízeným procesem (${pmProcLabel(k)})`;
+      if(pmReach(k.id,pid))return `Vznikl by kruh: „${pmProcLabel(k)}“ už předchází tomuto procesu`;
+    }
+  }else{
+    if((p.inputs||[]).includes(o.id))return 'Proces už výstup používá';
+    for(const c of pmOutCreators(o)){
+      if(pmRelated(pid,c.id))return `Spotřebitel nesmí být zároveň tvůrcem ani jeho nadřazeným či podřízeným procesem (${pmProcLabel(c)})`;
+      if(pmReach(pid,c.id))return `Vznikl by kruh: tento proces už předchází „${pmProcLabel(c)}“`;
+    }
+  }
+  return '';
+}
+function pmOutSave(o){persist('output',o,outputs.indexOf(o))}
+function pmOutRefresh(){
+  PM._vl=null; PM._nest=null;
+  if($('#out-modal')&&$('#out-modal').classList.contains('open'))pmOutRender();
+  PM.panelLock=true; renderPMap(); PM.panelLock=false;
+  if(PM.sel.length===1&&PM.tab==='vystupy')pmRenderInspector();
+}
+function pmOutNew(pid){
+  const p=pid?pmById(pid):null;
+  const name=(prompt('Název výstupu','')||'').trim(); if(!name)return null;
+  histPush();
+  const o={id:nextId('output'),scope:p?p.scope:pmScope(),name,desc:'',kind:'doc',status:'plan',gestor:p?(p.gestor||''):'',creators:p?[p.id]:[],main:p?p.id:''};
+  outputs.push(o); pmOutSave(o); pmOutRefresh();
+  toast(`Výstup ${o.id} založen`+(p?` — tvoří ho „${pmProcLabel(p)}“`:''));
+  return o;
+}
+function pmOutSet(oid,k,v){
+  const o=pmOutById(oid); if(!o||o[k]===v)return;
+  histPush(); o[k]=v; pmOutSave(o); pmOutRefresh();
+}
+function pmOutDelete(oid){
+  const o=pmOutById(oid); if(!o)return;
+  const kons=pmOutConsumers(o).length;
+  if(!confirm(`Smazat výstup ${pmOutLabel(o)}?`+(kons?`\n${kons} procesů ho přestane používat.`:'')))return;
+  histPush();
+  processes.forEach(p=>{if((p.inputs||[]).includes(oid)){p.inputs=p.inputs.filter(x=>x!==oid);pmQueue(p)}});
+  outputs.splice(outputs.indexOf(o),1); persistDelete('output',o);
+  pmFlush(); pmOutRefresh(); toast('Výstup smazán');
+}
+function pmOutAdd(oid,pid,role){
+  const o=pmOutById(oid), p=pmById(pid); if(!o||!p)return;
+  const why=pmOutCheck(o,pid,role); if(why){toast(why);pmOutRefresh();return}
+  histPush();
+  if(role==='creator'){o.creators=(o.creators||[]).concat(pid); if(!pmOutMain(o))o.main=pid; pmOutSave(o)}
+  else{p.inputs=(p.inputs||[]).concat(oid); if(p.scope==='map')p.mapEdited=true; pmQueue(p)}
+  pmFlush(); pmOutRefresh();
+}
+function pmOutRemove(oid,pid,role){
+  const o=pmOutById(oid), p=pmById(pid);
+  histPush();
+  if(role==='creator'&&o){
+    o.creators=(o.creators||[]).filter(x=>x!==pid);
+    if(o.main===pid)o.main=(o.creators.find(x=>pmById(x))||'');
+    pmOutSave(o);
+  }else if(p){p.inputs=(p.inputs||[]).filter(x=>x!==oid);pmQueue(p)}
+  pmFlush(); pmOutRefresh();
+}
+function pmOutMainSet(oid,pid){const o=pmOutById(oid); if(!o||o.main===pid)return; histPush(); o.main=pid; pmOutSave(o); pmOutRefresh()}
+/* pole „+ přidat“ — nabídne procesy, které lze přidat */
+function pmOutPick(sel,oid,role){
+  const pid=sel.value; sel.value=''; if(pid)pmOutAdd(oid,pid,role);
+}
+function pmOutPickIn(sel,pid){const oid=sel.value; sel.value=''; if(oid)pmOutAdd(oid,pid,'consumer')}
+function pmOutPickMake(sel,pid){const oid=sel.value; sel.value=''; if(oid)pmOutAdd(oid,pid,'creator')}
+/* upozornění k jednomu výstupu */
+function pmOutIssues(o){
+  const r=[]; const cr=pmOutCreators(o), dead=(o.creators||[]).length-cr.length;
+  if(!(o.creators||[]).length)r.push(['error','Nemá žádného tvůrce']);
+  else if(!pmOutMain(o))r.push(['error','Chybí hlavní tvůrce (zvolte ★)']);
+  if(dead)r.push(['error',`${dead}× odkaz na smazaný proces v tvůrcích`]);
+  const d=pmOutDate(o);
+  pmOutConsumers(o).forEach(k=>{if(d&&k.start<d)r.push([o.scope==='map'?'error':'warn',`„${pmProcLabel(k)}“ začíná ${pmCz(k.start)}, před vydáním (${pmCz(d)})`])});
+  if(!pmOutConsumers(o).length)r.push(['info','Nikdo výstup nepoužívá']);
+  return r;
+}
+/* ---- okno se všemi výstupy varianty ---- */
+function pmOutOpen(oid){
+  if(PM.gallery){toast('Nejdřív otevřete variantu nebo mapu');return}
+  PM.outFocus=oid||null; $('#out-modal').classList.add('open'); pmOutRender();
+  if(oid)setTimeout(()=>{const el=$(`#out-list [data-oid="${oid}"]`);if(el){el.scrollIntoView({block:'center'});el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),2200)}},60);
+}
+function pmOutClose(){$('#out-modal').classList.remove('open')}
+function pmProcOptions(filter){
+  const list=pmByNum(processes.filter(p=>p.scope===pmScope()&&(!filter||filter(p))));
+  return '<option value="">＋ přidat proces…</option>'+list.map(p=>`<option value="${p.id}">${esc(pmProcLabel(p))}</option>`).join('');
+}
+function pmOutRender(){
+  const host=$('#out-list'); if(!host)return;
+  const ed=pmEditing(), dis=ed?'':' disabled';
+  const list=pmOutsIn().slice().sort((a,b)=>String(a.id).localeCompare(String(b.id),'cs',{numeric:true}));
+  $('#out-title').textContent='Výstupy — '+(PM.mode==='map'?'procesní mapa':((pmConcept()||{}).name||'varianta'));
+  host.innerHTML=list.length?list.map(o=>{
+    const cr=(o.creators||[]), d=pmOutDate(o), iss=pmOutIssues(o), st=OUT_ST[o.status]||OUT_ST.plan;
+    const chip=(pid,role)=>{
+      const p=pmById(pid), isMain=role==='creator'&&o.main===pid;
+      return `<span class="oc${p?'':' bad'}${isMain?' main':''}">${role==='creator'&&p?`<button type="button" class="star" title="${isMain?'Hlavní tvůrce':'Nastavit jako hlavního tvůrce'}" onclick="pmOutMainSet('${o.id}','${pid}')"${dis}>${isMain?'★':'☆'}</button>`:''}${esc(p?pmProcLabel(p):'(smazaný proces)')}${ed?`<button type="button" class="x" title="Odebrat" onclick="pmOutRemove('${o.id}','${pid}','${role}')">✕</button>`:''}</span>`;
+    };
+    const kons=pmOutConsumers(o);
+    return `<div class="oitem" data-oid="${o.id}">
+      <div class="orow1"><span class="oid">${esc(o.id)}</span>
+        <input class="oname" value="${esc(o.name||'')}" placeholder="Název výstupu"${dis} onchange="pmOutSet('${o.id}','name',this.value.trim())">
+        <select${dis} onchange="pmOutSet('${o.id}','kind',this.value)">${Object.keys(OUT_KINDS).map(k=>`<option value="${k}"${o.kind===k?' selected':''}>${OUT_KINDS[k]}</option>`).join('')}</select>
+        <select${dis} onchange="pmOutSet('${o.id}','status',this.value)" style="border-color:${st[1]}">${Object.keys(OUT_ST).map(k=>`<option value="${k}"${o.status===k?' selected':''}>${OUT_ST[k][0]}</option>`).join('')}</select>
+        <span class="odate" title="Nejpozdější konec tvůrců">${d?'◇ '+pmCz(d):'bez data'}</span>
+        ${ed?`<button type="button" class="btn ghost sm" onclick="pmOutDelete('${o.id}')">Smazat</button>`:''}</div>
+      <div class="orow2"><label>Gestor</label><select${dis} onchange="pmOutGestor(this,'${o.id}')" data-prev="${esc(o.gestor||'')}">${actorOptionsHTML(o.gestor||'')}</select>
+        <label>Popis</label><input value="${esc(o.desc||'')}" placeholder="Co přesně je výstupem (volitelné)"${dis} onchange="pmOutSet('${o.id}','desc',this.value)"></div>
+      <div class="orow3"><label>Tvoří</label><div class="ochips">${cr.map(id=>chip(id,'creator')).join('')||'<em>nikdo</em>'}${ed?`<select onchange="pmOutPick(this,'${o.id}','creator')">${pmProcOptions(p=>!cr.includes(p.id))}</select>`:''}</div></div>
+      <div class="orow3"><label>Používá</label><div class="ochips">${kons.map(p=>chip(p.id,'consumer')).join('')||'<em>nikdo</em>'}${ed?`<select onchange="pmOutPick(this,'${o.id}','consumer')">${pmProcOptions(p=>!(p.inputs||[]).includes(o.id))}</select>`:''}</div></div>
+      ${iss.length?`<div class="oiss">${iss.map(([s,t])=>`<span class="${s}">${s==='error'?'⚠':(s==='warn'?'△':'ⓘ')} ${esc(t)}</span>`).join('')}</div>`:''}
+    </div>`}).join(''):'<div class="oempty">Ve variantě zatím nejsou žádné výstupy. Výstup založíte tlačítkem „＋ Výstup“ nebo v pásu karet procesu na kartě Výstupy.</div>';
+  const add=$('#out-add'); if(add)add.style.display=ed?'':'none';
+}
+function pmOutGestor(sel,oid){
+  if(sel.value===NEW_PERSON){addPersonInline(sel,code=>pmOutSet(oid,'gestor',code));return}
+  pmOutSet(oid,'gestor',sel.value);
+}
+function pmOutAddFromDialog(){const o=pmOutNew(null); if(o)pmOutOpen(o.id)}
+/* ---- karta Výstupy v pásu karet procesu ---- */
+function pmOutTabHTML(p){
+  const ed=pmEditing(), dis=ed?'':' disabled';
+  const mk=outputs.filter(o=>o.scope===p.scope&&(o.creators||[]).includes(p.id));
+  const used=(p.inputs||[]).map(id=>pmOutById(id)).filter(Boolean);
+  const row=(o,role)=>{
+    const d=pmOutDate(o), st=OUT_ST[o.status]||OUT_ST.plan, late=role==='in'&&d&&p.start<d;
+    return `<div class="pm-subrow wrap"><span class="oid">${esc(o.id)}</span><a class="olink" onclick="pmOutOpen('${o.id}')">${esc(o.name||'(bez názvu)')}</a>
+      <span class="tag" style="color:${st[1]}">${st[0]}</span><span class="odate">${d?'◇ '+pmCz(d):'bez data'}</span>
+      ${role==='out'&&o.main===p.id?'<span class="tag">hlavní tvůrce ★</span>':''}
+      ${late?`<span class="pm-linkwarn">proces začíná před vydáním výstupu</span>`:''}
+      ${ed?`<button type="button" class="x" title="Odebrat" onclick="pmOutRemove('${o.id}','${p.id}','${role==='out'?'creator':'consumer'}')">✕</button>`:''}</div>`;
+  };
+  const optsMk='<option value="">＋ přidat existující výstup…</option>'+pmOutsIn(p.scope).filter(o=>!(o.creators||[]).includes(p.id)).map(o=>`<option value="${o.id}">${esc(pmOutLabel(o))}</option>`).join('');
+  const optsIn='<option value="">＋ přidat vstup…</option>'+pmOutsIn(p.scope).filter(o=>!(p.inputs||[]).includes(o.id)).map(o=>`<option value="${o.id}">${esc(pmOutLabel(o))}</option>`).join('');
+  return `<div class="full"><label>Tento proces vytváří</label><div class="pm-sub">${mk.map(o=>row(o,'out')).join('')||'<div class="pm-succ-none">Žádné výstupy.</div>'}
+      ${ed?`<div class="pm-subrow"><button type="button" class="pm-addbtn" onclick="pmOutNew('${p.id}')">＋ Nový výstup</button><select onchange="pmOutPickMake(this,'${p.id}')">${optsMk}</select></div>`:''}</div></div>
+    <div class="full"><label>Tento proces používá (vstupy)</label><div class="pm-sub">${used.map(o=>row(o,'in')).join('')||'<div class="pm-succ-none">Žádné vstupy.</div>'}
+      ${ed?`<div class="pm-subrow"><select onchange="pmOutPickIn(this,'${p.id}')">${optsIn}</select></div>`:''}</div></div>
+    <div class="full"><button type="button" class="btn ghost sm" onclick="pmOutOpen()">📦 Všechny výstupy varianty</button></div>`;
+}
+/* ---- značky výstupů na plátně ---- */
+function pmOutMarksSVG(list,b,vert,SK){
+  if(PM.gallery)return '';
+  const outs=pmOutsIn(), vis=new Set(list.map(p=>p.id)); let s='';
+  const dia=(x,y,r,fill,stroke,oid,tip,cls)=>`<g class="pmout${cls||''}" data-oid="${oid}" style="cursor:pointer"><path d="M ${x} ${y-r} L ${x+r} ${y} L ${x} ${y+r} L ${x-r} ${y} Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/><title>${escXml(tip)}</title></g>`;
+  const slot={};
+  outs.forEach(o=>{
+    const m=pmOutMain(o), d=pmOutDate(o), st=OUT_ST[o.status]||OUT_ST.plan;
+    const bad=pmOutIssues(o).some(x=>x[0]==='error'||(x[0]==='warn'));
+    if(m&&vis.has(m.id)){
+      const g=pmGeom(m,b), n=slot[m.id]=(slot[m.id]||0);
+      slot[m.id]++;
+      const x=vert?g.x+g.w-12-n*15:g.x+g.w+1, y=vert?g.y+g.h:g.y+g.h/2+n*13-(n?0:0);
+      s+=dia(x,y,6,o.status==='plan'?SK.bg:st[1],bad?'#ff5c6a':(o.status==='plan'?'var(--accent)':st[1]),o.id,`${pmOutLabel(o)} · ${st[0]}${d?' · '+pmCz(d):''}`);
+    }
+    pmOutConsumers(o).forEach(k=>{
+      if(!vis.has(k.id))return;
+      const g=pmGeom(k,b), late=d&&k.start<d, n=slot['i'+k.id]=(slot['i'+k.id]||0); slot['i'+k.id]++;
+      const x=vert?g.x+12+n*12:g.x-1, y=vert?g.y:g.y+g.h/2-n*11;
+      s+=dia(x,y,4,SK.bg,late?'#ff5c6a':'var(--accent)',o.id,`Vstup: ${pmOutLabel(o)}${d?' · vydáno '+pmCz(d):''}${late?' — proces začíná dřív':''}`,' in');
+    });
+  });
+  return s;
+}
+/* ---- odvozené termíny nadřazených procesů ---- */
+function pmDeriveDates(){
+  const kids={}, done={}; let n=0;
+  processes.forEach(p=>{if(p.parent)(kids[p.parent]=kids[p.parent]||[]).push(p)});
+  const f=p=>{
+    if(done[p.id])return; done[p.id]=1;
+    const ks=(kids[p.id]||[]).filter(k=>k.scope===p.scope); if(!ks.length)return;
+    ks.forEach(f);
+    const s=ks.reduce((m,k)=>k.start<m?k.start:m,ks[0].start), e=ks.reduce((m,k)=>k.end>m?k.end:m,ks[0].end);
+    if(p.start!==s||p.end!==e){p.start=s;p.end=e;pmSyncMilestones(p);if(p.scope==='map')p.mapEdited=true;pmQueue(p);n++}
+  };
+  processes.forEach(f);
+  return n;
+}
+const pmWithDesc=list=>{const out=list.slice();list.forEach(q=>pmDescOf(q.id).forEach(d=>{if(!out.includes(d))out.push(d)}));return out};
 
 /* ================= PROKLIK DO PROCESU =================
    Proces s podprocesy lze „otevřít“: plátno ukáže jen jeho, jeho podprocesy a záhlaví
