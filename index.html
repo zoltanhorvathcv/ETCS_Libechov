@@ -1712,7 +1712,8 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
             <div class="pm-helprow"><kbd>tažení</kbd><span>posun plátna prázdnou plochou</span></div>
             <div class="pm-helprow"><kbd>mezerník + tažení</kbd><span>posun i nad procesem</span></div>
             <div class="pm-helprow"><kbd>prostřední tl.</kbd><span>totéž bez klávesnice</span></div>
-            <div class="pm-helprow"><kbd>Ctrl + kolečko</kbd><span>přiblížení kolem kurzoru — časová osa i výška řádků najednou</span></div>
+            <div class="pm-helprow"><kbd>Ctrl + kolečko</kbd><span>přiblížení / oddálení časové osy kolem kurzoru (ve svislé ose se šířka sloupců nemění)</span></div>
+            <div class="pm-helprow"><kbd>Ctrl + Shift + kolečko</kbd><span>ve svislé ose zoom časové osy i šířky sloupců najednou</span></div>
             <div class="pm-helprow"><kbd>− 100 % ＋</kbd><span>zoom tlačítky v liště</span></div>
             <div class="pm-helprow"><kbd>⤢ Celý koncept</kbd><span>zmenší časovou osu i výšku řádků, ať jsou vidět všechny procesy a podprocesy</span></div>
             <div class="pm-helprow"><kbd>↩ Původní pohled</kbd><span>vrátí plátno tam, kde bylo naposledy v klidu</span></div>
@@ -3670,11 +3671,12 @@ function pmRenderV(host,list,SK,rBefore){
   ${PM.print?`<rect width="${W}" height="${H}" fill="#fff"/>`:''}${pmDefsSVG(SK)}`;
 
   /* sloupce, pásy fází a časová mřížka */
-  L.cols.forEach((l,i)=>{if(i%2)s+=`<rect x="${L.colX(i)-L.gap/2}" y="${L.head}" width="${L.pitch}" height="${H-L.head}" fill="${SK.lane}"/>`});
+  /* v odsazeném stromu stojí podprocesy v dílčích sloupcích uvnitř rodiče, ne v pruzích osy — střídavé pruhy by neseděly */
+  if(!PM._nest)L.cols.forEach((l,i)=>{if(i%2)s+=`<rect x="${L.colX(i)-L.gap/2}" y="${L.head}" width="${L.pitch}" height="${H-L.head}" fill="${SK.lane}"/>`});
   L.bands.forEach(bd=>{
     const col=pmTone(pmColorOf(bd.p)||'#8b97b1');
     const x0=L.colX(bd.c0)-L.gap/2+2, x1=L.colX(bd.c1)+L.colW+L.gap/2-2;
-    s+=`<rect x="${x0}" y="${L.head}" width="${x1-x0}" height="${H-L.head}" fill="${col}" opacity="${PM.print?.05:.07}"/>`;
+    s+=`<rect x="${x0}" y="${L.head}" width="${x1-x0}" height="${H-L.head}" fill="${col}" opacity="${PM._nest?(PM.print?.09:.13):(PM.print?.05:.07)}"/>`;
   });
   const mo=pmAxisMode()!=='off'?pmAxisModel(b):null;
   if(mo){
@@ -3753,7 +3755,7 @@ function pmRenderV(host,list,SK,rBefore){
     if(PM._nest&&PM._nest[p.id]&&PM._nest[p.id].container){
       /* nadřazený proces: ohraničený box, nadpis nad horní hranou, podprocesy uvnitř */
       const tint=pmColorOf(p), stroke=pmTone(tint||col), on=pmSelHas(p.id), dim=!pmPassFilter(p);
-      const fillC=tint?pmTone(tint)+(PM.print?'12':'14'):'rgba(255,255,255,.03)';
+      const fillC=tint?pmTone(tint)+(PM.print?'24':'38'):'rgba(255,255,255,.05)';   // vnitřek procesu v barvě streamu
       const num=pmNumLabel(p), full=(num?num+' ':'')+(pmNameOf(p)||'(bez názvu)');
       const per=Math.max(6,Math.floor((g.w-34)/6.4)), ttl=full.length>per?pmEllip(full,per):full;
       const glab=p.gestor?pmGestorLabel(p.gestor):'';
@@ -5917,9 +5919,11 @@ function pmWheel(e){
     const b0=pmBounds(pmVisible()), L0=PM._vl;
     const dayV=b0.t0+(host.scrollTop+atY-L0.head-PMV_TOP)/pmPx()*PMDAY;
     const colPos=(host.scrollLeft+atX-PMV_RAIL-PMV_PADX)/L0.pitch;
-    const f=e.deltaY<0?1.15:1/1.15;
+    const f=(e.deltaY||e.deltaX)<0?1.15:1/1.15;
+    /* Ctrl + kolečko mění jen časovou osu (svislé měřítko); šířka sloupců zůstává.
+       Ctrl + Shift + kolečko mění zároveň i šířku sloupců. */
     PM.zoom=Math.min(4,Math.max(.04,PM.zoom*f));
-    PM.rowZoom=Math.min(2,Math.max(.25,(PM.rowZoom||1)*f));
+    if(e.shiftKey)PM.rowZoom=Math.min(2,Math.max(.25,(PM.rowZoom||1)*f));
     renderPMap();
     const b1=pmBounds(pmVisible()), L1=PM._vl;
     host.scrollTop=Math.max(0,L1.head+PMV_TOP+(dayV-b1.t0)/PMDAY*pmPx()-atY);
