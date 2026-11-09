@@ -928,6 +928,7 @@ body.pm-ribdrag{cursor:row-resize;user-select:none}
 .pm-rib-empty{padding:9px 12px;color:var(--text3);font-size:12px;text-align:center}
 
 /* --- správa osob --- */
+.si-row{margin:0 0 8px}.si-row ul{margin:4px 0 0;padding-left:18px}
 .ppl-row{display:grid;grid-template-columns:46px minmax(120px,1.4fr) minmax(150px,1.3fr) minmax(110px,1fr) 34px 30px;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--border)}
 .ppl-row.unit{grid-template-columns:46px minmax(120px,1.6fr) minmax(90px,.8fr) minmax(150px,1.3fr) 34px 30px}
 .ppl-row.rolerow{grid-template-columns:18px minmax(140px,2fr) minmax(90px,1fr) minmax(110px,1fr) 34px 30px}
@@ -1097,6 +1098,7 @@ body.pm-ribdrag{cursor:row-resize;user-select:none}
     <div class="crumb">Projekty / <b id="crumb-project">Projekt</b> / <span id="crumb-view">Přehled</span></div>
     <div class="search"><span>⌕</span> Hledat otázky, rozhodnutí, důkazy…<kbd>⌘K</kbd></div>
     <span id="sync-badge" class="tag" tabindex="0" style="display:none">DEMO režim</span>
+    <span id="save-badge" class="tag" tabindex="0" role="button" style="display:none;cursor:pointer" onclick="saveShowInfo()">✓ Připojeno</span>
     <button class="btn ghost sm" id="auth-btn" onclick="openLogin()">Přihlásit</button>
     <button class="btn ghost sm" id="edit-toggle" onclick="setEdit()">✎ Úpravy</button>
     <button class="btn primary sm" onclick="go('ai')">✦ Analyzovat přepis</button>
@@ -1800,12 +1802,25 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
 </div>
 
 <!-- Správa osob -->
+<div class="modal-veil" id="save-modal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="width:560px">
+    <h3>Stav ukládání</h3>
+    <div id="save-info" style="font-size:12.5px;line-height:1.6;color:var(--text2)"></div>
+    <div class="m-actions">
+      <button class="btn ghost" onclick="saveRetry()">Zkusit znovu uložit</button>
+      <button class="btn ghost" onclick="saveVerifyClick()">Ověřit uložení</button>
+      <button class="btn primary" onclick="$('#save-modal').classList.remove('open')">Zavřít</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-veil" id="people-modal">
   <div class="modal" style="width:780px">
     <h3>Osoby a útvary</h3>
     <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Společný seznam pro celou aplikaci. Role a útvar jsou nepovinné. Zkratka je klíč, kterým se odkazuje v datech, a proto ji nelze měnit. Číslo vpravo říká, na kolika místech je záznam použitý.</div>
     <div id="ppl-list"></div>
     <div class="m-actions">
+      <span style="font-size:11px;color:var(--text3);margin-right:auto" title="Zavření dialogu změny uloží">Změny se uloží i při zavření dialogu.</span>
       <button class="btn ghost" onclick="closePeople()">Zavřít</button>
       <button class="btn primary" onclick="pplSave()">Uložit</button>
     </div>
@@ -2791,6 +2806,7 @@ const SYNC_INFO={
 };
 function badge(txt,color,state){
   if(state)SYNC_STATE=state;
+  try{saveUI()}catch(e){}
   const b=$('#sync-badge');b.textContent=txt;b.style.color=color;b.style.display='inline-flex';
   syncTip();
 }
@@ -2818,8 +2834,51 @@ function hydrate(rows){
   if(by.pmgroup)pmgroups=by.pmgroup;
 }
 function rowFor(entity,o,i){return {project_id:SUPA.projectId,entity,id:idOf(entity,o),sort:i,data:o}}
+/* ================= ULOŽENÍ DAT: kontrola, stav a ověření =================
+   Každý zápis do databáze se vyhodnocuje (dřív se chyba tiše ztratila), stav je vidět
+   v horní liště a „Ověřit uložení“ porovná data v aplikaci s databází. */
+const SAVE={pending:0,lastOk:0,lastVerified:0,lastVerifiedN:0,lastErr:'',errors:[],failed:new Map(),lastToast:0};
+const saveCanon=v=>{
+  if(Array.isArray(v))return v.map(saveCanon);
+  if(v&&typeof v==='object'){const o={};Object.keys(v).sort().forEach(k=>{if(v[k]!==undefined)o[k]=saveCanon(v[k])});return o}
+  return v;
+};
+const saveSame=(a,b)=>JSON.stringify(saveCanon(a))===JSON.stringify(saveCanon(b));
+function saveErrText(e){
+  const m=String((e&&(e.message||e.details||e.hint))||e||'neznámá chyba');
+  if(/jwt|expired|not authenticated|permission|row-level|rls|401|403|policy/i.test(m))return 'chybí oprávnění zapisovat — platnost přihlášení mohla vypršet, přihlaste se znovu ('+m+')';
+  if(/fetch|network|failed to fetch|timeout/i.test(m))return 'nedostupné připojení k databázi ('+m+')';
+  return m;
+}
+function saveUI(){
+  const b=$('#save-badge'); if(!b)return;
+  if(!ONLINE){b.style.display='none';return}
+  b.style.display='inline-flex';
+  const t=ms=>new Date(ms).toLocaleTimeString('cs-CZ');
+  if(SAVE.failed.size||SAVE.lastErr){b.textContent='⚠ NEULOŽENO';b.style.color='var(--blocked,#ff5c6a)';b.title='Poslední zápis selhal: '+SAVE.lastErr+' — klikněte pro podrobnosti'}
+  else if(SAVE.pending>0){b.textContent='● Ukládání…';b.style.color='var(--risk,#ffb020)';b.title='Probíhá zápis do databáze'}
+  else if(SAVE.lastOk){b.textContent='✓ Uloženo '+t(SAVE.lastOk);b.style.color='var(--ok,#3ddc97)';b.title='Poslední úspěšný zápis'+(SAVE.lastVerified?'; ověřeno čtením z databáze '+t(SAVE.lastVerified)+' ('+SAVE.lastVerifiedN+' záznamů)':'')+' — klikněte pro podrobnosti'}
+  else{b.textContent='✓ Připojeno';b.style.color='var(--text3)';b.title='Zatím nebylo co ukládat — klikněte pro podrobnosti'}
+}
+/* spustí zápis, vyhodnotí chybu i počet uložených řádků; při selhání zapamatuje opakování */
+async function dbRun(key,label,make,expect){
+  SAVE.pending++; saveUI();
+  try{
+    const r=await make();
+    if(r&&r.error)throw r.error;
+    if(expect!=null&&Array.isArray(r&&r.data)&&r.data.length<expect)throw new Error(`uloženo jen ${r.data.length} z ${expect} záznamů (zřejmě chybí oprávnění)`);
+    SAVE.lastOk=Date.now(); SAVE.failed.delete(key); if(!SAVE.failed.size)SAVE.lastErr='';
+    return {ok:true};
+  }catch(e){
+    const msg=saveErrText(e);
+    SAVE.lastErr=msg; SAVE.failed.set(key,{key,label,make,expect}); SAVE.errors.unshift({t:Date.now(),label,msg}); if(SAVE.errors.length>20)SAVE.errors.length=20;
+    console.warn('Uložení selhalo',label,e);
+    if(Date.now()-SAVE.lastToast>8000){SAVE.lastToast=Date.now();toast('⚠ Změny se NEUložily do databáze: '+msg)}
+    return {ok:false,error:msg};
+  }finally{SAVE.pending--;saveUI()}
+}
 async function persistAll(){
-  if(!ONLINE)return;
+  if(!ONLINE)return {ok:true,demo:true};
   const rows=[rowFor('project',project,0),rowFor('people',people,0),
     {project_id:SUPA.projectId,entity:'units',id:'meta',sort:0,data:orgUnits},
     {project_id:SUPA.projectId,entity:'staff',id:'meta',sort:0,data:staff},
@@ -2827,19 +2886,99 @@ async function persistAll(){
     {project_id:SUPA.projectId,entity:'impact',id:'meta',sort:0,data:impacts}];
   [['milestone',milestones],['meeting',meetings],['question',questions],['decision',decisions],['task',tasks],['risk',risks],['evidence',evidence],['concept',concepts],['process',processes],['pmgroup',pmgroups]]
     .forEach(([e,arr])=>arr.forEach((o,i)=>rows.push(rowFor(e,o,i))));
-  // people uložíme jako celý objekt pod jedním id
   rows[1].id='meta';
-  await sb.from('pi_entities').upsert(rows);
+  return dbRun('all','všechna data',()=>sb.from('pi_entities').upsert(rows).select('id'),rows.length);
 }
-async function persist(entity,o,i){ if(ONLINE)try{await sb.from('pi_entities').upsert(rowFor(entity,o,i||0))}catch(e){console.warn(e)} }
-async function persistDelete(entity,o){ if(ONLINE)try{await sb.from('pi_entities').delete().match({project_id:SUPA.projectId,entity,id:idOf(entity,o)})}catch(e){console.warn(e)} }
-async function persistMeta(){ if(ONLINE)try{await sb.from('pi_entities').upsert([
-  rowFor('project',project,0),
-  {project_id:SUPA.projectId,entity:'people',id:'meta',sort:0,data:people},
-  {project_id:SUPA.projectId,entity:'units',id:'meta',sort:0,data:orgUnits},
-  {project_id:SUPA.projectId,entity:'staff',id:'meta',sort:0,data:staff},
-  {project_id:SUPA.projectId,entity:'roles',id:'meta',sort:0,data:roles}
-])}catch(e){console.warn(e)} }
+async function persist(entity,o,i){
+  if(!ONLINE)return {ok:true,demo:true};
+  const row=rowFor(entity,o,i||0);
+  return dbRun(entity+'|'+row.id,entity+' '+row.id,()=>sb.from('pi_entities').upsert(rowFor(entity,o,i||0)).select('id'),1);
+}
+async function persistDelete(entity,o){
+  if(!ONLINE)return {ok:true,demo:true};
+  const id=idOf(entity,o);
+  return dbRun('del|'+entity+'|'+id,'smazání '+entity+' '+id,()=>sb.from('pi_entities').delete().match({project_id:SUPA.projectId,entity,id}));
+}
+function saveMetaRows(){
+  return [rowFor('project',project,0),
+    {project_id:SUPA.projectId,entity:'people',id:'meta',sort:0,data:people},
+    {project_id:SUPA.projectId,entity:'units',id:'meta',sort:0,data:orgUnits},
+    {project_id:SUPA.projectId,entity:'staff',id:'meta',sort:0,data:staff},
+    {project_id:SUPA.projectId,entity:'roles',id:'meta',sort:0,data:roles}];
+}
+async function persistMeta(){
+  if(!ONLINE)return {ok:true,demo:true};
+  return dbRun('meta','osoby, útvary a role',()=>sb.from('pi_entities').upsert(saveMetaRows()).select('id'),5);
+}
+/* přečte záznamy z databáze zpět a porovná je s tím, co je v aplikaci */
+async function dbVerifyRows(rows){
+  if(!ONLINE||!rows.length)return {ok:true,n:0,diff:[]};
+  try{
+    const ents=[...new Set(rows.map(r=>r.entity))], ids=[...new Set(rows.map(r=>r.id))];
+    const {data,error}=await sb.from('pi_entities').select('entity,id,data').eq('project_id',SUPA.projectId).in('entity',ents).in('id',ids);
+    if(error)throw error;
+    const by=new Map((data||[]).map(r=>[r.entity+'|'+r.id,r.data]));
+    const diff=[];
+    rows.forEach(r=>{const k=r.entity+'|'+r.id;if(!by.has(k))diff.push(k+' — v databázi chybí');else if(!saveSame(by.get(k),r.data))diff.push(k+' — v databázi je jiná hodnota')});
+    if(!diff.length){SAVE.lastVerified=Date.now();SAVE.lastVerifiedN=rows.length;saveUI()}
+    return {ok:!diff.length,n:rows.length,diff};
+  }catch(e){return {ok:false,n:rows.length,diff:['ověření selhalo: '+saveErrText(e)]}}
+}
+function saveAllRows(){
+  const rows=saveMetaRows().concat([{project_id:SUPA.projectId,entity:'impact',id:'meta',sort:0,data:impacts}]);
+  [['milestone',milestones],['meeting',meetings],['question',questions],['decision',decisions],['task',tasks],['risk',risks],['evidence',evidence],['concept',concepts],['process',processes],['pmgroup',pmgroups]]
+    .forEach(([e,arr])=>arr.forEach((o,i)=>rows.push(rowFor(e,o,i))));
+  return rows;
+}
+/* úplné ověření: co je v aplikaci × co je v databázi (obě strany) */
+async function saveVerifyAll(){
+  if(!ONLINE)return {ok:false,msg:'DEMO režim — data se do databáze neukládají.'};
+  const rows=saveAllRows();
+  const {data,error}=await sb.from('pi_entities').select('entity,id,data').eq('project_id',SUPA.projectId);
+  if(error)return {ok:false,msg:'Čtení z databáze selhalo: '+saveErrText(error)};
+  const db=new Map((data||[]).map(r=>[r.entity+'|'+r.id,r.data])), mem=new Map(rows.map(r=>[r.entity+'|'+r.id,r.data]));
+  const missing=[],other=[],extra=[];
+  mem.forEach((v,k)=>{if(!db.has(k))missing.push(k);else if(!saveSame(db.get(k),v))other.push(k)});
+  db.forEach((v,k)=>{if(!mem.has(k)&&!/^(change)\|/.test(k))extra.push(k)});
+  const ok=!missing.length&&!other.length;
+  if(ok){SAVE.lastVerified=Date.now();SAVE.lastVerifiedN=mem.size;saveUI()}
+  return {ok,n:mem.size,missing,other,extra};
+}
+function saveShowInfo(){
+  const t=ms=>ms?new Date(ms).toLocaleString('cs-CZ'):'—';
+  const box=$('#save-info'); if(!box)return;
+  const errs=SAVE.errors.slice(0,6).map(e=>`<li>${escXml(new Date(e.t).toLocaleTimeString('cs-CZ'))} · ${escXml(e.label)} — ${escXml(e.msg)}</li>`).join('');
+  box.innerHTML=`<div class="si-row"><b>Stav:</b> ${SAVE.failed.size?`<span style="color:var(--blocked)">⚠ ${SAVE.failed.size} zápisů se nepodařilo</span>`:(SAVE.pending?'probíhá ukládání':'<span style="color:var(--ok)">vše uloženo</span>')}</div>
+    <div class="si-row"><b>Poslední úspěšný zápis:</b> ${t(SAVE.lastOk)}</div>
+    <div class="si-row"><b>Naposledy ověřeno čtením z databáze:</b> ${t(SAVE.lastVerified)}${SAVE.lastVerified?` (${SAVE.lastVerifiedN} záznamů)`:''}</div>
+    ${errs?`<div class="si-row"><b>Poslední chyby:</b><ul>${errs}</ul></div>`:''}
+    <div id="si-result" class="si-row"></div>`;
+  $('#save-modal').classList.add('open');
+}
+async function saveRetry(){
+  const r=$('#si-result'); if(r)r.textContent='Zkouším znovu uložit…';
+  const items=[...SAVE.failed.values()];
+  for(const it of items){await dbRun(it.key,it.label,it.make,it.expect)}
+  pmFlush();
+  saveShowInfo();
+  const r2=$('#si-result'); if(r2)r2.innerHTML=SAVE.failed.size?'<span style="color:var(--blocked)">Stále se nepodařilo uložit — zkontrolujte přihlášení a připojení.</span>':'<span style="color:var(--ok)">Uloženo.</span>';
+}
+async function saveVerifyClick(){
+  const r=$('#si-result'); if(r)r.textContent='Ověřuji — čtu data z databáze…';
+  const v=await saveVerifyAll();
+  saveShowInfo();
+  const r2=$('#si-result'); if(!r2)return;
+  if(v.msg){r2.textContent=v.msg;return}
+  r2.innerHTML=v.ok?`<span style="color:var(--ok)">✓ Ověřeno: ${v.n} záznamů v aplikaci odpovídá databázi.</span>${v.extra.length?`<br>V databázi navíc (v aplikaci nejsou): ${v.extra.length}`:''}`
+    :`<span style="color:var(--blocked)">⚠ Rozdíly: v databázi chybí ${v.missing.length}, liší se ${v.other.length}.</span><ul>${v.missing.concat(v.other).slice(0,12).map(k=>`<li>${escXml(k)}</li>`).join('')}</ul>Pokud rozdíl trvá, použijte „Zkusit znovu uložit“.`;
+}
+/* změny nesmí zůstat čekat v odloženém zápisu: uložit při odchodu, skrytí stránky i při přepnutí výběru */
+window.addEventListener('pagehide',()=>{try{pmFlush()}catch(e){}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){try{pmFlush()}catch(e){}}});
+window.addEventListener('beforeunload',e=>{
+  try{pmFlush()}catch(x){}
+  if(SAVE.pending>0||SAVE.failed.size||(typeof pmDirty!=='undefined'&&pmDirty.size)){e.preventDefault();e.returnValue='Některé změny se ještě neuložily.';return e.returnValue}
+});
 
 /* ================= AUTH (veřejné čtení / zápis jen správce) ================= */
 let AUTH=false;
@@ -3711,6 +3850,7 @@ function pmDefsSVG(SK){
 }
 function renderPMap(){
   const host=$('#pm-canvas'); if(!host)return;
+  try{if(pmDirty.size&&!PM.panelLock&&!pmDrag)pmFlush()}catch(e){}     // změna výběru, zavření pásu karet apod. — uložit hned, ne až za chvíli
   /* Výběr procesu vysune pás karet a plátno se o jeho výšku posune —
      obsah by ujel pod kurzorem. Poloha plátna se proto změří před
      překreslením a na konci se stejný kus dorovná posunem. */
@@ -4376,10 +4516,17 @@ function personReplace(code,to){
 function openPeople(){
   PPL={names:Object.assign({},people),meta:JSON.parse(JSON.stringify(staff)),units:JSON.parse(JSON.stringify(orgUnits)),roles:JSON.parse(JSON.stringify(roles))};
   $('#people-modal').classList.add('open');
-  pplRender();
+  pplRender(); PPL.dirty=false;
+  const lst=$('#ppl-list'); lst.oninput=lst.onchange=()=>{if(PPL)PPL.dirty=true};
 }
-function closePeople(){$('#people-modal').classList.remove('open');PPL=null}
+function pplHide(){$('#people-modal').classList.remove('open');PPL=null}
+/* Zavření dialogu (tlačítko, Esc) uloží změny — nic se tiše nezahodí. */
+function closePeople(){
+  if(PPL&&PPL.dirty){pplSave();return}
+  pplHide();
+}
 function pplRender(){
+  if(PPL)PPL.dirty=true;
   const unitOpts=sel=>['<option value="">—</option>'].concat(
     Object.keys(PPL.units).map(u=>`<option value="${esc(u)}" ${u===sel?'selected':''}>${esc(PPL.units[u].name)}</option>`)).join('');
   const codes=Object.keys(PPL.names);
@@ -4537,7 +4684,8 @@ function pplRemoveUnit(u){
   delete PPL.units[u]; delete orgUnits[u];
   persistMeta(); pplRender(); renderAll(); toast('Útvar odebrán');
 }
-function pplSave(){
+async function pplSave(){
+  if(!PPL)return;
   Object.keys(PPL.names).forEach(c=>{const nm=(PPL.names[c]||'').trim(); if(nm)people[c]=nm});
   staff=JSON.parse(JSON.stringify(PPL.meta));
   Object.keys(PPL.units).forEach(u=>{
@@ -4547,8 +4695,13 @@ function pplSave(){
   Object.keys(PPL.roles).forEach(id=>{PPL.roles[id].name=String(PPL.roles[id].name||'').trim()||roleName(id,PPL.roles)});
   roles=JSON.parse(JSON.stringify(PPL.roles));
   Object.keys(staff).forEach(c=>{staff[c].roles=(staff[c].roles||[]).filter(id=>roles[id])});
-  persistMeta(); closePeople(); renderAll();
-  toast('Osoby a útvary uloženy');
+  const sum=`${Object.keys(people).length} osob, ${Object.keys(orgUnits).length} útvarů, ${Object.keys(roles).length} rolí`;
+  const r=await persistMeta();
+  if(r&&r.demo){pplHide();renderAll();toast('DEMO režim — změny platí jen v tomto okně a do databáze se neukládají');return}
+  if(!r||!r.ok){toast('⚠ Osoby, útvary a role se NEUložily: '+((r&&r.error)||'neznámá chyba')+' — dialog zůstává otevřený, zkuste to znovu');PPL.dirty=true;return}
+  const v=await dbVerifyRows(saveMetaRows());
+  pplHide(); renderAll();
+  toast(v.ok?`Uloženo a ověřeno čtením z databáze: ${sum}`:'⚠ Uloženo, ale ověření nesouhlasí: '+v.diff.slice(0,2).join('; '));
 }
 
 /* ================= CELÁ OBRAZOVKA ================= */
@@ -5212,11 +5365,16 @@ function pmTouch(o){
   c.touched=now; persist('concept',c,concepts.indexOf(c));
 }
 function pmFlush(){
-  pmDirty.forEach(o=>{
-    const isMs=milestones.indexOf(o)>-1;
-    persist(isMs?'milestone':'process',o,(isMs?milestones:processes).indexOf(o));
+  clearTimeout(pmSaveT);
+  const batch=[...pmDirty]; pmDirty.clear();
+  const jobs=batch.map(o=>{
+    const isMs=milestones.indexOf(o)>-1, ent=isMs?'milestone':'process', arr=isMs?milestones:processes, i=arr.indexOf(o);
+    if(i<0)return null;      // proces mezitím zmizel (smazán)
+    return persist(ent,o,i).then(r=>({r,row:rowFor(ent,o,i)}));
+  }).filter(Boolean);
+  if(jobs.length&&ONLINE)Promise.all(jobs).then(res=>{
+    if(res.every(x=>x.r&&x.r.ok))dbVerifyRows(res.slice(0,80).map(x=>x.row)).then(v=>{if(!v.ok){SAVE.lastErr='ověření po uložení selhalo: '+v.diff.slice(0,2).join('; ');saveUI();toast('⚠ Uloženo, ale ověření čtením z databáze nesouhlasí — viz stav ukládání')}});
   });
-  pmDirty.clear();
 }
 /* milník sleduje proces; zamčený se neposune */
 function pmSyncMilestones(p){
@@ -8772,7 +8930,7 @@ function impactSync(){
   });
   if(impacts.done.length>200)impacts.done.length=200;
   if(!impacts.init){impacts.init=true;changed=true}
-  if(changed&&ONLINE&&AUTH){try{sb.from('pi_entities').upsert({project_id:SUPA.projectId,entity:'impact',id:'meta',sort:0,data:impacts}).then(()=>{},e=>console.warn(e))}catch(e){console.warn(e)}}
+  if(changed&&ONLINE&&AUTH)dbRun('impact','dopady změn',()=>sb.from('pi_entities').upsert({project_id:SUPA.projectId,entity:'impact',id:'meta',sort:0,data:impacts}).select('id'),1);
   impactBadge();
   const v=$('#view-impact'); if(v&&v.classList.contains('active'))impactRender();
 }
@@ -8858,16 +9016,15 @@ function impactWrap(name,fn){
   function apply(){
     const hs=document.body.classList.contains('hide-side'), ht=document.body.classList.contains('hide-top');
     side.textContent=hs?'›':'‹'; top.textContent=ht?'⌄':'⌃';
-    side.dataset.tip=hs?'Zobrazit levý panel\nVrátí navigaci (Přehled, Milníková nástěnka, Procesní mapa …).':'Skrýt levý panel\nUvolní místo pro plátno. Panel se vrátí tímto úchytem u levého okraje; volba se pamatuje.';
-    top.dataset.tip=ht?'Zobrazit horní lištu\nVrátí hledání, stav připojení, přihlášení a tlačítko Úpravy.':'Skrýt horní lištu\nUvolní místo nahoře. Tlačítko Úpravy a přihlášení se vrátí tímto úchytem; volba se pamatuje.';
+    side.dataset.tip=hs?'Zobrazit levý panel\nVrátí navigaci (Přehled, Milníková nástěnka, Procesní mapa …).':'Skrýt levý panel\nUvolní místo pro plátno. Panel se vrátí tímto úchytem u levého okraje; po obnovení stránky je panel opět vidět.';
+    top.dataset.tip=ht?'Zobrazit horní lištu\nVrátí hledání, stav připojení, přihlášení a tlačítko Úpravy.':'Skrýt horní lištu\nUvolní místo nahoře. Tlačítko Úpravy a přihlášení se vrátí tímto úchytem; po obnovení stránky je lišta opět vidět.';
     const bar=document.querySelector('.topbar');
     side.style.left=hs?'0':(document.querySelector('.sidebar')?document.querySelector('.sidebar').getBoundingClientRect().width+'px':'236px');
     top.style.top=ht||!bar?'0':Math.max(0,bar.getBoundingClientRect().bottom)+'px';
   }
-  side.onclick=()=>{document.body.classList.toggle('hide-side');put('ui-hide-side',document.body.classList.contains('hide-side'));apply();if(typeof pmFitHeight==='function')setTimeout(()=>{pmFitHeight();if(typeof renderPMap==='function'&&$('#view-pmap').classList.contains('active'))renderPMap()},50)};
-  top.onclick=()=>{document.body.classList.toggle('hide-top');put('ui-hide-top',document.body.classList.contains('hide-top'));apply();if(typeof pmFitHeight==='function')setTimeout(()=>{pmFitHeight();if(typeof renderPMap==='function'&&$('#view-pmap').classList.contains('active'))renderPMap()},50)};
-  if(get('ui-hide-side'))document.body.classList.add('hide-side');
-  if(get('ui-hide-top'))document.body.classList.add('hide-top');
+  side.onclick=()=>{document.body.classList.toggle('hide-side');apply();if(typeof pmFitHeight==='function')setTimeout(()=>{pmFitHeight();if(typeof renderPMap==='function'&&$('#view-pmap').classList.contains('active'))renderPMap()},50)};
+  top.onclick=()=>{document.body.classList.toggle('hide-top');apply();if(typeof pmFitHeight==='function')setTimeout(()=>{pmFitHeight();if(typeof renderPMap==='function'&&$('#view-pmap').classList.contains('active'))renderPMap()},50)};
+  try{localStorage.removeItem('ui-hide-side');localStorage.removeItem('ui-hide-top')}catch(e){}   // dřívější uložená volba se ruší — panely jsou po načtení vždy vidět
   apply(); window.addEventListener('resize',apply);
   new MutationObserver(apply).observe(document.body,{attributes:true,attributeFilter:['class']});
   setInterval(apply,1500);
