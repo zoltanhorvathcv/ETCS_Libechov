@@ -1867,7 +1867,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
     <h3 id="out-title">Výstupy</h3>
     <p style="margin:0 0 10px;color:var(--text3);font-size:12.5px;line-height:1.5">Výstup je výsledek práce, který procesy tvoří a jiné procesy používají. Datum výstupu se odvozuje z konce jeho tvůrců (★ hlavní tvůrce); spotřebitel má začít až po něm.</p>
     <div id="out-list" style="overflow:auto;flex:1;min-height:120px"></div>
-    <div class="m-actions"><button class="btn primary" id="out-add" onclick="pmOutAddFromDialog()">＋ Výstup</button><button class="btn ghost" onclick="pmOutClose()">Zavřít</button></div>
+    <div class="m-actions"><button class="btn ghost" id="out-fromlinks" onclick="pmOutFromLinksAsk()" title="Z textových předmětů vazeb vytvoří výstupy (stejné texty se sloučí)">↻ Z předmětů vazeb</button><button class="btn primary" id="out-add" onclick="pmOutAddFromDialog()">＋ Výstup</button><button class="btn ghost" onclick="pmOutClose()">Zavřít</button></div>
   </div>
 </div>
 
@@ -7482,6 +7482,7 @@ function pmBuildTemplate(silent,tplIn){
     });
   });
   processes.filter(x=>x.scope==='concept:'+c.id).forEach(x=>pmQueue(x));
+  pmOutFromLinks('concept:'+c.id,true);               // předměty vazeb šablony se stanou výstupy
   if(added)persistMeta();
   pmFlush();
   if(!silent){
@@ -9630,10 +9631,53 @@ function pmOutRender(){
       ${iss.length?`<div class="oiss">${iss.map(([s,t])=>`<span class="${s}">${s==='error'?'⚠':(s==='warn'?'△':'ⓘ')} ${esc(t)}</span>`).join('')}</div>`:''}
     </div>`}).join(''):'<div class="oempty">Ve variantě zatím nejsou žádné výstupy. Výstup založíte tlačítkem „＋ Výstup“ nebo v pásu karet procesu na kartě Výstupy.</div>';
   const add=$('#out-add'); if(add)add.style.display=ed?'':'none';
+  const fl=$('#out-fromlinks'); if(fl)fl.style.display=ed?'':'none';
 }
 function pmOutGestor(sel,oid){
   if(sel.value===NEW_PERSON){addPersonInline(sel,code=>pmOutSet(oid,'gestor',code));return}
   pmOutSet(oid,'gestor',sel.value);
+}
+/* Předměty vazeb („čistopis PDPS“, „zpráva ISA“ …) jsou ve skutečnosti výstupy zapsané textem.
+   Stejné texty se sloučí do jednoho výstupu: odkud vazba vede = tvůrce (první je hlavní),
+   kam vede = spotřebitel. Text vazby zůstává jako poznámka, vazba se nemění. Opakované spuštění
+   nic neduplikuje (výstup se hledá podle názvu, vazba si pamatuje outId). */
+function pmOutFromLinks(scope,silent){
+  const mine=processes.filter(p=>p.scope===scope), G={};
+  mine.forEach(k=>(k.links||[]).forEach(l=>{
+    const subj=String(l.subj||'').trim(); if(!subj||l.outId||l.bi)return;       // oboustranná vazba je souběžná koordinace, ne předání výstupu
+    const from=mine.find(p=>p.id===l.from); if(!from)return;
+    const g=G[pmNorm(subj)]=G[pmNorm(subj)]||{name:subj.charAt(0).toUpperCase()+subj.slice(1),cr:[],co:[],ls:[]};
+    if(!g.cr.includes(from.id))g.cr.push(from.id);
+    g.co.push(k.id); g.ls.push(l);
+  }));
+  const keys=Object.keys(G); if(!keys.length){if(!silent)toast('Žádné předměty vazeb k převodu');return {created:0,linked:0,skipped:0}}
+  if(!silent)histPush();
+  let created=0, linked=0, skipped=0;
+  keys.forEach(key=>{
+    const g=G[key];
+    let o=outputs.find(x=>x.scope===scope&&pmNorm(x.name)===key);
+    if(!o){
+      const m=mine.find(p=>p.id===g.cr[0]);
+      o={id:nextId('output'),scope,name:g.name,desc:'',kind:'doc',status:'plan',gestor:m?(m.gestor||''):'',creators:[],main:''};
+      outputs.push(o); created++;
+    }
+    g.cr.forEach(id=>{if(!(o.creators||[]).includes(id)&&!pmOutCheck(o,id,'creator')){o.creators.push(id);if(!pmOutMain(o))o.main=id}});
+    g.co.forEach(id=>{
+      const k=mine.find(p=>p.id===id);
+      if(!k||(k.inputs||[]).includes(o.id))return;
+      if(pmOutCheck(o,id,'consumer')){skipped++;return}
+      k.inputs=(k.inputs||[]).concat(o.id); pmQueue(k); linked++;
+    });
+    g.ls.forEach(l=>{l.outId=o.id});
+    g.co.forEach(id=>{const k=mine.find(p=>p.id===id);if(k)pmQueue(k)});
+    pmOutSave(o);
+  });
+  if(!silent){pmFlush();pmOutRefresh();toast(`Z předmětů vazeb: ${created} nových výstupů, ${linked} vstupů procesů${skipped?`, ${skipped} vynecháno (hierarchie nebo kruh)`:''}`)}
+  return {created,linked,skipped};
+}
+function pmOutFromLinksAsk(){
+  if(!confirm('Převést předměty vazeb na výstupy?\n\nStejné texty se sloučí do jednoho výstupu: proces, odkud vazba vede, ho tvoří, proces, kam vede, ho používá. Text vazby i vazby samotné zůstanou beze změny. Jde vrátit tlačítkem Zpět.'))return;
+  pmOutFromLinks(pmScope(),false);
 }
 function pmOutAddFromDialog(){const o=pmOutNew(null); if(o)pmOutOpen(o.id)}
 /* ---- karta Výstupy v pásu karet procesu ---- */
