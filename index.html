@@ -2938,11 +2938,19 @@ function rowFor(entity,o,i){return {project_id:SUPA.projectId,entity,id:idOf(ent
    Každý zápis do databáze se vyhodnocuje (dřív se chyba tiše ztratila), stav je vidět
    v horní liště a „Ověřit uložení“ porovná data v aplikaci s databází. */
 const SAVE={pending:0,lastOk:0,lastVerified:0,lastVerifiedN:0,lastErr:'',errors:[],failed:new Map(),lastToast:0};
+/* Prázdná hodnota (null, '', false, [], {}) je totéž co chybějící pole — aplikace při načtení doplňuje
+   výchozí prázdná pole (např. vstupy procesu), a to samo o sobě není rozdíl v datech. */
+const saveEmpty=v=>v===undefined||v===null||v===''||v===false||(Array.isArray(v)&&!v.length)||(v&&typeof v==='object'&&!Array.isArray(v)&&!Object.keys(v).length);
 const saveCanon=v=>{
   if(Array.isArray(v))return v.map(saveCanon);
-  if(v&&typeof v==='object'){const o={};Object.keys(v).sort().forEach(k=>{if(v[k]!==undefined)o[k]=saveCanon(v[k])});return o}
+  if(v&&typeof v==='object'){const o={};Object.keys(v).sort().forEach(k=>{const c=saveCanon(v[k]);if(!saveEmpty(c))o[k]=c});return o}
   return v;
 };
+/* názvy polí nejvyšší úrovně, v nichž se záznam liší (pro výpis rozdílů) */
+function saveDiffKeys(a,b){
+  const x=saveCanon(a)||{}, y=saveCanon(b)||{};
+  return [...new Set(Object.keys(x).concat(Object.keys(y)))].filter(k=>JSON.stringify(x[k])!==JSON.stringify(y[k]));
+}
 const saveSame=(a,b)=>JSON.stringify(saveCanon(a))===JSON.stringify(saveCanon(b));
 function saveErrText(e){
   const m=String((e&&(e.message||e.details||e.hint))||e||'neznámá chyba');
@@ -3038,11 +3046,12 @@ async function saveVerifyAll(){
   if(error)return {ok:false,msg:'Čtení z databáze selhalo: '+saveErrText(error)};
   const db=new Map((data||[]).map(r=>[r.entity+'|'+r.id,r.data])), mem=new Map(rows.map(r=>[r.entity+'|'+r.id,r.data]));
   const missing=[],other=[],extra=[];
-  mem.forEach((v,k)=>{if(!db.has(k))missing.push(k);else if(!saveSame(db.get(k),v))other.push(k)});
+  const fields={};
+  mem.forEach((v,k)=>{if(!db.has(k))missing.push(k);else if(!saveSame(db.get(k),v)){other.push(k);fields[k]=saveDiffKeys(db.get(k),v)}});
   db.forEach((v,k)=>{if(!mem.has(k)&&!/^(change)\|/.test(k))extra.push(k)});
   const ok=!missing.length&&!other.length;
   if(ok){SAVE.lastVerified=Date.now();SAVE.lastVerifiedN=mem.size;saveUI()}
-  return {ok,n:mem.size,missing,other,extra};
+  return {ok,n:mem.size,missing,other,extra,fields};
 }
 function saveShowInfo(){
   const t=ms=>ms?new Date(ms).toLocaleString('cs-CZ'):'—';
@@ -3071,13 +3080,42 @@ async function saveFailRetry(){
   if(SAVE.failed.size){st.innerHTML='<span style="color:var(--blocked)">Stále se nepodařilo uložit: '+escXml(SAVE.lastErr)+'</span>'}
   else{saveFailClose();toast('Změny se uložily')}
 }
+/* Zapíše do databáze záznamy, které chybí nebo se liší (hodnota z aplikace). */
+async function saveSyncDiffs(v){
+  const keys=new Set(v.missing.concat(v.other));
+  const rows=saveAllRows().filter(r=>keys.has(r.entity+'|'+r.id));
+  let ok=true;
+  for(let i=0;i<rows.length;i+=100){
+    const part=rows.slice(i,i+100);
+    const r=await dbRun('sync|'+i,'synchronizace rozdílů',()=>sb.from('pi_entities').upsert(part).select('id'),part.length);
+    if(!r.ok)ok=false;
+  }
+  return {ok,n:rows.length};
+}
+function saveDiffHTML(v){
+  const li=(k,txt)=>`<li>${escXml(k)}${txt?` <span style="color:var(--text3)">— ${escXml(txt)}</span>`:''}</li>`;
+  const l=v.missing.map(k=>li(k,'v databázi chybí')).concat(v.other.map(k=>li(k,'liší se: '+((v.fields&&v.fields[k])||[]).slice(0,4).join(', '))));
+  return `<ul>${l.slice(0,14).join('')}${l.length>14?`<li>… a dalších ${l.length-14}</li>`:''}</ul>`;
+}
 async function saveRetry(){
   const r=$('#si-result'); if(r)r.textContent='Zkouším znovu uložit…';
-  const items=[...SAVE.failed.values()];
-  for(const it of items){await dbRun(it.key,it.label,it.make,it.expect)}
+  for(const it of [...SAVE.failed.values()]){await dbRun(it.key,it.label,it.make,it.expect)}
   pmFlush();
+  /* zápisy, které selhaly, jsou jen část věci — porovnej celou databázi a nabídni zápis rozdílů */
+  let v=await saveVerifyAll(), zapsano=0;
+  if(!v.msg&&!v.ok){
+    const n=v.missing.length+v.other.length;
+    if(confirm(`Aplikace a databáze se liší u ${n} záznamů (${v.missing.length} v databázi chybí, ${v.other.length} se liší).\n\nZapsat tyto záznamy z aplikace do databáze? Přepíše se jejich verze v databázi.`)){
+      const w=await saveSyncDiffs(v); zapsano=w.n;
+      v=await saveVerifyAll();
+    }
+  }
   saveShowInfo();
-  const r2=$('#si-result'); if(r2)r2.innerHTML=SAVE.failed.size?'<span style="color:var(--blocked)">Stále se nepodařilo uložit — zkontrolujte přihlášení a připojení.</span>':'<span style="color:var(--ok)">Uloženo.</span>';
+  const r2=$('#si-result'); if(!r2)return;
+  if(SAVE.failed.size)r2.innerHTML='<span style="color:var(--blocked)">Stále se nepodařilo uložit — zkontrolujte přihlášení a připojení.</span>';
+  else if(v.msg)r2.textContent=v.msg;
+  else if(v.ok)r2.innerHTML=`<span style="color:var(--ok)">✓ Uloženo${zapsano?` — do databáze se zapsalo ${zapsano} záznamů`:''}. Aplikace odpovídá databázi (${v.n} záznamů).</span>`;
+  else r2.innerHTML=`<span style="color:var(--blocked)">⚠ Rozdíly zůstaly: v databázi chybí ${v.missing.length}, liší se ${v.other.length}.</span>${saveDiffHTML(v)}`;
 }
 async function saveVerifyClick(){
   const r=$('#si-result'); if(r)r.textContent='Ověřuji — čtu data z databáze…';
@@ -3085,8 +3123,8 @@ async function saveVerifyClick(){
   saveShowInfo();
   const r2=$('#si-result'); if(!r2)return;
   if(v.msg){r2.textContent=v.msg;return}
-  r2.innerHTML=v.ok?`<span style="color:var(--ok)">✓ Ověřeno: ${v.n} záznamů v aplikaci odpovídá databázi.</span>${v.extra.length?`<br>V databázi navíc (v aplikaci nejsou): ${v.extra.length}`:''}`
-    :`<span style="color:var(--blocked)">⚠ Rozdíly: v databázi chybí ${v.missing.length}, liší se ${v.other.length}.</span><ul>${v.missing.concat(v.other).slice(0,12).map(k=>`<li>${escXml(k)}</li>`).join('')}</ul>Pokud rozdíl trvá, použijte „Zkusit znovu uložit“.`;
+  r2.innerHTML=v.ok?`<span style="color:var(--ok)">✓ Ověřeno: ${v.n} záznamů v aplikaci odpovídá databázi.</span>${v.extra.length?`<br>V databázi navíc (v aplikaci nejsou): ${v.extra.length}.`:''}`
+    :`<span style="color:var(--blocked)">⚠ Rozdíly: v databázi chybí ${v.missing.length}, liší se ${v.other.length}.</span>${saveDiffHTML(v)}<div style="margin-top:6px">Tlačítko „Zkusit znovu uložit“ rozdíly po potvrzení zapíše z aplikace do databáze.</div>`;
 }
 /* změny nesmí zůstat čekat v odloženém zápisu: uložit při odchodu, skrytí stránky i při přepnutí výběru */
 window.addEventListener('pagehide',()=>{try{pmFlush()}catch(e){}});
