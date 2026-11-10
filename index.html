@@ -419,6 +419,9 @@ body.pm-tdrag,body.pm-tdrag *{cursor:grabbing!important;user-select:none}
 .vopt:hover{border-color:var(--accent);color:var(--text)}.vopt.on{border-color:var(--accent);background:rgba(255,82,0,.08);color:var(--accent)}
 .vopt span{display:flex;flex-direction:column;gap:3px;min-width:0}.vopt b{font-size:13.5px;color:var(--text)}.vopt small{font-size:12px;line-height:1.45;color:var(--text3)}
 .pm-focusbar,#pm-focusbar{align-items:center;gap:8px;flex-wrap:wrap;padding:7px 12px;margin:0 0 8px;border:1px solid var(--accent);border-radius:10px;background:rgba(255,82,0,.07);font-size:12.5px;color:var(--text2)}
+#pm-confirmbar{align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;margin:0 0 8px;border:1px solid #f2b84b;border-radius:10px;background:rgba(242,184,75,.09);font-size:12.5px;color:var(--text2);position:sticky;top:0;z-index:5}
+#pm-confirmbar .lab{font-weight:700;color:#f2b84b}#pm-confirmbar b{color:var(--text)}#pm-confirmbar .sep{color:var(--text3)}#pm-confirmbar .cnt{color:var(--text3)}
+#pm-confirmbar .btn{margin-left:auto}#pm-confirmbar .btn+.btn{margin-left:0}
 #pm-focusbar b{color:var(--text)}#pm-focusbar a{color:var(--accent);cursor:pointer}#pm-focusbar a:hover{text-decoration:underline}
 #pm-focusbar .sep{color:var(--text3)}#pm-focusbar .cnt{margin-left:auto;color:var(--text3);font-size:11.5px}
 .oitem{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:0 0 10px;background:rgba(255,255,255,.02)}
@@ -1722,6 +1725,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
     </div>
 
     <div id="pm-focusbar" style="display:none"></div>
+    <div id="pm-confirmbar" style="display:none"></div>
     <div id="pm-inspector"></div>
 
     <div class="pm-stage">
@@ -1742,6 +1746,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
             <div class="pm-helprow"><kbd>tažení</kbd><span>posun plátna prázdnou plochou</span></div>
             <div class="pm-helprow"><kbd>mezerník + tažení</kbd><span>posun i nad procesem</span></div>
             <div class="pm-helprow"><kbd>prostřední tl.</kbd><span>totéž bez klávesnice</span></div>
+            <div class="pm-helprow"><kbd>Tažení procesu</kbd><span>posun se po puštění ukáže a zapíše až po „Potvrdit“ (Enter) v liště nad plátnem; „Vrátit“ (Esc, Ctrl + Z) vrátí původní termíny</span></div>
             <div class="pm-helprow"><kbd>Ctrl + kolečko</kbd><span>přiblížení / oddálení časové osy kolem kurzoru (ve svislé ose se šířka sloupců nemění)</span></div>
             <div class="pm-helprow"><kbd>Ctrl + Shift + kolečko</kbd><span>ve svislé ose zoom časové osy i šířky sloupců najednou</span></div>
             <div class="pm-helprow"><kbd>− 100 % ＋</kbd><span>zoom tlačítky v liště</span></div>
@@ -3222,6 +3227,7 @@ function pmSelToggle(id,add){
 const HIST={un:[],re:[],max:50};
 const histState=()=>({p:JSON.stringify(processes),m:JSON.stringify(milestones),o:JSON.stringify(outputs)});
 function histPush(){
+  if(typeof PM!=='undefined'&&PM.pend)pmPendConfirm(true);     // jiná úprava = předchozí posun je potvrzen
   HIST.un.push(histState());
   if(HIST.un.length>HIST.max)HIST.un.shift();
   HIST.re.length=0; pmSyncHist();
@@ -3240,6 +3246,7 @@ function histRestore(st){
   renderAll();
 }
 function histUndo(){
+  if(PM.pend){pmPendRevert();return}
   if(!HIST.un.length){toast('Není co vrátit');return}
   HIST.re.push(histState()); histRestore(HIST.un.pop()); pmSyncHist(); toast('Vráceno zpět');
 }
@@ -4014,7 +4021,7 @@ function renderPMap(){
     const nb=$('#nav-pm'); if(nb)nb.textContent=processes.length;   // v rozcestníku počítáme všechno
     return;
   }
-  pmFocusValid(); pmDeriveDates(); pmSyncControls(); pmFocusBar();
+  pmFocusValid(); pmDeriveDates(); pmSyncControls(); pmFocusBar(); pmPendBar();
   host.classList.toggle('pm-placing',!!PM.placing);
   const list=pmVisible(), b=pmBounds(list), px=pmPx(), head=pmHeadH();
   /* pruhy i mřížka vyplní celou viditelnou plochu, ne jen výšku obsahu */
@@ -4552,7 +4559,7 @@ function pmSyncControls(){
     : (c&&c.src?'zdrojová varianta — jen tuto lze zpevnit do mapy':'varianta k porovnání — zpevnit lze pouze zdrojový koncept');
   const nb=$('#nav-pm'); if(nb)nb.textContent=processes.filter(p=>p.scope==='map').length||pmAll().length;
 }
-function pmSetMode(m){PM.focus=null;PM.mode=m;PM.sel=[];PM.link=null;if(m==='map')pmSetSplit(false);renderPMap()}
+function pmSetMode(m){pmPendRevert(true);PM.focus=null;PM.mode=m;PM.sel=[];PM.link=null;if(m==='map')pmSetSplit(false);renderPMap()}
 function pmPickConcept(id){PM.conceptId=id;PM.sel=[];PM.link=null;pmCenterToday()}
 function pmSetUnit(u){PM.unit=u;renderPMap()}
 /* zoom mění měřítko osy tlačítky — bez tažítka */
@@ -5897,29 +5904,12 @@ function pmPointerUp(){
   let moved=pmDrag.moved; const group=pmDrag.orig.map(o=>o.q), mezi=!!pmDrag.vcols&&!pmDrag.resize&&!pmNestOn();
   /* tažení, které nic nezměnilo (cuknutí při kliknutí), se nezapisuje a nezanechá krok Zpět */
   if(moved&&!pmDrag.orig.some(o=>o.q.start!==o.start||o.q.end!==o.end||(o.q.lane||0)!==o.lane)){HIST.un.pop();pmSyncHist();moved=false}
-  pmDrag=null; PM.snapX=null;
+  const dr=pmDrag; pmDrag=null; PM.snapX=null;
   if(moved){
-    group.forEach(q=>{
-      if(q.scope==='map')q.mapEdited=true;
-      pmSyncMilestones(q); pmQueue(q);
-    });
-    /* podproces puštěný do sloupce jiného streamu tam i patří */
-    if(mezi){
-      let prelozeno=0;
-      group.forEach(q=>{
-        if(!q.parent||group.includes(pmById(q.parent)))return;
-        const st=pmStreamAt(q.lane||0,q), old=pmRootOf(q);
-        if(!st||st===old)return;
-        q.parent=st.id; if(q.color)q.color='';
-        pmDescOf(q.id).forEach(d=>{if(!group.includes(d)){d.lane=pmLaneInStream(st,d.start,d.end,null,d);pmQueue(d)}});
-        pmFitRoot(st); prelozeno++;
-      });
-      if(prelozeno){pmRenumberScope(group[0].scope);pmFlush();PM._vl=null;
-        setTimeout(()=>toast(`Přesunuto do jiného streamu — barva a číslování se upravily`),0);}
-    }
-    pmNormalizeLanes();
-    computePositions();
-    toast(ONLINE?'Uloženo · Supabase':'Změněno · DEMO (neuloží se)');
+    /* posun se na plátně ukáže hned, ale zapíše se až po potvrzení v liště nad plátnem */
+    const snap=HIST.un.pop(); pmSyncHist();
+    PM.pend={snap,mezi,main:dr.p.id,resize:dr.resize,
+      rows:dr.orig.map(o=>({id:o.q.id,from:[o.start,o.end,o.lane],to:[o.q.start,o.q.end,o.q.lane||0]}))};
   }
   renderPMap();
 }
@@ -5934,6 +5924,8 @@ function pmKeyDown(e){
   const mod=e.ctrlKey||e.metaKey;
   if(mod&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?histRedo():histUndo();return}
   if(mod&&e.key.toLowerCase()==='y'){e.preventDefault();histRedo();return}
+  if(PM.pend&&e.key==='Enter'){e.preventDefault();pmPendConfirm();return}
+  if(PM.pend&&e.key==='Escape'){e.preventDefault();pmPendRevert();return}
   if(e.key==='Escape'&&PM.focus&&!PM.placing&&!document.querySelector('.modal-veil.open')){e.preventDefault();pmUnfocus();return}
   if(e.code==='Space'&&!e.repeat){pmSpace=true;$('#pm-canvas').classList.add('panready');e.preventDefault();return}
   if(mod&&e.key.toLowerCase()==='a'){
@@ -7581,7 +7573,7 @@ const pmStamp=v=>{
   return isNaN(d)?'—':d.toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric',year:'numeric'})
     +(v.length>10?' '+d.toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'}):'');
 };
-function pmShowGallery(){PM.focus=null;PM.gallery=true;PM.sel=[];PM.link=null;renderPMap()}
+function pmShowGallery(){pmPendRevert(true);PM.focus=null;PM.gallery=true;PM.sel=[];PM.link=null;renderPMap()}
 /* Otevření konceptu (nebo mapy) vždy začíná na dnešku uprostřed a s asi
    3/4 celého rozsahu vidět najednou — ne tam, kde zůstal zoom z minula. */
 function pmCenterToday(){
@@ -7611,11 +7603,11 @@ function pmCenterToday(){
   host.scrollLeft=Math.min(maxScroll,Math.max(0,todayX-host.clientWidth/2));
 }
 function pmOpenConcept(id){
-  PM.focus=null; PM.gallery=false; PM.mode='concept'; PM.conceptId=id; PM.sel=[]; PM.link=null; PM.extra=0; PM.padL=PM.padR=0; PM.padTop=1;
+  pmPendRevert(true); PM.focus=null; PM.gallery=false; PM.mode='concept'; PM.conceptId=id; PM.sel=[]; PM.link=null; PM.extra=0; PM.padL=PM.padR=0; PM.padTop=1;
   pmFitHeight(); pmCenterToday();
 }
 function pmOpenMap(){
-  PM.focus=null; PM.gallery=false; PM.mode='map'; PM.sel=[]; PM.link=null; PM.extra=0; PM.padL=PM.padR=0; PM.padTop=1;
+  pmPendRevert(true); PM.focus=null; PM.gallery=false; PM.mode='map'; PM.sel=[]; PM.link=null; PM.extra=0; PM.padL=PM.padR=0; PM.padTop=1;
   pmFitHeight(); pmCenterToday();
 }
 function pmRenderGallery(){
@@ -9816,6 +9808,59 @@ function pmDeriveDates(){
 }
 const pmWithDesc=list=>{const out=list.slice();list.forEach(q=>pmDescOf(q.id).forEach(d=>{if(!out.includes(d))out.push(d)}));return out};
 
+/* ================= POTVRZENÍ POSUNU V ČASE =================
+   Posun procesu tažením se po puštění jen ukáže; do dat, milníků a databáze se zapíše až po
+   „Potvrdit“. „Vrátit“ (nebo Esc, Zpět) obnoví původní termíny a polohu. Jakákoli jiná úprava
+   předchozí posun potvrdí, aby se neztratil. */
+function pmPendConfirm(auto){
+  const d=PM.pend; if(!d)return;
+  PM.pend=null;
+  HIST.un.push(d.snap); if(HIST.un.length>HIST.max)HIST.un.shift(); HIST.re.length=0; pmSyncHist();
+  const group=d.rows.map(r=>pmById(r.id)).filter(Boolean);
+  group.forEach(q=>{if(q.scope==='map')q.mapEdited=true;pmSyncMilestones(q);pmQueue(q)});
+  /* podproces puštěný do sloupce jiného streamu tam i patří */
+  if(d.mezi){
+    let prelozeno=0;
+    group.forEach(q=>{
+      if(!q.parent||group.includes(pmById(q.parent)))return;
+      const st=pmStreamAt(q.lane||0,q), old=pmRootOf(q);
+      if(!st||st===old)return;
+      q.parent=st.id; if(q.color)q.color='';
+      pmDescOf(q.id).forEach(x=>{if(!group.includes(x)){x.lane=pmLaneInStream(st,x.start,x.end,null,x);pmQueue(x)}});
+      pmFitRoot(st); prelozeno++;
+    });
+    if(prelozeno&&group[0]){pmRenumberScope(group[0].scope);pmFlush();PM._vl=null;
+      setTimeout(()=>toast('Přesunuto do jiného streamu — barva a číslování se upravily'),0);}
+  }
+  pmNormalizeLanes(); computePositions();
+  if(!auto){toast(ONLINE?'Posun potvrzen · ukládá se do Supabase':'Posun potvrzen · DEMO (neuloží se)');renderPMap()}
+}
+function pmPendRevert(quiet){
+  const d=PM.pend; if(!d)return;
+  PM.pend=null;
+  d.rows.forEach(r=>{const q=pmById(r.id); if(q){q.start=r.from[0];q.end=r.from[1];q.lane=r.from[2]}});
+  PM._vl=null; PM._nest=null; computePositions();
+  if(!quiet){renderPMap();toast('Posun vrácen — termíny jsou původní')}
+}
+function pmPendBar(){
+  const bar=$('#pm-confirmbar'); if(!bar)return;
+  const d=PM.pend;
+  if(!d||PM.gallery||PM.print){bar.style.display='none';bar.innerHTML='';return}
+  const r=d.rows.find(x=>x.id===d.main)||d.rows[0], q=pmById(r.id);
+  if(!q){PM.pend=null;bar.style.display='none';return}
+  const dd=(a,b)=>{const n=pmDays(a,b);return (n>0?'+':'')+n+' dní'};
+  const same=r.from[0]===r.to[0], same2=r.from[1]===r.to[1];
+  const zmena=d.resize?(same?`konec ${dd(r.from[1],r.to[1])}`:`začátek ${dd(r.from[0],r.to[0])}`)
+    :(same&&same2?'posun do jiného sloupce':`posun o ${dd(r.from[0],r.to[0])}`);
+  const dalsi=d.rows.length-1;
+  bar.innerHTML=`<span class="lab">⏱ Posun v čase čeká na potvrzení</span>
+    <b>${escXml(pmProcLabel(q))}</b>
+    <span>${pmCz(r.from[0])} – ${pmCz(r.from[1])} <span class="sep">→</span> <b>${pmCz(r.to[0])} – ${pmCz(r.to[1])}</b> (${zmena})</span>
+    ${dalsi>0?`<span class="cnt">+ ${dalsi} podprocesů se posouvá s ním</span>`:''}
+    <button class="btn primary sm" onclick="pmPendConfirm()" title="Zapsat posun (Enter)">✔ Potvrdit</button>
+    <button class="btn ghost sm" onclick="pmPendRevert()" title="Vrátit původní termíny (Esc)">↩ Vrátit</button>`;
+  bar.style.display='flex';
+}
 /* ================= PROKLIK DO PROCESU =================
    Proces s podprocesy lze „otevřít“: plátno ukáže jen jeho, jeho podprocesy a záhlaví
    streamu nad ním, ostatní streamy se skryjí. Údaje se nemění, jde jen o pohled. */
