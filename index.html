@@ -5326,7 +5326,7 @@ function pmRenderRibbon(host,p){
   const tab=PM_TABS.find(t=>t.id===PM.tab);
   const keepFocus=pmRibFocusKey();      // překreslení nesmí sebrat kurzor z rozepsaného pole
   subSet(p,host);                       // pole `parent` čte kontext už při vykreslení
-  host.innerHTML=`<div class="pm-rib${PM.ribCollapsed?' collapsed':''}">
+  host.innerHTML=`<div class="pm-rib${PM.ribCollapsed?' collapsed':''}" data-pid="${p.id}">
     <div class="pm-tabs">
       ${PM_TABS.map(t=>`<button class="${t.id===PM.tab?'on':''}" title="Dvojklik na aktivní kartu pás sbalí" onclick="pmRibTab('${t.id}')" ondblclick="pmRibCollapse()">${t.l}</button>`).join('')}
       <span class="rmeta">
@@ -5389,9 +5389,17 @@ function pmRibDateBlur(el,k){
   clearTimeout(el._dt);
   pmRibDate(el,k,true);
 }
+/* Hodnota z pole patří procesu, jehož pás karet pole vykreslil — ne tomu, který je vybraný
+   v okamžiku, kdy se pole opouští (klik na plátno mezitím mění výběr). */
+function pmRibPid(el){
+  const t=el||(window.event&&window.event.target);
+  const r=t&&t.closest?t.closest('.pm-rib'):null;
+  return (r&&r.dataset.pid)||pmPrimary();
+}
 function pmRibDate(el,k,onBlur){
   const v=el.value;
-  const p=pmById(pmPrimary());
+  const pid=pmRibPid(el);
+  const p=pmById(pid);
   if(!v){ if(onBlur&&p)el.value=p[k]||''; return }
   if(!/^\d{4}-\d{2}-\d{2}$/.test(v)||+v.slice(0,4)<1900){
     if(onBlur&&p)el.value=p[k]||'';     // rozepsané datum se při odchodu vrátí
@@ -5399,7 +5407,7 @@ function pmRibDate(el,k,onBlur){
   }
   if(p&&p[k]===pmClampDate(v))return;   // beze změny nepřekreslujeme
   if(p&&pmDateBad(p,k,pmClampDate(v))){ if(onBlur)el.value=p[k]||''; return }
-  pmRibSet(k,v);
+  pmRibSet(k,v,pid);
 }
 /* Termíny se hlídají proti sobě: neplatnou úpravu odmítneme a druhé
    datum necháme být — dřív se „srovnalo" samo a uživateli zmizel začátek. */
@@ -5411,8 +5419,8 @@ function pmDateBad(p,k,v){
   if(k==='end'&&v<jiny){toast('Konec nemůže být dřív než začátek');return true}
   return false;
 }
-function pmRibSet(k,v){
-  const p=pmById(pmPrimary()); if(!p)return;
+function pmRibSet(k,v,pid){
+  const p=pmById(pid||pmRibPid()); if(!p)return;
   /* Zařazení pod vlastního potomka by uzavřelo kruh, hlubší zanoření
      aplikace nepodporuje — obojí se odmítne dřív, než se cokoli zapíše. */
   if(k==='parent'&&v){
@@ -5702,11 +5710,10 @@ function pmPointerDown(e){
   host.setPointerCapture&&host.setPointerCapture(e.pointerId);
   /* Výběr procesu vysune pás karet a plátno se tím posune. O ten kus se musí
      posunout i výchozí bod tažení, jinak by proces ujel myši hned na začátku. */
-  const r0=host.getBoundingClientRect(), sl0=host.scrollLeft, st0=host.scrollTop;
   renderPMap();
-  const r1=host.getBoundingClientRect();
-  pmDrag.x+=(r1.left-r0.left)-(host.scrollLeft-sl0);
-  pmDrag.y+=(r1.top-r0.top)-(host.scrollTop-st0);
+  /* Výchozí bod tažení se NEUPRAVUJE o posun plátna: termín se počítá jen z toho, kolik se myš
+     od stisknutí pohnula. Dřívější „dorovnání“ posunu plátna (po vysunutí pásu karet) se při
+     nedostatečném posunu scrollu přenášelo do termínu a proces při prvním pohybu uskočil. */
   e.preventDefault();
 }
 
@@ -5790,8 +5797,12 @@ function pmPointerMove(e){
   /* ve svislé ose jede čas po Y a sloupce po X */
   let dd=Math.round((V?e.clientY-pmDrag.y:e.clientX-pmDrag.x)/px);
   const dl=Math.round((V?e.clientX-pmDrag.x:e.clientY-pmDrag.y)/(V?PM._vl.pitch:pmRowH()));
-  if(!pmDrag.moved&&(Math.abs(e.clientX-pmDrag.x)>3||Math.abs(e.clientY-pmDrag.y)>3)){
+  if(!pmDrag.moved&&(Math.abs(e.clientX-pmDrag.x)>6||Math.abs(e.clientY-pmDrag.y)>6)){
     pmDrag.moved=true; histPush();
+    /* Počátek tažení se přesune do místa, kde práh překročil — proces tak neuskočí o „mrtvou zónu“
+       (při malém přiblížení je jeden pixel i několik dní) a drobné cuknutí při kliknutí nic neposune. */
+    pmDrag.x=e.clientX; pmDrag.y=e.clientY;
+    return;
   }
   if(!pmDrag.moved)return;
   pmEdgeSet(e);
@@ -5883,7 +5894,9 @@ function pmPointerUp(){
   }
   if(pmMarq){pmMarq=null;renderPMap();return}
   if(!pmDrag)return;
-  const moved=pmDrag.moved, group=pmDrag.orig.map(o=>o.q), mezi=!!pmDrag.vcols&&!pmDrag.resize&&!pmNestOn();
+  let moved=pmDrag.moved; const group=pmDrag.orig.map(o=>o.q), mezi=!!pmDrag.vcols&&!pmDrag.resize&&!pmNestOn();
+  /* tažení, které nic nezměnilo (cuknutí při kliknutí), se nezapisuje a nezanechá krok Zpět */
+  if(moved&&!pmDrag.orig.some(o=>o.q.start!==o.start||o.q.end!==o.end||(o.q.lane||0)!==o.lane)){HIST.un.pop();pmSyncHist();moved=false}
   pmDrag=null; PM.snapX=null;
   if(moved){
     group.forEach(q=>{
