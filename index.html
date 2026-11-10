@@ -417,6 +417,8 @@ body.pm-tdrag,body.pm-tdrag *{cursor:grabbing!important;user-select:none}
 .pm-rib-body .pm-tlab input,.pm-tlab input{width:140px;flex:none}
 .vopt{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:12px 14px;margin:0 0 10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.02);color:var(--text2);cursor:pointer;font-family:inherit}
 .vopt:hover{border-color:var(--accent);color:var(--text)}.vopt.on{border-color:var(--accent);background:rgba(255,82,0,.08);color:var(--accent)}
+.vchk{display:flex;align-items:flex-start;gap:12px;margin:2px 0 8px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;cursor:pointer;color:var(--text2)}
+.vchk input{width:auto;margin-top:3px}.vchk span{display:flex;flex-direction:column;gap:3px}.vchk b{font-size:13.5px;color:var(--text)}.vchk small{font-size:12px;line-height:1.45;color:var(--text3)}
 .vopt span{display:flex;flex-direction:column;gap:3px;min-width:0}.vopt b{font-size:13.5px;color:var(--text)}.vopt small{font-size:12px;line-height:1.45;color:var(--text3)}
 .pm-focusbar,#pm-focusbar{align-items:center;gap:8px;flex-wrap:wrap;padding:7px 12px;margin:0 0 8px;border:1px solid var(--accent);border-radius:10px;background:rgba(255,82,0,.07);font-size:12.5px;color:var(--text2)}
 #pm-confirmbar{align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;margin:0 0 8px;border:1px solid #f2b84b;border-radius:10px;background:rgba(242,184,75,.09);font-size:12.5px;color:var(--text2);position:sticky;top:0;z-index:5}
@@ -3817,9 +3819,6 @@ function pmRenderV(host,list,SK,rBefore){
     mo.cells.forEach(c=>{s+=`<line x1="${PMV_RAIL}" y1="${yx(c.x0)}" x2="${W}" y2="${yx(c.x0)}" stroke="${SK.grid2}"/>`});
     mo.ctx.forEach(c=>{s+=`<line x1="${PMV_RAIL}" y1="${yx(c.x0)}" x2="${W}" y2="${yx(c.x0)}" stroke="${SK.grid}"/>`});
   }
-  const ty=Y(pmD(TODAY));
-  if(ty>top&&ty<H)s+=`<line x1="${PMV_RAIL}" y1="${ty}" x2="${W}" y2="${ty}" stroke="rgba(255,82,0,.5)" stroke-width="1.4" stroke-dasharray="4 4"/>
-    <text x="${PMV_RAIL+6}" y="${ty-4}" fill="var(--accent)" font-family="var(--mono)" font-size="10">DNES</text>`;
 
   /* rámečky vespod */
   pmGroupsIn().forEach(gr=>{
@@ -3891,7 +3890,7 @@ function pmRenderV(host,list,SK,rBefore){
       const tint=pmColorOf(p), stroke=pmTone(tint||col), on=pmSelHas(p.id), dim=!pmPassFilter(p);
       const fillC=tint?pmTone(tint)+(PM.print?'24':'38'):'rgba(255,255,255,.05)';   // vnitřek procesu v barvě streamu
       const num=pmNumLabel(p), full=(num?num+' ':'')+(pmNameOf(p)||'(bez názvu)');
-      const per=Math.max(6,Math.floor((g.w-34)/6.4)), ttl=full.length>per?pmEllip(full,per):full;
+      const riC=pmRemainInfo(p), per=Math.max(6,Math.floor((g.w-34-(riC&&g.w>260?riC.full.length*5.6:0))/6.4)), ttl=full.length>per?pmEllip(full,per):full;
       const glab=p.gestor?pmGestorLabel(p.gestor):'';
       s+=`<g class="pmb${on?' sel':''}${dim?' dimmed':''}" data-id="${p.id}">
         ${on?`<rect x="${g.x-3}" y="${g.y-3}" width="${g.w+6}" height="${g.h+6}" rx="10" fill="none" stroke="var(--accent)" stroke-width="1.3" opacity=".85"/>`:''}
@@ -3899,6 +3898,7 @@ function pmRenderV(host,list,SK,rBefore){
         <rect x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" rx="8" fill="${fillC}" stroke="${stroke}" stroke-width="${on?2.4:1.5}"/>
         <path d="M ${g.x+3} ${g.y+9} V ${g.y+g.h-9}" stroke="${col}" stroke-width="3.2" stroke-linecap="round"/>
         <text x="${g.x+6}" y="${g.y-5}" font-size="11.5" font-weight="700" fill="${SK.ink}" font-family="Inter,sans-serif" stroke="${SK.bg}" stroke-width="3.5" paint-order="stroke" stroke-linejoin="round">${escXml(ttl)}</text>
+        ${(()=>{const ri=pmRemainInfo(p);return ri&&g.w>260?pmRemainText(ri,g.x+g.w-(PM.print?8:50),g.y-5,g.w,10.5,SK,true):''})()}
         ${!PM.print&&!document.body.classList.contains('pm-view')?`<text class="pmtog" data-tog="${p.id}" x="${g.x+g.w-14}" y="${g.y-5}" font-size="11" fill="${SK.ink2}" style="cursor:pointer">${p.collapsed?'▸':'▾'}</text>
         ${glab?`<circle class="pmgest" data-gid="${p.id}" cx="${g.x+g.w-34}" cy="${g.y-9}" r="6.5" fill="${SK.bg}" stroke="${SK.ink3}" stroke-width="1.1" style="cursor:pointer"/><text class="pmgest" data-gid="${p.id}" x="${g.x+g.w-34}" y="${g.y-6}" text-anchor="middle" font-size="8.5" font-weight="600" fill="${SK.ink2}" font-family="Inter,sans-serif" style="cursor:pointer">G</text>`:''}`:''}
         <rect class="pmgrip" data-grip="${p.id}" data-edge="start" x="${g.x}" y="${g.y-2}" width="${g.w}" height="8" fill="transparent" style="cursor:ns-resize"/>
@@ -3961,6 +3961,8 @@ function pmRenderV(host,list,SK,rBefore){
         <text class="pmgest" data-gid="${p.id}" x="${gx}" y="${gy+3.5}" text-anchor="middle" font-size="9" font-weight="600" fill="${SK.ink2}" font-family="Inter,sans-serif" style="cursor:pointer">G</text>`;
     }
     s+=text;
+    {const ri=pmRemainInfo(p), ty0=Y(pmD(TODAY));
+     if(ri&&ty0>g.y&&ty0<g.y+g.h)s+=pmRemainTextV(ri,g.x+g.w-8,g.w-12,fs2,SK,ty0,g.y+2,g.y+g.h-2)}
     if(hasKids)s+=`<text class="pmtog" data-tog="${p.id}" x="${g.x+g.w-13}" y="${g.y+4+fs}" font-size="${Math.max(6,11*rz)}" fill="${SK.ink2}" style="cursor:pointer">${p.collapsed?'▸':'▾'}</text>`;
     if(roleCol){
       s+=`<circle cx="${g.x}" cy="${g.y}" r="6.5" fill="${roleCol}" stroke="${SK.bg}" stroke-width="1.4"/>
@@ -4036,7 +4038,7 @@ function pmRenderV(host,list,SK,rBefore){
     <line x1="0" y1="${L.head}" x2="${PMV_RAIL}" y2="${L.head}" stroke="${SK.rule}"/>
     <line x1="${PMV_RAIL}" y1="0" x2="${PMV_RAIL}" y2="${L.head}" stroke="${SK.rule}"/>
     ${!PM.print&&!document.body.classList.contains('pm-view')?`<rect class="pmvres" x="0" y="${L.head-4}" width="${PMV_RAIL}" height="8" fill="transparent" style="cursor:row-resize"/>`:''}</g>`;
-  s+=rl+hd+cn+pmOutMarksSVG(list,b,true,SK)+`</svg>`;
+  s+=pmTodaySVG(true,{Y,top,W,H},SK)+rl+hd+cn+pmOutMarksSVG(list,b,true,SK)+`</svg>`;
 
   const keepL=host.scrollLeft, keepT=host.scrollTop;
   host.innerHTML=s;
@@ -4144,8 +4146,7 @@ function renderPMap(){
 
   /* dnešek */
   const tx=PM_PAD+(pmD(TODAY)-b.t0)/PMDAY*px;
-  if(tx>0&&tx<W) s+=`<line x1="${tx}" y1="${head}" x2="${tx}" y2="${H}" stroke="rgba(255,82,0,.5)" stroke-width="1.4" stroke-dasharray="4 4"/>
-    <text x="${tx+6}" y="${head+13}" fill="var(--accent)" font-family="var(--mono)" font-size="10">DNES</text>`;
+
 
   /* rámečky se kreslí vespod, aby nepřekrývaly procesy */
   pmGroupsIn().forEach(gr=>{
@@ -4383,6 +4384,8 @@ function renderPMap(){
     if(ohniska.indexOf(p.id)>-1&&!on){
       s+=`<path d="${pmRailPath(g.x-3,g.y-3,g.w+6,g.h+6)}" fill="none" stroke="var(--accent)" stroke-width="1.6" opacity=".9"/>`;
     }
+    {const ri=pmRemainInfo(p), tx0=PM_PAD+(pmD(TODAY)-b.t0)/PMDAY*px;
+     if(ri&&tx0>g.x+10&&tx0<g.x+g.w-2&&g.w>=90)s+=pmRemainText(ri,g.x+g.w-(kids&&!PM.print?46:10),g.y+g.h-Math.max(5,g.h*0.22),g.w*0.7,Math.max(8,9*(PM.rowZoom||1)),SK,true)}
     const gestTip=p.gestor?' · gestor: '+pmGestorLabel(p.gestor):'';
     s+=`<rect class="pmgrip" data-grip="${p.id}" data-edge="end" x="${g.x+g.w-7}" y="${g.y}" width="9" height="${g.h}" fill="transparent" style="cursor:ew-resize"/>`;
     s+=`<rect class="pmgrip" data-grip="${p.id}" data-edge="start" x="${g.x-2}" y="${g.y}" width="9" height="${g.h}" fill="transparent" style="cursor:ew-resize"/>`;
@@ -4403,7 +4406,7 @@ function renderPMap(){
   /* záhlaví osy úplně nahoře v pořadí kreslení — při svislém posunu se
      posouvá s plátnem (pmSyncSticky) a obsah mizí pod ním */
   if(mo)s+=`<g class="pmhead">${pmAxisSVG(mo,W,head)}</g>`;
-  s+=pmOutMarksSVG(list,b,false,SK)+`</svg>`;
+  s+=pmTodaySVG(false,{tx:PM_PAD+(pmD(TODAY)-b.t0)/PMDAY*px,head,W,H},SK)+pmOutMarksSVG(list,b,false,SK)+`</svg>`;
   const keepL=host.scrollLeft, keepT=host.scrollTop;
   host.innerHTML=s;
   host.scrollLeft=keepL; host.scrollTop=keepT;
@@ -9539,8 +9542,14 @@ function pmViewDialog(){
   const cur=pmViewMode();
   $('#pm-view-list').innerHTML=PM_VIEWS.map(v=>`<button type="button" class="vopt${v.k===cur?' on':''}" onclick="pmSetView('${v.k}')">
     <svg viewBox="0 0 86 54" width="86" height="54"><g fill="none" stroke="currentColor" stroke-width="1.6">${v.svg}</g></svg>
-    <span><b>${v.t}${v.k===cur?' ✓':''}</b><small>${v.d}</small></span></button>`).join('');
+    <span><b>${v.t}${v.k===cur?' ✓':''}</b><small>${v.d}</small></span></button>`).join('')
+    +`<label class="vchk"><input type="checkbox" ${pmRemainOn()?'checked':''} onchange="pmSetRemain(this.checked)"><span><b>Zbývající čas u procesů, které protíná dnešek</b><small>V boxu procesu se ukáže datum konce a kolik týdnů zbývá. Týká se jen procesů, kterými právě prochází čára dnes. Jen zobrazení, údaje se nemění.</small></span></label>`;
   $('#pm-view-modal').classList.add('open');
+}
+function pmSetRemain(on){
+  if(PM.mode==='map'){if(on)project.mapRemain=true; else delete project.mapRemain; persistMeta()}
+  else{const c=pmConcept(); if(!c)return; if(on)c.remain=true; else delete c.remain; c.touched=new Date().toISOString(); persist('concept',c,concepts.indexOf(c))}
+  renderPMap();
 }
 function pmSetView(v){
   $('#pm-view-modal').classList.remove('open');
@@ -10023,6 +10032,56 @@ function pmPendBar(){
     <button class="btn primary sm" onclick="pmPendConfirm()" title="Zapsat posun (Enter)">✔ Potvrdit</button>
     <button class="btn ghost sm" onclick="pmPendRevert()" title="Vrátit původní termíny (Esc)">↩ Vrátit</button>`;
   bar.style.display='flex';
+}
+/* ================= DNEŠEK NA OSE + ZBÝVAJÍCÍ ČAS =================
+   Čára dneška leží nad procesy (dřív ji boxy překryly). Volitelně se v procesech, které dnešek
+   protíná, ukáže konec a kolik týdnů zbývá. */
+const pmRemainOn=()=>PM.mode==='map'?!!project.mapRemain:!!(pmConcept()&&pmConcept().remain);
+const pmPl=(n,a,b,c)=>n===1?a:(n>=2&&n<=4?b:c);
+function pmRemainInfo(p){
+  if(!pmRemainOn()||!p.start||!p.end)return null;
+  const t=pmD(TODAY), st=pmD(p.start), en=pmD(p.end);
+  if(t<st||t>en)return null;
+  const days=Math.round((en-t)/PMDAY), w=Math.ceil(days/7);
+  const rest=days===0?'končí dnes':(days<7?`zbývá ${days} ${pmPl(days,'den','dny','dnů')}`:`zbývá ${w} ${pmPl(w,'týden','týdny','týdnů')}`);
+  return {end:'do '+pmCz(p.end),rest,full:'do '+pmCz(p.end)+' · '+rest};
+}
+function pmTodaySVG(vert,o,SK){
+  const lbl=`DNES ${pmCz(TODAY).replace(/\s?\d{4}$/,'')}`;
+  const halo=SK.bg;
+  if(vert){
+    if(!(o.Y(pmD(TODAY))>o.top&&o.Y(pmD(TODAY))<o.H))return '';
+    const ty=o.Y(pmD(TODAY));
+    return `<g class="pmtoday" pointer-events="none"><line x1="${PMV_RAIL}" y1="${ty}" x2="${o.W}" y2="${ty}" stroke="${halo}" stroke-width="4.5" opacity=".55"/>
+      <line x1="${PMV_RAIL}" y1="${ty}" x2="${o.W}" y2="${ty}" stroke="var(--accent)" stroke-width="2" stroke-dasharray="8 4"/>
+      <text x="${PMV_RAIL+6}" y="${ty-5}" fill="var(--accent)" font-family="var(--mono)" font-size="10.5" font-weight="700" stroke="${halo}" stroke-width="3.5" paint-order="stroke" stroke-linejoin="round">${escXml(lbl)}</text></g>`;
+  }
+  if(!(o.tx>0&&o.tx<o.W))return '';
+  return `<g class="pmtoday" pointer-events="none"><line x1="${o.tx}" y1="${o.head}" x2="${o.tx}" y2="${o.H}" stroke="${halo}" stroke-width="4.5" opacity=".55"/>
+    <line x1="${o.tx}" y1="${o.head}" x2="${o.tx}" y2="${o.H}" stroke="var(--accent)" stroke-width="2" stroke-dasharray="8 4"/>
+    <text x="${o.tx+6}" y="${o.head+13}" fill="var(--accent)" font-family="var(--mono)" font-size="10.5" font-weight="700" stroke="${halo}" stroke-width="3.5" paint-order="stroke" stroke-linejoin="round">${escXml(lbl)}</text></g>`;
+}
+/* text „do … · zbývá …“ vpravo v boxu; úzký box dostane dva řádky */
+function pmRemainText(info,x,y,w,fs,SK,anchorEnd){
+  if(!info)return '';
+  const common=`fill="var(--accent)" font-family="Inter,sans-serif" font-weight="600" stroke="${SK.bg}" stroke-width="3" paint-order="stroke" stroke-linejoin="round" pointer-events="none"`;
+  if(w>=info.full.length*fs*0.52+24)return `<text x="${x}" y="${y}" text-anchor="${anchorEnd?'end':'start'}" font-size="${fs}" ${common}>${escXml(info.full)}</text>`;
+  if(w<60)return '';
+  return `<text text-anchor="${anchorEnd?'end':'start'}" font-size="${fs}" ${common}><tspan x="${x}" y="${y-fs*1.2}">${escXml(info.end)}</tspan><tspan x="${x}" y="${y}">${escXml(info.rest)}</tspan></text>`;
+}
+
+/* svislá osa: text těsně pod čárou dneška, a nevejde-li se pod ni, nad ni; jinak se vynechá */
+function pmRemainTextV(info,x,w,fs,SK,ty,top,bottom){
+  if(!info)return '';
+  const one=w>=info.full.length*fs*0.52+24; if(!one&&w<60)return '';
+  const lines=one?1:2, need=fs*1.2*(lines-1)+fs+3;
+  let y1;
+  if(bottom-ty>=need+3)y1=ty+fs+3;
+  else if(ty-top>=need+3)y1=ty-5-(lines-1)*fs*1.2;
+  else return '';
+  const common=`fill="var(--accent)" font-family="Inter,sans-serif" font-weight="600" stroke="${SK.bg}" stroke-width="3" paint-order="stroke" stroke-linejoin="round" pointer-events="none"`;
+  return one?`<text x="${x}" y="${y1}" text-anchor="end" font-size="${fs}" ${common}>${escXml(info.full)}</text>`
+    :`<text text-anchor="end" font-size="${fs}" ${common}><tspan x="${x}" y="${y1}">${escXml(info.end)}</tspan><tspan x="${x}" y="${y1+fs*1.2}">${escXml(info.rest)}</tspan></text>`;
 }
 /* ================= PROKLIK DO PROCESU =================
    Proces s podprocesy lze „otevřít“: plátno ukáže jen jeho, jeho podprocesy a záhlaví
