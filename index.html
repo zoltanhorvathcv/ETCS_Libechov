@@ -2937,7 +2937,7 @@ function rowFor(entity,o,i){return {project_id:SUPA.projectId,entity,id:idOf(ent
 /* ================= ULOŽENÍ DAT: kontrola, stav a ověření =================
    Každý zápis do databáze se vyhodnocuje (dřív se chyba tiše ztratila), stav je vidět
    v horní liště a „Ověřit uložení“ porovná data v aplikaci s databází. */
-const SAVE={pending:0,lastOk:0,lastVerified:0,lastVerifiedN:0,lastErr:'',errors:[],failed:new Map(),lastToast:0};
+const SAVE={q:new Map(),pending:0,lastOk:0,lastVerified:0,lastVerifiedN:0,lastErr:'',errors:[],failed:new Map(),lastToast:0};
 /* Prázdná hodnota (null, '', false, [], {}) je totéž co chybějící pole — aplikace při načtení doplňuje
    výchozí prázdná pole (např. vstupy procesu), a to samo o sobě není rozdíl v datech. */
 const saveEmpty=v=>v===undefined||v===null||v===''||v===false||(Array.isArray(v)&&!v.length)||(v&&typeof v==='object'&&!Array.isArray(v)&&!Object.keys(v).length);
@@ -2997,15 +2997,27 @@ async function persistAll(){
   rows[1].id='meta';
   return dbRun('all','všechna data',()=>sb.from('pi_entities').upsert(rows).select('id'),rows.length);
 }
+/* Zápisy téhož záznamu jdou za sebou (nový nepředběhne starší, jinak by v databázi zůstala starší
+   verze) a každý zapíše stav z okamžiku vlastního odeslání. Vrácený `row` je přesně to, co se odeslalo,
+   takže následné ověření porovnává databázi s odeslaným — ne s objektem, který se mezitím mohl změnit. */
 async function persist(entity,o,i){
   if(!ONLINE)return {ok:true,demo:true};
-  const row=rowFor(entity,o,i||0);
-  return dbRun(entity+'|'+row.id,entity+' '+row.id,()=>sb.from('pi_entities').upsert(rowFor(entity,o,i||0)).select('id'),1);
+  const id0=idOf(entity,o), k=entity+'|'+id0;
+  let sent=null;
+  const job=(SAVE.q.get(k)||Promise.resolve()).then(()=>dbRun(k,entity+' '+id0,()=>{
+    sent=JSON.parse(JSON.stringify(rowFor(entity,o,i||0)));
+    return sb.from('pi_entities').upsert(sent).select('id');
+  },1)).then(r=>Object.assign({},r,{row:sent}));
+  const tail=job.catch(()=>{}); SAVE.q.set(k,tail);
+  tail.then(()=>{if(SAVE.q.get(k)===tail)SAVE.q.delete(k)});
+  return job;
 }
 async function persistDelete(entity,o){
   if(!ONLINE)return {ok:true,demo:true};
-  const id=idOf(entity,o);
-  return dbRun('del|'+entity+'|'+id,'smazání '+entity+' '+id,()=>sb.from('pi_entities').delete().match({project_id:SUPA.projectId,entity,id}));
+  const id=idOf(entity,o), k=entity+'|'+id;
+  const job=(SAVE.q.get(k)||Promise.resolve()).then(()=>dbRun('del|'+k,'smazání '+entity+' '+id,()=>sb.from('pi_entities').delete().match({project_id:SUPA.projectId,entity,id})));
+  const tail=job.catch(()=>{}); SAVE.q.set(k,tail);
+  return job;
 }
 function saveMetaRows(){
   return [rowFor('project',project,0),
@@ -5618,10 +5630,12 @@ function pmFlush(){
   const jobs=batch.map(o=>{
     const isMs=milestones.indexOf(o)>-1, ent=isMs?'milestone':'process', arr=isMs?milestones:processes, i=arr.indexOf(o);
     if(i<0)return null;      // proces mezitím zmizel (smazán)
-    return persist(ent,o,i).then(r=>({r,row:rowFor(ent,o,i)}));
+    return persist(ent,o,i).then(r=>({r,row:(r&&r.row)||rowFor(ent,o,i)}));
   }).filter(Boolean);
   if(jobs.length&&ONLINE)Promise.all(jobs).then(res=>{
-    if(res.every(x=>x.r&&x.r.ok))dbVerifyRows(res.slice(0,80).map(x=>x.row)).then(v=>{if(!v.ok){SAVE.lastErr='ověření po uložení selhalo: '+v.diff.slice(0,2).join('; ');saveUI();saveFailShow('Zápis proběhl, ale ověření čtením z databáze nesouhlasí s tím, co je v aplikaci: '+v.diff.slice(0,2).join('; '))}});
+    /* nesouhlas se ještě jednou ověří po krátké pauze, než se uživateli ukáže chyba */
+    const rows80=res.slice(0,80).map(x=>x.row);
+    if(res.every(x=>x.r&&x.r.ok))dbVerifyRows(rows80).then(v=>v.ok?v:new Promise(r=>setTimeout(r,1500)).then(()=>dbVerifyRows(rows80))).then(v=>{if(!v.ok){SAVE.lastErr='ověření po uložení selhalo: '+v.diff.slice(0,2).join('; ');saveUI();saveFailShow('Zápis proběhl, ale ověření čtením z databáze nesouhlasí s tím, co je v aplikaci: '+v.diff.slice(0,2).join('; '))}});
   });
 }
 /* milník sleduje proces; zamčený se neposune */
