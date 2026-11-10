@@ -981,7 +981,10 @@ body.pm-ribdrag{cursor:row-resize;user-select:none}
 /* --- správa osob --- */
 .si-row{margin:0 0 8px}.si-row ul{margin:4px 0 0;padding-left:18px}
 .ppl-row{display:grid;grid-template-columns:46px minmax(120px,1.4fr) minmax(150px,1.3fr) minmax(110px,1fr) 34px 30px;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--border)}
-.ppl-row.unit{grid-template-columns:46px minmax(120px,1.6fr) minmax(90px,.8fr) minmax(150px,1.3fr) 34px 30px}
+.ppl-row.person{grid-template-columns:46px minmax(120px,1.3fr) minmax(100px,.9fr) minmax(140px,1.2fr) minmax(110px,1fr) 34px 30px}
+.ppl-row.unit{grid-template-columns:46px minmax(130px,1.5fr) minmax(100px,.9fr) minmax(120px,1fr) minmax(140px,1.2fr) 34px 30px 30px}
+.ppl-row.unit.ext{grid-template-columns:46px minmax(130px,1.6fr) minmax(120px,1fr) minmax(140px,1.3fr) 34px 30px}
+.ppl-row .uname{display:flex;align-items:center;gap:4px;min-width:0}.ppl-row .uname input{flex:1;min-width:0}.ppl-row .branch{color:var(--text3);font-size:12px}
 .ppl-row.rolerow{grid-template-columns:18px minmax(140px,2fr) minmax(90px,1fr) minmax(110px,1fr) 34px 30px}
 .rdot{width:12px;height:12px;border-radius:50%;display:block}
 .rolebox{display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-width:0}
@@ -1397,7 +1400,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
     <div class="dm-tabs" id="dm-tabs">
       <button class="on" data-t="core" onclick="dmTab('core')">Projektové řízení</button>
       <button data-t="pm" onclick="dmTab('pm')">Procesní mapa</button>
-      <button data-t="who" onclick="dmTab('who')">Osoby a útvary</button>
+      <button data-t="who" onclick="dmTab('who')">Osoby a subjekty</button>
       <button data-t="roles" onclick="dmTab('roles')">Role a přiřazení</button>
       <button data-t="impact" onclick="dmTab('impact')">Dopady změn</button>
       <button data-t="life" onclick="dmTab('life')">Koncept → mapa</button>
@@ -1426,7 +1429,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
         <path class="rel rel-x" d="M815 230L585 106"/><text class="rl rl-bad" x="690" y="196">žádná vazba na milník</text>
         <rect class="ent" x="200" y="470" width="150" height="52" rx="10"/><text class="et" x="214" y="492">Důkaz</text><text class="ef" x="214" y="508">věrohodnost · typ</text>
         <path class="rel" d="M250 470L252 282"/><text class="rl" x="262" y="420">odpovídá na (q)</text>
-        <rect class="ent" x="380" y="380" width="190" height="56" rx="10"/><text class="et" x="394" y="402">Osoba</text><text class="ef" x="394" y="418">kód · jméno · role · útvar</text><text class="ef" x="394" y="429">vlastník: projekt, milník, otázka …</text>
+        <rect class="ent" x="380" y="380" width="190" height="56" rx="10"/><text class="et" x="394" y="402">Osoba</text><text class="ef" x="394" y="418">kód · jméno · pozice · role · subjekt</text><text class="ef" x="394" y="429">vlastník: projekt, milník, otázka …</text>
         <path class="rel" d="M400 380L95 282"/><text class="rl" x="160" y="340">účastníci (parts)</text>
         <path class="rel" d="M430 380L285 282"/><text class="rl" x="332" y="350">vlastník</text>
         <path class="rel" d="M475 380L458 282"/><text class="rl" x="478" y="340">vlastník</text>
@@ -1441,11 +1444,11 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
           <tr><td>Schůzka · Otázka · Rozhodnutí · Riziko</td><td>Milník</td><td><code>ms</code></td></tr>
           <tr><td>Důkaz</td><td>Otázka</td><td><code>q</code> — odpovídá na</td></tr>
           <tr><td>Schůzka</td><td>Osoba</td><td><code>parts</code> — kódy účastníků</td></tr>
-          <tr><td>Projekt · Milník · Otázka · Rozhodnutí · Úkol · Riziko</td><td>Osoba</td><td><code>owner</code> — jen osoba, ne útvar</td></tr>
+          <tr><td>Projekt · Milník · Otázka · Rozhodnutí · Úkol · Riziko</td><td>Osoba</td><td><code>owner</code> — jen osoba, ne subjekt</td></tr>
         </tbody></table>
         <h4>Bez vazby (jen text nebo číslo)</h4>
         <ul>
-          <li><b>Úkol</b> (tento záznam) nemá vazbu na milník, proces ani otázku — jen textovou „závislost“ a dopad. Úkoly odpovědnosti u procesu jsou samostatná, vnořená položka procesu (viz Procesní mapa a Osoby a útvary).</li>
+          <li><b>Úkol</b> (tento záznam) nemá vazbu na milník, proces ani otázku — jen textovou „závislost“ a dopad. Úkoly odpovědnosti u procesu jsou samostatná, vnořená položka procesu (viz Procesní mapa a Osoby a subjekty).</li>
           <li><b>Milník</b>: blokující problémy, rozhodnutí, důkazy a schůzky jsou textové seznamy, ne odkazy na záznamy.</li>
           <li><b>Rozhodnutí</b>: zdroj je text; mezi rozhodnutím a důkazem vazba není.</li>
           <li><b>Schůzka</b>: počty rozhodnutí, otázek a úkolů jsou čísla, ne odkazy; přepis je jen příznak.</li>
@@ -1468,7 +1471,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
         <rect class="ent ent-pm" x="40" y="174" width="170" height="60" rx="10"/><text class="et" x="54" y="196">Procesní mapa</text><text class="ef" x="54" y="212">procesy se zpevněním</text><text class="ef" x="54" y="224">srcId → proces konceptu</text>
         <rect class="ent ent-pm" x="270" y="174" width="160" height="60" rx="10"/><text class="et" x="284" y="196">Vazba (v procesu)</text><text class="ef" x="284" y="212">typ FS/SS/FF · prodleva · ↔</text><text class="ef" x="284" y="224">předmět · popis</text>
         <rect class="ent ent-pm" x="470" y="174" width="170" height="60" rx="10"/><text class="et" x="484" y="196">Úkol odpovědnosti</text><text class="ef" x="484" y="212">název · od–do · stav</text><text class="ef" x="484" y="224">součást procesu (tasks)</text>
-        <rect class="ent" x="680" y="174" width="190" height="60" rx="10"/><text class="et" x="694" y="196">Osoba / útvar</text><text class="ef" x="694" y="212">gestor · spolugestoři</text><text class="ef" x="694" y="224">dotčení</text>
+        <rect class="ent" x="680" y="174" width="190" height="60" rx="10"/><text class="et" x="694" y="196">Osoba / subjekt</text><text class="ef" x="694" y="212">gestor · spolugestoři</text><text class="ef" x="694" y="224">dotčení</text>
         <rect class="ent ent-dash" x="520" y="262" width="230" height="50" rx="10"/><text class="et et-dim" x="534" y="282">Příloha (plánováno)</text><text class="ef" x="534" y="298">soubor · verze — patří k výstupu · BACKLOG</text>
         <rect class="ent ent-pm" x="290" y="340" width="200" height="64" rx="10" fill="url(#gC)"/><text class="et" x="304" y="362">Výstup</text><text class="ef" x="304" y="378">název · druh · stav · gestor</text><text class="ef" x="304" y="392">creators[] · main ★ · srcId · scope</text>
         <path class="rel rel-pm" d="M444 120V338"/><text class="rl" x="396" y="296">tvoří</text>
@@ -1491,8 +1494,8 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
           <tr><td>Proces</td><td>Proces (nadřazený)</td><td><code>parent</code> — až 3 úrovně</td></tr>
           <tr><td>Proces</td><td>Proces (předchůdce)</td><td><code>links[].from</code> + typ, prodleva, předmět, popis, obousměrnost</td></tr>
           <tr><td>Proces</td><td>Milník</td><td><code>msStart[]</code>, <code>msEnd[]</code></td></tr>
-          <tr><td>Proces</td><td>Osoba / útvar</td><td><code>gestor</code>, <code>cogestors[]</code>, <code>affected[]</code></td></tr>
-          <tr><td>Úkol odpovědnosti (v procesu)</td><td>Osoba / útvar</td><td><code>tasks[].who</code> — jen gestor nebo spolugestor téhož procesu; <code>start</code>–<code>end</code>, <code>status</code></td></tr>
+          <tr><td>Proces</td><td>Osoba / subjekt</td><td><code>gestor</code>, <code>cogestors[]</code>, <code>affected[]</code></td></tr>
+          <tr><td>Úkol odpovědnosti (v procesu)</td><td>Osoba / subjekt</td><td><code>tasks[].who</code> — jen gestor nebo spolugestor téhož procesu; <code>start</code>–<code>end</code>, <code>status</code></td></tr>
           <tr><td>Výstup</td><td>Proces (tvůrce)</td><td><code>creators[]</code> + <code>main</code> — právě jeden hlavní tvůrce, ostatní přispívají</td></tr>
           <tr><td>Proces</td><td>Výstup (spotřebitel)</td><td><code>inputs[]</code> — nesmí být tvůrcem, předkem ani potomkem tvůrce; kruh přes vazby a výstupy se odmítne</td></tr>
           <tr><td>Mapový výstup</td><td>Výstup konceptu</td><td><code>srcId</code></td></tr>
@@ -1508,7 +1511,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       </div>
     </div>
 
-    <!-- 3) Osoby a útvary -->
+    <!-- 3) Osoby a subjekty -->
     <div class="dm-panel" id="dm-who">
       <div class="card dm-wrap"><svg class="dm-svg" viewBox="0 0 900 440" xmlns="http://www.w3.org/2000/svg">
         <rect class="ent" x="20" y="20" width="170" height="40" rx="10"/><text class="et" x="34" y="44">Projekt</text>
@@ -1518,7 +1521,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
         <rect class="ent" x="20" y="244" width="170" height="40" rx="10"/><text class="et" x="34" y="268">Úkol</text>
         <rect class="ent" x="20" y="300" width="170" height="40" rx="10"/><text class="et" x="34" y="324">Riziko</text>
         <rect class="ent" x="20" y="370" width="170" height="40" rx="10"/><text class="et" x="34" y="394">Schůzka</text>
-        <rect class="ent ent-core" x="350" y="170" width="170" height="60" rx="10" fill="url(#gA)"/><text class="et" x="364" y="192">Osoba</text><text class="ef" x="364" y="208">kód · jméno · role</text><text class="ef" x="364" y="220">staff.unit → útvar</text>
+        <rect class="ent ent-core" x="350" y="170" width="170" height="60" rx="10" fill="url(#gA)"/><text class="et" x="364" y="192">Osoba</text><text class="ef" x="364" y="208">kód · jméno · pozice · role</text><text class="ef" x="364" y="220">staff.unit → subjekt</text>
         <rect class="ent ent-core" x="350" y="330" width="170" height="60" rx="10" fill="url(#gA)"/><text class="et" x="364" y="352">Útvar</text><text class="ef" x="364" y="368">kód · název · druh</text>
         <rect class="ent ent-pm" x="700" y="170" width="170" height="60" rx="10" fill="url(#gC)"/><text class="et" x="714" y="192">Proces</text><text class="ef" x="714" y="208">gestor · spolugestoři</text><text class="ef" x="714" y="220">dotčení</text>
         <path class="rel" d="M190 40L350 182"/><path class="rel" d="M190 96L350 188"/><path class="rel" d="M190 152L350 194"/><path class="rel" d="M190 208L350 200"/><path class="rel" d="M190 264L350 208"/><path class="rel" d="M190 320L350 216"/>
@@ -1526,11 +1529,11 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
         <path class="rel" d="M190 390L360 232"/><text class="rl" x="228" y="350">účastníci</text>
         <path class="rel" d="M435 230V328"/><text class="rl" x="445" y="285">patří do</text>
         <path class="rel rel-pm" d="M700 190H522"/><text class="rl" x="548" y="182">gestor · spolugestor · dotčený</text>
-        <path class="rel rel-pm" d="M740 230L520 352"/><text class="rl" x="640" y="298">totéž — gestor může být útvar</text>
+        <path class="rel rel-pm" d="M740 230L520 352"/><text class="rl" x="640" y="298">totéž — gestor může být subjekt</text>
         <rect class="ent ent-pm" x="700" y="300" width="170" height="50" rx="10" fill="url(#gC)"/><text class="et" x="714" y="322">Úkol odpovědnosti</text><text class="ef" x="714" y="338">tasks[] v procesu · od–do</text>
         <path class="rel rel-pm" d="M785 300V232"/><text class="rl" x="795" y="270">součást</text>
         <path class="rel rel-pm" d="M700 336C640 360 560 380 522 362"/><text class="rl" x="560" y="395">who — jen vybraný gestor / spolugestor</text>
-        <text class="rl" x="20" y="430">Společný číselník projektu: přejmenování nebo odebrání osoby či útvaru se projeví u všech záznamů ve všech konceptech i v mapě</text>
+        <text class="rl" x="20" y="430">Společný číselník projektu: přejmenování nebo odebrání osoby či subjektu se projeví u všech záznamů ve všech konceptech i v mapě</text>
       </svg></div>
       <div class="dm-notes">
         <h4>Ověřené vazby</h4>
@@ -1538,11 +1541,13 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
           <tr><td>Projekt · Milník · Otázka · Rozhodnutí · Úkol · Riziko</td><td>Osoba</td><td><code>owner</code> — vlastník je jen osoba</td></tr>
           <tr><td>Schůzka</td><td>Osoba</td><td><code>parts</code></td></tr>
           <tr><td>Osoba</td><td>Útvar</td><td><code>staff[kód].unit</code></td></tr>
-          <tr><td>Proces</td><td>Osoba nebo útvar</td><td><code>gestor</code> (kód osoby, nebo <code>@</code> + kód útvaru)</td></tr>
-          <tr><td>Proces</td><td>Osoba nebo útvar</td><td><code>cogestors[].who</code> + odpovědnost, <code>affected[]</code></td></tr>
-          <tr><td>Úkol odpovědnosti (součást procesu)</td><td>Osoba nebo útvar</td><td><code>tasks[].who</code> — jen z gestora a spolugestorů téhož procesu; řešitelé <code>tasks[].assignees[].who</code> (kdokoli)</td></tr>
+          <tr><td>Proces</td><td>Osoba nebo subjekt</td><td><code>gestor</code> (kód osoby, nebo <code>@</code> + kód subjektu)</td></tr>
+          <tr><td>Proces</td><td>Osoba nebo subjekt</td><td><code>cogestors[].who</code> + odpovědnost, <code>affected[]</code></td></tr>
+          <tr><td>Úkol odpovědnosti (součást procesu)</td><td>Osoba nebo subjekt</td><td><code>tasks[].who</code> — jen z gestora a spolugestorů téhož procesu; řešitelé <code>tasks[].assignees[].who</code> (kdokoli)</td></tr>
         </tbody></table>
-        <ul><li>Vlastník milníku, úkolu a dalších záznamů je jen osoba; gestor procesu může být osoba i útvar.</li></ul>
+        <ul><li>Vlastník milníku, úkolu a dalších záznamů je jen osoba; gestor procesu může být osoba i subjekt.</li>
+          <li><b>Pozice</b> osoby (<code>staff[kód].position</code>, např. vedoucí oddělení) je něco jiného než <b>role</b>: pozice je místo osoby v organizaci, role určuje její úlohu u procesu.</li>
+          <li><b>Subjekty</b> jsou interní (odbor, oddělení, sekce, útvar, pracovní skupina, organizační jednotka) a externí (druh „Externí“). Interní se skládají do stromu přes <code>units[kód].parent</code>; externí jsou bez hierarchie. Odebráním subjektu se jeho podřízené přesunou o úroveň výš.</li></ul>
       </div>
     </div>
 
@@ -1550,18 +1555,18 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
     <!-- Role a přiřazení -->
     <div class="dm-panel" id="dm-roles">
       <div class="card dm-wrap"><svg class="dm-svg" viewBox="0 0 900 470" xmlns="http://www.w3.org/2000/svg">
-        <rect class="ent ent-core" x="20" y="80" width="170" height="52" rx="10" fill="url(#gA)"/><text class="et" x="34" y="102">Osoba</text><text class="ef" x="34" y="118">kód · jméno · útvar</text>
+        <rect class="ent ent-core" x="20" y="80" width="170" height="52" rx="10" fill="url(#gA)"/><text class="et" x="34" y="102">Osoba</text><text class="ef" x="34" y="118">kód · jméno · pozice · subjekt</text>
         <rect class="ent ent-core" x="20" y="260" width="170" height="52" rx="10" fill="url(#gA)"/><text class="et" x="34" y="282">Útvar</text><text class="ef" x="34" y="298">odbor · oddělení · jiné</text>
-        <rect class="ent ent-pm" x="360" y="170" width="180" height="76" rx="10" fill="url(#gC)"/><text class="et" x="374" y="192">Role</text><text class="ef" x="374" y="208">název · barva</text><text class="ef" x="374" y="220">pro koho: osoba / útvar / obojí</text><text class="ef" x="374" y="234">společný číselník projektu</text>
+        <rect class="ent ent-pm" x="360" y="170" width="180" height="76" rx="10" fill="url(#gC)"/><text class="et" x="374" y="192">Role</text><text class="ef" x="374" y="208">název · barva</text><text class="ef" x="374" y="220">pro koho: osoba / subjekt / obojí</text><text class="ef" x="374" y="234">společný číselník projektu</text>
         <rect class="ent ent-pm" x="710" y="70" width="170" height="66" rx="10" fill="url(#gC)"/><text class="et" x="724" y="92">Proces</text><text class="ef" x="724" y="108">gestor · spolugestoři</text><text class="ef" x="724" y="120">dotčení</text>
         <rect class="ent ent-pm" x="710" y="260" width="170" height="66" rx="10" fill="url(#gC)"/><text class="et" x="724" y="282">Úkol odpovědnosti</text><text class="ef" x="724" y="298">název · od–do · stav</text><text class="ef" x="724" y="310">patří gestoru</text>
         <path class="rel" d="M190 106C260 106 300 170 358 196"/><text class="rl" x="215" y="100">má role (staff.roles)</text>
         <path class="rel" d="M190 286C260 286 300 250 358 224"/><text class="rl" x="215" y="320">má role (orgUnits.roles)</text>
         <path class="rel rel-pm" d="M710 100C640 100 600 170 542 196"/><text class="rl" x="722" y="154">role v přiřazení:</text><text class="rl" x="722" y="166">gestorRoles</text><text class="rl" x="722" y="178">cogestors[].roles</text><text class="rl" x="722" y="190">affRoles</text>
         <path class="rel rel-pm" d="M710 290C640 290 600 250 542 224"/><text class="rl" x="722" y="224">role řešitele:</text><text class="rl" x="722" y="236">assignees[].roles</text>
-        <path class="rel rel-pm" d="M710 90C600 20 300 20 190 90"/><text class="rl" x="330" y="32">gestor · spolugestor · dotčený (osoba nebo útvar)</text>
-        <path class="rel rel-pm" d="M710 310C600 430 300 430 190 296"/><text class="rl" x="300" y="440">řešitelé úkolu — tasks[].assignees[].who (osoby i útvary)</text>
-        <text class="rl" x="20" y="462">Role je volitelná; u řešitele mimo útvar gestora se zobrazí upozornění, ale povolen je</text>
+        <path class="rel rel-pm" d="M710 90C600 20 300 20 190 90"/><text class="rl" x="330" y="32">gestor · spolugestor · dotčený (osoba nebo subjekt)</text>
+        <path class="rel rel-pm" d="M710 310C600 430 300 430 190 296"/><text class="rl" x="300" y="440">řešitelé úkolu — tasks[].assignees[].who (osoby i subjekty)</text>
+        <text class="rl" x="20" y="462">Role je volitelná; u řešitele mimo subjekt gestora se zobrazí upozornění, ale povolen je</text>
       </svg></div>
       <div class="dm-notes">
         <h4>Ověřené vazby</h4>
@@ -1571,11 +1576,11 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
           <tr><td>Proces — gestor</td><td>Role</td><td><code>gestorRoles[]</code></td></tr>
           <tr><td>Proces — spolugestor</td><td>Role</td><td><code>cogestors[].roles[]</code></td></tr>
           <tr><td>Proces — dotčený</td><td>Role</td><td><code>affRoles{kód:[role]}</code></td></tr>
-          <tr><td>Úkol odpovědnosti</td><td>Osoba nebo útvar (řešitel)</td><td><code>tasks[].assignees[].who</code></td></tr>
+          <tr><td>Úkol odpovědnosti</td><td>Osoba nebo subjekt (řešitel)</td><td><code>tasks[].assignees[].who</code></td></tr>
           <tr><td>Úkol odpovědnosti</td><td>Role řešitele</td><td><code>tasks[].assignees[].roles[]</code></td></tr>
         </tbody></table>
         <ul>
-          <li>Role se odkazuje podle klíče, proto přejmenování nebo změna barvy platí všude. Smazání role ji odebere všem osobám, útvarům i přiřazením.</li>
+          <li>Role se odkazuje podle klíče, proto přejmenování nebo změna barvy platí všude. Smazání role ji odebere všem osobám, subjektům i přiřazením.</li>
           <li>Role vybraná při přiřazení, kterou aktér zatím nemá, se přidá i jemu.</li>
           <li>Při změně gestora, spolugestora nebo dotčené osoby se role u tohoto přiřazení vynulují.</li>
         </ul>
@@ -1585,7 +1590,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
     <!-- Dopady změn -->
     <div class="dm-panel" id="dm-impact">
       <div class="card dm-wrap"><svg class="dm-svg" viewBox="0 0 900 330" xmlns="http://www.w3.org/2000/svg">
-        <rect class="ent ent-pm" x="10" y="60" width="180" height="90" rx="10" fill="url(#gC)"/><text class="et" x="24" y="84">Data aplikace</text><text class="ef" x="24" y="102">procesy · úkoly · role</text><text class="ef" x="24" y="114">osoby a útvary · milníky</text>
+        <rect class="ent ent-pm" x="10" y="60" width="180" height="90" rx="10" fill="url(#gC)"/><text class="et" x="24" y="84">Data aplikace</text><text class="ef" x="24" y="102">procesy · úkoly · role</text><text class="ef" x="24" y="114">osoby a subjekty · milníky</text>
         <rect class="ent ent-core" x="250" y="60" width="180" height="90" rx="10" fill="url(#gA)"/><text class="et" x="264" y="84">Kontrola</text><text class="ef" x="264" y="102">počítá se z dat po každé</text><text class="ef" x="264" y="114">změně — nic se neloguje</text><text class="ef" x="264" y="126">ručně</text>
         <rect class="ent ent-pm" x="490" y="60" width="180" height="90" rx="10" fill="url(#gC)"/><text class="et" x="504" y="84">Otevřené dopady</text><text class="ef" x="504" y="102">chyba · upozornění</text><text class="ef" x="504" y="114">informace</text>
         <rect class="ent ent-dash" x="730" y="60" width="160" height="90" rx="10"/><text class="et et-dim" x="744" y="84">Přejít a opravit</text><text class="ef" x="744" y="102">otevře koncept či mapu,</text><text class="ef" x="744" y="114">proces a pole k opravě</text>
@@ -1599,8 +1604,8 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       <div class="dm-notes">
         <h4>Co se kontroluje</h4>
         <table class="dm-tbl"><thead><tr><th>Závažnost</th><th>Kontrola</th></tr></thead><tbody>
-          <tr><td>Chyba</td><td>úkol bez platného gestora · úkol končí před začátkem · odkaz na smazanou osobu, útvar, roli nebo milník · neexistující nadřazený proces</td></tr>
-          <tr><td>Upozornění</td><td>úkol přesahuje termín procesu · řešitel mimo útvar gestora</td></tr>
+          <tr><td>Chyba</td><td>úkol bez platného gestora · úkol končí před začátkem · odkaz na smazanou osobu, subjekt, roli nebo milník · neexistující nadřazený proces</td></tr>
+          <tr><td>Upozornění</td><td>úkol přesahuje termín procesu · řešitel mimo subjekt gestora</td></tr>
           <tr><td>Informace</td><td>text zmiňuje číslo procesu, které už nikomu nepatří</td></tr>
         </tbody></table>
         <ul>
@@ -1628,7 +1633,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
           <text class="ef" x="34" y="344">název · popis · gestor · spolugestoři · dotčení</text><text class="ef" x="34" y="358">stav plnění · termíny (s posunem) · pruh</text><text class="ef" x="34" y="372">nadřazený proces · vazby (s typem a prodlevou)</text><text class="ef" x="34" y="386">barva fáze · úkoly a role · milníky na konci</text>
         <rect class="ent ent-dash" x="520" y="300" width="450" height="100" rx="10"/><text class="et rl-bad" x="534" y="324" style="fill:#ff8a5c">Nepřenáší se</text>
           <text class="ef" x="534" y="344">rámečky (patří vždy jedné variantě nebo mapě)</text><text class="ef" x="534" y="358">milníky na začátku procesu</text>
-          <text class="et et-dim" x="534" y="380">Společné pro koncept i mapu</text><text class="ef" x="534" y="394">milníky (jeden záznam) · osoby a útvary</text>
+          <text class="et et-dim" x="534" y="380">Společné pro koncept i mapu</text><text class="ef" x="534" y="394">milníky (jeden záznam) · osoby a subjekty</text>
       </svg></div>
       <div class="dm-notes">
         <h4>Co se děje s objekty ve fázích návrhu</h4>
@@ -1706,7 +1711,7 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
       </div>
       <button class="btn ghost sm" id="pm-fullbtn" onclick="pmToggleFull()" title="Celá obrazovka (ukončíte klávesou Esc)">⛶ Celá obrazovka</button>
       <button class="btn ghost sm pm-hide" id="pm-legshow" onclick="pmLegHide(false)" title="Vrátit legendu pod plátno">⬓ Legenda</button>
-      <button class="btn ghost sm ed-only" onclick="openPeople()" title="Spravovat osoby a útvary — přejmenování, odebrání, zařazení">👤 Osoby</button>
+      <button class="btn ghost sm ed-only" onclick="openPeople()" title="Spravovat osoby a subjekty — přejmenování, odebrání, zařazení">👤 Osoby</button>
       <button class="btn ghost sm ed-only" id="pm-newvar" onclick="pmNewConcept()" title="Založit novou prázdnou variantu konceptu">＋ Varianta</button>
       <button class="btn ghost sm ed-only" id="pm-tplvar" onclick="pmTemplateConcept()" title="Založit variantu z připravené šablony — přezkoušení a uvádění ETCS L1 LS do provozu podle T200">＋ Ze šablony</button>
       <button class="btn ghost sm ed-only" id="pm-editvar" onclick="pmEditConcept()" title="Upravit název, osu a T0 této varianty">✎ Varianta</button>
@@ -1914,9 +1919,9 @@ Tip: můžete vložit i strukturovaný výstup, který jste si ručně připravi
 </div>
 
 <div class="modal-veil" id="people-modal">
-  <div class="modal" style="width:780px">
-    <h3>Osoby a útvary</h3>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Společný seznam pro celou aplikaci. Role a útvar jsou nepovinné. Zkratka je klíč, kterým se odkazuje v datech, a proto ji nelze měnit. Číslo vpravo říká, na kolika místech je záznam použitý.</div>
+  <div class="modal" style="width:min(1040px,96vw)">
+    <h3>Osoby a subjekty</h3>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Společný seznam pro celou aplikaci. Role a subjekt jsou nepovinné. Zkratka je klíč, kterým se odkazuje v datech, a proto ji nelze měnit. Číslo vpravo říká, na kolika místech je záznam použitý.</div>
     <div id="ppl-list"></div>
     <div class="m-actions">
       <span style="font-size:11px;color:var(--text3);margin-right:auto" title="Zavření dialogu změny uloží">Změny se uloží i při zavření dialogu.</span>
@@ -1957,15 +1962,38 @@ const SUPA = {
 
 /* ================= DATA (výchozí / DEMO) ================= */
 let people = {ZH:'Zoltán Horváth',MK:'Marie Klimešová',PN:'Petr Novotný',JS:'Jana Svobodová',TB:'Tomáš Beneš',LEG:'Právní tým (ext.)'};
-/* Útvary — gestorem procesu nemusí být osoba, ale i organizační jednotka. */
+/* Subjekty — gestorem procesu nemusí být osoba, ale i organizační jednotka. */
 let orgUnits = {O12:{name:'Odbor přípravy staveb',kind:'Odbor'},O31:{name:'Oddělení zabezpečovací techniky',kind:'Oddělení'}};
 /* Zařazení osob — nepovinné doplňkové údaje ke jménu. */
 let staff = {ZH:{role:'Vedoucí projektu',unit:'O12'},MK:{role:'Analytička',unit:'O31'},PN:{role:'Projektant',unit:'O12'}};
 /* Číselník rolí — společný pro celý projekt: {id:{name,color,for:'oba'|'osoba'|'utvar'}} */
 let roles = {};
 const UNIT_PREFIX='@';
-const ORG_KINDS=['Odbor','Oddělení','Útvar','Sekce','Externí'];
-/* jméno gestora — osoba i útvar, podle prefixu kódu */
+const ORG_KINDS_INT=['Odbor','Oddělení','Útvar','Sekce','Pracovní skupina','Organizační jednotka'];
+const ORG_KINDS=ORG_KINDS_INT.concat(['Externí']);
+/* Subjekt je interní, nebo externí (druh „Externí“). Interní subjekty tvoří strom (units[kód].parent). */
+const unitExt=u=>!!u&&u.kind==='Externí';
+function unitTree(units){
+  const codes=Object.keys(units).filter(c=>!unitExt(units[c]));
+  const kids={}, roots=[];
+  codes.forEach(c=>{const p=units[c].parent; if(p&&units[p]&&!unitExt(units[p])&&p!==c)(kids[p]=kids[p]||[]).push(c); else roots.push(c)});
+  const cmp=(a,b)=>String(units[a].name||'').localeCompare(String(units[b].name||''),'cs');
+  const out=[], seen=new Set();
+  const walk=(c,d)=>{if(seen.has(c))return; seen.add(c); out.push({code:c,depth:d}); (kids[c]||[]).sort(cmp).forEach(k=>walk(k,d+1))};
+  roots.sort(cmp).forEach(c=>walk(c,0));
+  codes.forEach(c=>{if(!seen.has(c))walk(c,0)});        // osiřelé větve (cyklus) se zobrazí na nejvyšší úrovni
+  return out;
+}
+const unitExtCodes=units=>Object.keys(units).filter(c=>unitExt(units[c])).sort((a,b)=>String(units[a].name||'').localeCompare(String(units[b].name||''),'cs'));
+/* potomci subjektu (kvůli zákazu cyklu při volbě nadřazeného) */
+function unitDesc(units,code){
+  const out=new Set(), st=[code];
+  while(st.length){const x=st.pop(); Object.keys(units).forEach(c=>{if(units[c].parent===x&&!out.has(c)){out.add(c);st.push(c)}})}
+  return out;
+}
+const unitIndent=d=>'\u00a0\u00a0'.repeat(d)+(d?'↳ ':'');
+const personPos=c=>((staff[c]||{}).position||'').trim();
+/* jméno gestora — osoba i subjekt, podle prefixu kódu */
 const actorName=c=>!c?'':(String(c)[0]===UNIT_PREFIX?((orgUnits[String(c).slice(1)]||{}).name||String(c).slice(1)):(people[c]||c));
 const isUnit=c=>String(c||'')[0]===UNIT_PREFIX;
 /* „Zoltán Horváth“ → „Z. Horváth“, ať se do štítku na plátně vejde víc. */
@@ -2695,15 +2723,17 @@ function openEditor(key,id){
    úkolů, rizik i gestoři procesů). Nová osoba přidaná z kteréhokoli výběru
    se uloží do `people` a je hned k dispozici všude jinde. */
 const NEW_PERSON='__new__';
-/* Volby pro pole „kdo“ — osoby i útvary, aby gestorem mohl být i útvar. */
+/* Volby pro pole „kdo“ — osoby i subjekty, aby gestorem mohl být i subjekt. */
 function actorOptionsHTML(sel){
   sel=sel==null?'':String(sel);
-  const ppl=Object.keys(people).map(k=>`<option value="${esc(k)}" ${k===sel?'selected':''}>${esc(people[k])}</option>`).join('');
-  const un=Object.keys(orgUnits).map(k=>{const v=UNIT_PREFIX+k;
-    return `<option value="${esc(v)}" ${v===sel?'selected':''}>${esc(orgUnits[k].name)}</option>`}).join('');
+  const ppl=Object.keys(people).map(k=>{const pz=personPos(k);return `<option value="${esc(k)}" ${k===sel?'selected':''}>${esc(people[k])}${pz?' — '+esc(pz):''}</option>`}).join('');
+  const opt=(k,pre)=>{const v=UNIT_PREFIX+k;return `<option value="${esc(v)}" ${v===sel?'selected':''}>${pre||''}${esc(orgUnits[k].name)}</option>`};
+  const unI=unitTree(orgUnits).map(x=>opt(x.code,unitIndent(x.depth))).join('');
+  const unE=unitExtCodes(orgUnits).map(k=>opt(k)).join('');
   return `<option value="" ${sel?'':'selected'}>—</option>`
     +(ppl?`<optgroup label="Osoby">${ppl}</optgroup>`:'')
-    +(un?`<optgroup label="Útvary">${un}</optgroup>`:'')
+    +(unI?`<optgroup label="Subjekty interní">${unI}</optgroup>`:'')
+    +(unE?`<optgroup label="Subjekty externí">${unE}</optgroup>`:'')
     +PERSON_OPT;
 }
 const PERSON_OPT=`<option value="${NEW_PERSON}">＋ Nová osoba…</option>`;
@@ -2848,7 +2878,7 @@ function roleCreate(name,kind,store){
 }
 const roleName=(id,store)=>((store||roles)[id]||{}).name||id;
 const actorIsUnit=c=>String(c||'')[0]===UNIT_PREFIX;
-/* role aktéra: osoba → staff[kód].roles, útvar → orgUnits[kód].roles */
+/* role aktéra: osoba → staff[kód].roles, subjekt → orgUnits[kód].roles */
 function actorRoles(code){
   if(!code)return [];
   const r=actorIsUnit(code)?(orgUnits[String(code).slice(1)]||{}).roles:(staff[code]||{}).roles;
@@ -3028,7 +3058,7 @@ function saveMetaRows(){
 }
 async function persistMeta(){
   if(!ONLINE)return {ok:true,demo:true};
-  return dbRun('meta','osoby, útvary a role',()=>sb.from('pi_entities').upsert(saveMetaRows()).select('id'),5);
+  return dbRun('meta','osoby, subjekty a role',()=>sb.from('pi_entities').upsert(saveMetaRows()).select('id'),5);
 }
 /* přečte záznamy z databáze zpět a porovná je s tím, co je v aplikaci */
 async function dbVerifyRows(rows){
@@ -4677,7 +4707,7 @@ function pmSetAxis(a){
    nemění — přejmenování se dotkne jen zobrazovaného jména. Odebrání se
    nabídne s počtem míst, kde je osoba použitá, a s převodem na jinou. */
 let PPL=null;
-/* Kolik míst v datech odkazuje na tuto osobu nebo útvar. */
+/* Kolik míst v datech odkazuje na tuto osobu nebo subjekt. */
 function actorUses(code){
   let n=0;
   if(project.owner===code)n++;
@@ -4737,39 +4767,58 @@ function closePeople(){
 function pplRender(){
   if(PPL)PPL.dirty=true;
   const unitOpts=sel=>['<option value="">—</option>'].concat(
-    Object.keys(PPL.units).map(u=>`<option value="${esc(u)}" ${u===sel?'selected':''}>${esc(PPL.units[u].name)}</option>`)).join('');
+    unitTree(PPL.units).map(x=>`<option value="${esc(x.code)}" ${x.code===sel?'selected':''}>${unitIndent(x.depth)}${esc(PPL.units[x.code].name)}</option>`)).join('');
   const codes=Object.keys(PPL.names);
   const rows=codes.map(c=>{
     const m=PPL.meta[c]||{};
-    return `<div class="ppl-row">
+    return `<div class="ppl-row person">
       <span class="code">${c}</span>
       <input value="${esc(PPL.names[c])}" title="Jméno a příjmení" oninput="PPL.names['${c}']=this.value">
+      <input value="${esc(m.position||'')}" placeholder="pozice" title="Pozice ve funkčním či organizačním smyslu (např. vedoucí oddělení, projektant). Role je něco jiného — určuje, co dotyčný dělá u procesu." oninput="pplMeta('${c}','position',this.value)">
       ${pplRoleBox('p',c,m.roles||[])}
-      <select title="Zařazení do útvaru — nepovinné" onchange="pplMeta('${c}','unit',this.value)">${unitOpts(m.unit||'')}</select>
+      <select title="Zařazení do interního subjektu — nepovinné" onchange="pplMeta('${c}','unit',this.value)">${unitOpts(m.unit||'')}</select>
       <span class="uses" title="Na kolika místech je odkazován">${actorUses(c)||'—'}</span>
       <button type="button" class="x" title="Odebrat osobu" onclick="pplRemove('${c}')">✕</button>
     </div>`;
   }).join('')||'<div class="pm-hint">Zatím žádné osoby.</div>';
 
-  const urows=Object.keys(PPL.units).map(u=>`<div class="ppl-row unit">
+  const kindSel=u=>`<select title="Druh subjektu" onchange="pplUnitKind('${u}',this.value)">${ORG_KINDS.map(k=>`<option value="${k}" ${k===PPL.units[u].kind?'selected':''}>${k==='Externí'?'Externí (přesunout mezi externí)':k}</option>`).join('')}</select>`;
+  const parentSel=u=>{
+    const bad=unitDesc(PPL.units,u); bad.add(u);
+    const opts=unitTree(PPL.units).filter(x=>!bad.has(x.code)).map(x=>`<option value="${esc(x.code)}" ${PPL.units[u].parent===x.code?'selected':''}>${unitIndent(x.depth)}${esc(PPL.units[x.code].name)}</option>`).join('');
+    return `<select title="Nadřazený subjekt — vytváří odsazený strom" onchange="pplUnitParent('${u}',this.value)"><option value="">— nejvyšší úroveň</option>${opts}</select>`;
+  };
+  const tree=unitTree(PPL.units);
+  const irows=tree.map(({code:u,depth:d})=>`<div class="ppl-row unit">
       <span class="code">${u}</span>
-      <input value="${esc(PPL.units[u].name)}" title="Název útvaru" oninput="PPL.units['${u}'].name=this.value">
-      <select title="Typ organizační jednotky" onchange="PPL.units['${u}'].kind=this.value">
-        ${ORG_KINDS.map(k=>`<option ${k===PPL.units[u].kind?'selected':''}>${k}</option>`).join('')}</select>
+      <div class="uname" style="padding-left:${d*18}px">${d?'<span class="branch">↳</span>':''}<input value="${esc(PPL.units[u].name)}" title="Název subjektu" oninput="PPL.units['${u}'].name=this.value"></div>
+      ${kindSel(u)}
+      ${parentSel(u)}
       ${pplRoleBox('u',u,PPL.units[u].roles||[])}
       <span class="uses" title="Na kolika místech je odkazován">${actorUses(UNIT_PREFIX+u)||'—'}</span>
-      <button type="button" class="x" title="Odebrat útvar" onclick="pplRemoveUnit('${u}')">✕</button>
-    </div>`).join('')||'<div class="pm-hint">Zatím žádné útvary.</div>';
+      <button type="button" class="x" title="Přidat podřízený subjekt" onclick="pplAddUnit(false,'${u}')">＋</button>
+      <button type="button" class="x" title="Odebrat subjekt (podřízené se přesunou o úroveň výš)" onclick="pplRemoveUnit('${u}')">✕</button>
+    </div>`).join('')||'<div class="pm-hint">Zatím žádné interní subjekty.</div>';
+  const erows=unitExtCodes(PPL.units).map(u=>`<div class="ppl-row unit ext">
+      <span class="code">${u}</span>
+      <input value="${esc(PPL.units[u].name)}" title="Název externího subjektu" oninput="PPL.units['${u}'].name=this.value">
+      ${kindSel(u)}
+      ${pplRoleBox('u',u,PPL.units[u].roles||[])}
+      <span class="uses" title="Na kolika místech je odkazován">${actorUses(UNIT_PREFIX+u)||'—'}</span>
+      <button type="button" class="x" title="Odebrat subjekt" onclick="pplRemoveUnit('${u}')">✕</button>
+    </div>`).join('')||'<div class="pm-hint">Zatím žádné externí subjekty.</div>';
 
   $('#ppl-list').innerHTML=`
     <div class="ppl-head">Osoby</div>${rows}
     <button type="button" class="pm-addbtn" style="margin:10px 0 4px" title="Přidat další osobu" onclick="pplAdd()">＋ Přidat osobu</button>
-    <div class="ppl-head" style="margin-top:16px">Útvary — mohou být gestorem i spolugestorem</div>${urows}
-    <button type="button" class="pm-addbtn" style="margin-top:10px" title="Přidat organizační jednotku" onclick="pplAddUnit()">＋ Přidat útvar</button>
+    <div class="ppl-head" style="margin-top:16px">Subjekty interní — odbory, oddělení, sekce, pracovní skupiny; skládají se do stromu</div>${irows}
+    <button type="button" class="pm-addbtn" style="margin-top:10px" title="Přidat interní subjekt na nejvyšší úroveň (podřízený přidáte tlačítkem ＋ u řádku)" onclick="pplAddUnit(false,'')">＋ Přidat interní subjekt</button>
+    <div class="ppl-head" style="margin-top:16px">Subjekty externí — zhotovitel, úřady, posuzovatelé</div>${erows}
+    <button type="button" class="pm-addbtn" style="margin-top:10px" title="Přidat externí subjekt" onclick="pplAddUnit(true,'')">＋ Přidat externí subjekt</button>
     <div class="ppl-head" style="margin-top:16px">Role${pmI('roles.catalog')}</div>${pplRolesCatalog()}
-    <button type="button" class="pm-addbtn" style="margin-top:10px" onclick="pplRoleNew()" data-tip="Nová role\nPřidá roli do společného číselníku. Pak ji lze přiřadit osobám i útvarům a vybírat při přiřazení k procesu.">＋ Přidat roli</button>`;
+    <button type="button" class="pm-addbtn" style="margin-top:10px" onclick="pplRoleNew()" data-tip="Nová role\nPřidá roli do společného číselníku. Pak ji lze přiřadit osobám i subjektům a vybírat při přiřazení k procesu. Role není to samé co pozice: pozice je místo osoby v organizaci, role určuje její úlohu u procesu.">＋ Nová role</button>`;
 }
-/* ---- role v dialogu Osoby a útvary ---- */
+/* ---- role v dialogu Osoby a subjekty ---- */
 function pplRoleBox(kind,code,ids){
   const mine=(ids||[]).filter(id=>PPL.roles[id]);
   const chips=mine.map(id=>`<span class="rchip" style="--rc:${esc(roleHex(PPL.roles[id].color)||'var(--border2)')}">${esc(PPL.roles[id].name)}<button type="button" title="Odebrat roli" onclick="pplRoleOff('${kind}','${esc(code)}','${esc(id)}')">✕</button></span>`).join('');
@@ -4805,14 +4854,14 @@ function pplRolesCatalog(){
   const ids=Object.keys(PPL.roles).sort((a,b)=>String(PPL.roles[a].name).localeCompare(String(PPL.roles[b].name),'cs'));
   if(!ids.length)return '<div class="pm-hint">Zatím žádné role.</div>';
   const colOpts=sel=>['<option value="">bez barvy</option>'].concat((typeof PM_COLORS!=='undefined'?PM_COLORS:[]).map(([k,,l])=>`<option value="${k}" ${k===sel?'selected':''}>${l}</option>`)).join('');
-  const forOpts=sel=>[['oba','osoba i útvar'],['osoba','jen osoba'],['utvar','jen útvar']].map(([v,t])=>`<option value="${v}" ${v===(sel||'oba')?'selected':''}>${t}</option>`).join('');
+  const forOpts=sel=>[['oba','osoba i subjekt'],['osoba','jen osoba'],['utvar','jen subjekt']].map(([v,t])=>`<option value="${v}" ${v===(sel||'oba')?'selected':''}>${t}</option>`).join('');
   return ids.map(id=>{const r=PPL.roles[id],n=pplRoleUses(id);
     return `<div class="ppl-row rolerow">
       <span class="rdot" style="background:${esc(roleHex(r.color)||'var(--border2)')}"></span>
       <input value="${esc(r.name)}" title="Název role" oninput="PPL.roles['${esc(id)}'].name=this.value">
       <select title="Barva role" onchange="PPL.roles['${esc(id)}'].color=this.value;pplRender()">${colOpts(r.color||'')}</select>
       <select title="Komu lze roli přiřadit" onchange="PPL.roles['${esc(id)}'].for=this.value;pplRender()">${forOpts(r.for)}</select>
-      <span class="uses" title="Kolika osobám a útvarům je role přiřazena">${n.n||'—'}</span>
+      <span class="uses" title="Kolika osobám a subjektům je role přiřazena">${n.n||'—'}</span>
       <button type="button" class="x" title="Smazat roli" onclick="pplRoleDelete('${esc(id)}')">✕</button></div>`}).join('');
 }
 function pplRoleNew(){
@@ -4825,7 +4874,7 @@ function pplRoleDelete(id){
   const r=PPL.roles[id]; if(!r)return;
   const n=pplRoleUses(id);
   const ap=roleUsage(id).a;
-  const txt=(n.n||ap)?`Role „${r.name}“ je přiřazena: osobám ${n.o}×, útvarům ${n.u}×, přiřazení u procesů ${ap}×.\nSmazáním se odebere všem. Pokračovat?`:`Smazat roli „${r.name}“?`;
+  const txt=(n.n||ap)?`Role „${r.name}“ je přiřazena: osobám ${n.o}×, subjektům ${n.u}×, přiřazení u procesů ${ap}×.\nSmazáním se odebere všem. Pokračovat?`:`Smazat roli „${r.name}“?`;
   if(!confirm(txt))return;
   delete PPL.roles[id];
   processes.forEach(p=>{let t=false;
@@ -4850,17 +4899,33 @@ function pplAdd(){
   PPL.names[code]=name; people[code]=name;
   pplRender();
 }
-function pplAddUnit(){
-  const name=(prompt('Název útvaru (např. Odbor přípravy staveb)')||'').trim();
+function pplUnitKind(u,k){
+  const un=PPL.units[u]; if(!un)return;
+  const wasExt=unitExt(un); un.kind=k;
+  if(unitExt(un)){                       // externí subjekt nemá nadřazený ani podřízené: podřízené se přesunou výš
+    Object.keys(PPL.units).forEach(c=>{if(PPL.units[c].parent===u){if(un.parent)PPL.units[c].parent=un.parent;else delete PPL.units[c].parent}});
+    delete un.parent;
+  }
+  pplRender();
+}
+function pplUnitParent(u,p){
+  const un=PPL.units[u]; if(!un)return;
+  if(p&&(p===u||unitDesc(PPL.units,u).has(p))){toast('Subjekt nelze zařadit pod sebe ani pod svůj podřízený subjekt');pplRender();return}
+  if(p)un.parent=p; else delete un.parent;
+  pplRender();
+}
+function pplAddUnit(ext,parent){
+  const name=(prompt(ext?'Název externího subjektu (např. Zhotovitel)':'Název interního subjektu (např. Odbor přípravy staveb)')||'').trim();
   if(!name)return;
   let base=name.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
     .split(/\s+/).filter(Boolean).map(w=>w[0]).join('').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3)||'U';
   let code=base,i=1; while(PPL.units[code])code=base+(++i);
-  PPL.units[code]={name,kind:'Odbor'};
-  orgUnits[code]={name,kind:'Odbor'};
+  const nu=ext?{name,kind:'Externí'}:Object.assign({name,kind:'Odbor'},parent&&PPL.units[parent]&&!unitExt(PPL.units[parent])?{parent}:{});
+  PPL.units[code]=nu;
+  orgUnits[code]=JSON.parse(JSON.stringify(nu));
   pplRender();
 }
-/* Odebrání s převodem odpovědnosti — společné pro osoby i útvary. */
+/* Odebrání s převodem odpovědnosti — společné pro osoby i subjekty. */
 function pplDrop(code,label){
   const n=actorUses(code);
   let to='';
@@ -4890,6 +4955,9 @@ function pplRemove(code){
 function pplRemoveUnit(u){
   if(!pplDrop(UNIT_PREFIX+u,PPL.units[u].name))return;
   Object.keys(PPL.meta).forEach(c=>{if(PPL.meta[c].unit===u)PPL.meta[c].unit=''});
+  const up=PPL.units[u].parent;                  // podřízené subjekty se přesunou o úroveň výš
+  Object.keys(PPL.units).forEach(c=>{if(PPL.units[c].parent===u){if(up)PPL.units[c].parent=up;else delete PPL.units[c].parent}});
+  Object.keys(orgUnits).forEach(c=>{if(orgUnits[c].parent===u){if(up)orgUnits[c].parent=up;else delete orgUnits[c].parent}});
   delete PPL.units[u]; delete orgUnits[u];
   persistMeta(); pplRender(); renderAll(); toast('Útvar odebrán');
 }
@@ -4899,15 +4967,15 @@ async function pplSave(){
   staff=JSON.parse(JSON.stringify(PPL.meta));
   Object.keys(PPL.units).forEach(u=>{
     const nm=(PPL.units[u].name||'').trim();
-    if(nm)orgUnits[u]={name:nm,kind:PPL.units[u].kind||'Odbor',roles:(PPL.units[u].roles||[]).filter(id=>PPL.roles[id])};
+    if(nm)orgUnits[u]=Object.assign({name:nm,kind:PPL.units[u].kind||'Odbor',roles:(PPL.units[u].roles||[]).filter(id=>PPL.roles[id])},PPL.units[u].parent&&PPL.units[PPL.units[u].parent]&&!unitExt(PPL.units[u])?{parent:PPL.units[u].parent}:{});
   });
   Object.keys(PPL.roles).forEach(id=>{PPL.roles[id].name=String(PPL.roles[id].name||'').trim()||roleName(id,PPL.roles)});
   roles=JSON.parse(JSON.stringify(PPL.roles));
   Object.keys(staff).forEach(c=>{staff[c].roles=(staff[c].roles||[]).filter(id=>roles[id])});
-  const sum=`${Object.keys(people).length} osob, ${Object.keys(orgUnits).length} útvarů, ${Object.keys(roles).length} rolí`;
+  const sum=`${Object.keys(people).length} osob, ${Object.keys(orgUnits).length} subjektů, ${Object.keys(roles).length} rolí`;
   const r=await persistMeta();
   if(r&&r.demo){pplHide();renderAll();toast('DEMO režim — změny platí jen v tomto okně a do databáze se neukládají');return}
-  if(!r||!r.ok){PPL.dirty=true;saveFailShow('Osoby, útvary a role se neuložily: '+((r&&r.error)||'neznámá chyba')+'\nDialog Osoby a útvary zůstává otevřený, změny v něm nejsou ztraceny.');return}
+  if(!r||!r.ok){PPL.dirty=true;saveFailShow('Osoby, subjekty a role se neuložily: '+((r&&r.error)||'neznámá chyba')+'\nDialog Osoby a subjekty zůstává otevřený, změny v něm nejsou ztraceny.');return}
   const v=await dbVerifyRows(saveMetaRows());
   pplHide(); renderAll();
   if(v.ok)toast(`Uloženo a ověřeno čtením z databáze: ${sum}`); else saveFailShow('Uloženo, ale ověření čtením z databáze nesouhlasí: '+v.diff.slice(0,2).join('; '));
@@ -5539,7 +5607,7 @@ function pmFreeLane(lane,start,end){
   return base+1;
 }
 /* Úkoly odpovědnosti → podprocesy. Každý úkol se stane podprocesem pod stejným procesem:
-   název a termíny zůstávají, gestorem je útvar/osoba úkolu, řešitelé úkolu se stanou
+   název a termíny zůstávají, gestorem je subjekt/osoba úkolu, řešitelé úkolu se stanou
    spolugestory s týmiž rolemi, stav se přenese. Úkoly se z procesu odeberou (jsou teď
    podprocesy); krok jde vrátit tlačítkem Zpět. */
 function pmTasksToSubs(id){
@@ -6868,7 +6936,7 @@ function pmApplyPromotion(){
 SCHEMAS.process={title:'Proces',entity:'process',arr:()=>processes,idf:'id',prefix:'P-',fields:[
   {k:'name',l:'Název procesu',t:'text',full:1},
   {k:'desc',l:'Popis — co se v něm děje a čím končí',t:'textarea',full:1},
-  {k:'gestor',l:'Gestor (osoba nebo útvar)',t:'actor'},
+  {k:'gestor',l:'Gestor (osoba nebo subjekt)',t:'actor'},
   {k:'status',l:'Stav plnění',t:'select',opts:ST_OPTS},
   {k:'state',l:'Zralost',t:'select',opts:[['koncept','koncept'],['odvozeny','odvozený'],['potvrzeny','potvrzený']]},
   {k:'color',l:'Barva fáze (podprocesy ji dědí)',t:'select',opts:()=>PM_COLOR_OPTS},
@@ -6881,9 +6949,9 @@ SCHEMAS.process={title:'Proces',entity:'process',arr:()=>processes,idf:'id',pref
        pmByNum(processes.filter(p=>p.scope===pmScope()&&pmDepth(p)<PM_MAX_DEPTH-1
          &&(!me||(p.id!==me.id&&!pmIsAncestor(me.id,p))))).map(p=>[p.id,p.name]));
    }},
-  {k:'cogestors',l:'Spolugestoři (osoby i útvary) a jejich odpovědnost',t:'roles',full:1},
+  {k:'cogestors',l:'Spolugestoři (osoby i subjekty) a jejich odpovědnost',t:'roles',full:1},
   {k:'tasks',l:'Úkoly odpovědnosti (jen pro vybrané gestory a spolugestory)',t:'ptasks',full:1},
-  {k:'affected',l:'Dotčení / konzultovaní (osoby i útvary)',t:'peoplerefs',full:1},
+  {k:'affected',l:'Dotčení / konzultovaní (osoby i subjekty)',t:'peoplerefs',full:1},
   {k:'links',l:'Vazby na předchůdce',t:'plinks',full:1},
   {k:'msEnd',l:'Milníky na konci procesu',t:'msrefs',full:1},
   {k:'msStart',l:'Milníky na začátku procesu',t:'msrefs',full:1}
@@ -6969,7 +7037,7 @@ const PM_TPL_ETCS={
     ASBO:{name:'AsBo — nezávislý posuzovatel',kind:'Externí'},
     NOBO:{name:'NoBo — oznámený subjekt',kind:'Externí'},
     DEBO:{name:'DeBo — určený subjekt',kind:'Externí'},
-    MAJ:{name:'Majetkoprávní útvar',kind:'Útvar'}
+    MAJ:{name:'Majetkoprávní subjekt',kind:'Útvar'}
   },
   /* k = klíč v šabloně, p = rodič, o = začátek ve dnech od T0, d = trvání,
      g = gestor, dep = neutrální vazby na předchůdce */
@@ -7463,7 +7531,7 @@ function pmTplTopUp(key){
     if(t.relocate)presun[hit]=t;      // šablona krok přesunula jinam — přesune se i tady
     idMap['@'+klic(t.n)]=hit; prejmenovano++;
   });
-  /* útvary ze šablony doplníme, existující nepřepisujeme */
+  /* subjekty ze šablony doplníme, existující nepřepisujeme */
   let units=0;
   Object.keys(tpl.units||{}).forEach(u=>{if(!orgUnits[u]){orgUnits[u]=tpl.units[u];units++}});
   histPush();
@@ -7524,7 +7592,7 @@ function pmTplTopUp(key){
   pmFlush(); computePositions();
   pmRenumber();          // doplněné kroky mají čísla ze šablony — srovnat s konceptem
   renderPMap();
-  toast(`Doplněno ${pridano} procesů${prejmenovano?', přejmenováno '+prejmenovano:''}${units?', '+units+' nových útvarů':''}${upravy.length?'; '+upravy.join('; '):''}`);
+  toast(`Doplněno ${pridano} procesů${prejmenovano?', přejmenováno '+prejmenovano:''}${units?', '+units+' nových subjektů':''}${upravy.length?'; '+upravy.join('; '):''}`);
 }
 /* První pruh pod vším, co koncept zabírá — doplněné procesy nikomu nepřepíšou řádek */
 function pmFreeLaneAfter(list){
@@ -7543,7 +7611,7 @@ function pmSeedTemplate(){
 }
 function pmBuildTemplate(silent,tplIn){
   const tpl=tplIn||PM_TPL_ETCS;
-  /* útvary ze šablony doplníme, existující nepřepisujeme */
+  /* subjekty ze šablony doplníme, existující nepřepisujeme */
   let added=0;
   Object.keys(tpl.units).forEach(u=>{if(!orgUnits[u]){orgUnits[u]=tpl.units[u];added++}});
   const t0=project.start||pmISO(Date.now());
@@ -7575,7 +7643,7 @@ function pmBuildTemplate(silent,tplIn){
   pmFlush();
   if(!silent){
     PM.mode='concept'; PM.conceptId=c.id; PM.sel=[]; PM.unit='month'; PM.gallery=false;
-    toast(`Šablona načtena — ${tpl.procs.length} procesů${added?', '+added+' nových útvarů':''}`);
+    toast(`Šablona načtena — ${tpl.procs.length} procesů${added?', '+added+' nových subjektů':''}`);
   }
   renderPMap();
   return c;
@@ -7861,7 +7929,7 @@ function pmChartData(S){
   const barvaProc=p=>pmTone(pmColorOf(p)||'#8b97b1',true);
   const fazeOf=p=>pmRootOf(p);
 
-  /* 1 — vytížení gestorů: kolik procesů nese osoba či útvar, po fázích */
+  /* 1 — vytížení gestorů: kolik procesů nese osoba či subjekt, po fázích */
   const podle={};
   S.list.forEach(p=>{
     if(!p.gestor)return;
@@ -7905,7 +7973,7 @@ function pmChartData(S){
     ['Má vazbu na předchůdce',S.list.filter(p=>(p.links||[]).length).length]
   ].map(([l,v])=>({lab:l,segs:[{v:pct(v),color:v/n>=.8?'#2fae76':v/n>=.4?'#c98a13':'#cc4200',name:l}]}));
 
-  /* 7 — zapojení útvarů podle role */
+  /* 7 — zapojení subjektů podle role */
   const roleBarvy=['#2f6ba8','#0b9aa6','#6b7483'], roleLbl=['gestor','spolugestor','dotčený'];
   const ut={};
   const pridej=(k,i)=>{if(!k||!isUnit(k))return;(ut[k]=ut[k]||[0,0,0])[i]++};
@@ -8445,7 +8513,7 @@ function pmExport(id,full){
   let p4='';
   if(full){
     p4=`<section class="page">
-      <h3>Úplnost varianty a zapojení útvarů</h3>
+      <h3>Úplnost varianty a zapojení subjektů</h3>
       <div class="chrow">
         <div class="ch" style="flex:1">
           <div class="cht">Úplnost údajů — podíl procesů v %</div>
@@ -8453,7 +8521,7 @@ function pmExport(id,full){
           <div class="chn">Kvantifikuje seznam nesrovnalostí ze souhrnného listu.</div>
         </div>
         <div class="ch" style="flex:1.25">
-          <div class="cht">Zapojení útvarů podle role${D.utvary.length>14?' (14 nejvíce zapojených)':''}</div>
+          <div class="cht">Zapojení subjektů podle role${D.utvary.length>14?' (14 nejvíce zapojených)':''}</div>
           ${pmBarsSVG({w:620,rows:D.utvary.slice(0,14),labW:230,rowH:14,gap:4,labMax:36})}
           ${chLeg(D.roleLeg)}
         </div>
@@ -8463,10 +8531,10 @@ function pmExport(id,full){
       <h3>Předpoklady a omezení</h3><p>${val(c.assumptions)}</p>
       <h3>Klíčová rizika varianty</h3><p>${val(c.risks)}</p>
       <h3>Odkazy na předpisy a normy</h3><p>${val(c.refs)}</p>
-      <h3>Gestoři a útvary</h3>
+      <h3>Gestoři a subjekty</h3>
       <div class="cols">
         <div><h4>Osoby</h4>${rozdel(S.gestori,Object.fromEntries(Object.keys(S.gestori).map(k=>[k,actorName(k)])))}</div>
-        <div><h4>Útvary</h4>${rozdel(S.utvary,Object.fromEntries(Object.keys(S.utvary).map(k=>[k,actorName(k)])))}</div>
+        <div><h4>Subjekty</h4>${rozdel(S.utvary,Object.fromEntries(Object.keys(S.utvary).map(k=>[k,actorName(k)])))}</div>
       </div>
     </section>`;
   }
@@ -8634,7 +8702,7 @@ function pmSubRender(k){
         <select data-prev="${esc(r.who||'')}" onchange="pmPersonPick(this,'cogestors',${i})">${who(r.who)}</select>${pmRpWrap('co:'+i)}
         <input value="${esc(r.resp||'')}" placeholder="za co odpovídá" oninput="subCtx.obj.cogestors[${i}].resp=this.value;subFire()">
         <button type="button" class="x" onclick="subCtx.obj.cogestors.splice(${i},1);pmSubRender('cogestors');subFire();pmTasksRefresh()">✕</button></div>`).join('');
-    h+=`<button type="button" class="pm-addbtn" data-tip="Spolugestor\nPřidá řádek pro další osobu nebo útvar a její odpovědnost. Jen evidence, termíny neovlivňuje." onclick="subCtx.obj.cogestors.push({who:'',resp:''});pmSubRender('cogestors')">＋ Spolugestor</button>`;
+    h+=`<button type="button" class="pm-addbtn" data-tip="Spolugestor\nPřidá řádek pro další osobu nebo subjekt a její odpovědnost. Jen evidence, termíny neovlivňuje." onclick="subCtx.obj.cogestors.push({who:'',resp:''});pmSubRender('cogestors')">＋ Spolugestor</button>`;
   }
   else if(k==='links'){
     const cand=pmByNum(processes.filter(p=>p.scope===o.scope&&p.id!==o.id));
@@ -8698,7 +8766,7 @@ function pmSubRender(k){
     const whoOpts=sel=>[['','— vyberte gestora —']].concat(parties.map(q=>[q.key,actorName(q.key)]))
       .map(([v,t])=>`<option value="${esc(v)}" ${v===(sel||'')?'selected':''}>${esc(t)}</option>`).join('');
     const out=(t)=>(t.start&&o.start&&t.start<o.start)||(t.end&&o.end&&t.end>o.end);
-    /* útvar, ze kterého se čeká řešitel: útvar gestora, u osoby její zařazení */
+    /* subjekt, ze kterého se čeká řešitel: subjekt gestora, u osoby její zařazení */
     const ownerUnit=who=>actorIsUnit(who)?String(who).slice(1):((staff[who]||{}).unit||'');
     const assHTML=(t,i)=>{
       const exp=ownerUnit(t.who), as=Array.isArray(t.assignees)?t.assignees:[];
@@ -8706,7 +8774,7 @@ function pmSubRender(k){
         const un=actorIsUnit(a.who)?'':((staff[a.who]||{}).unit||'');
         const mimo=!actorIsUnit(a.who)&&exp&&un!==exp;
         const rl=(a.roles||[]).filter(id=>roles[id]).map(id=>roles[id].name).join(', ');
-        return `<span class="rchip as${mimo?' warn':''}" ${mimo?`title="Řešitel je mimo útvar gestora (${esc(orgUnits[exp]?orgUnits[exp].name:exp)})"`:''}>${mimo?'⚠ ':''}${esc(actorName(a.who))}${rl?` <i>· ${esc(rl)}</i>`:''}
+        return `<span class="rchip as${mimo?' warn':''}" ${mimo?`title="Řešitel je mimo subjekt gestora (${esc(orgUnits[exp]?orgUnits[exp].name:exp)})"`:''}>${mimo?'⚠ ':''}${esc(actorName(a.who))}${rl?` <i>· ${esc(rl)}</i>`:''}
           <button type="button" class="rpbtn" data-tip="Role řešitele\nVyberte roli, v níž tento řešitel úkol plní." onclick="pmRolePop(this,'tk:${i}:${j}')">role</button>
           <button type="button" title="Odebrat řešitele" onclick="pmTaskAssDel(${i},${j})">✕</button></span>`}).join('');
       const used=new Set(as.map(a=>a.who));
@@ -8714,7 +8782,7 @@ function pmSubRender(k){
       const same=pers.filter(c=>exp&&(staff[c]||{}).unit===exp), other=pers.filter(c=>!same.includes(c));
       const uns=Object.keys(orgUnits).map(u=>UNIT_PREFIX+u).filter(c=>!used.has(c));
       const og=(lab,arr)=>arr.length?`<optgroup label="${lab}">${arr.map(c=>`<option value="${esc(c)}">${esc(actorName(c))}</option>`).join('')}</optgroup>`:'';
-      const sel=`<select class="as-add" onchange="pmTaskAssAdd(${i},this.value);this.value=''"><option value="">＋ řešitel</option>${og('Z útvaru gestora',same)}${og('Ostatní osoby (mimo útvar gestora)',other)}${og('Útvary',uns)}</select>`;
+      const sel=`<select class="as-add" onchange="pmTaskAssAdd(${i},this.value);this.value=''"><option value="">＋ řešitel</option>${og('Z subjektu gestora',same)}${og('Ostatní osoby (mimo subjekt gestora)',other)}${og('Subjekty',uns)}</select>`;
       return `<div class="pm-tas">${chips}${sel}</div>`;
     };
     const row=(t,i)=>`<div class="pm-subrow wrap pm-task" data-i="${i}" data-who="${esc(t.who||'')}">
@@ -8730,7 +8798,7 @@ function pmSubRender(k){
       const mine=o[k].map((t,i)=>[t,i]).filter(([t])=>t.who===q.key);
       return `<div class="pm-tgrp" data-who="${esc(q.key)}"><div class="pm-tgrp-h"><b>${esc(actorName(q.key))}</b><span class="tag">${esc(q.role)}</span>${q.resp?`<span class="pm-tresp">${esc(q.resp)}</span>`:''}</div>
         ${mine.map(([t,i])=>row(t,i)).join('')}
-        <button type="button" class="pm-addbtn" data-tip="Úkol pro ${esc(actorName(q.key))}\nPřidá úkol s termínem od–do tomuto gestoru nebo spolugestorovi. Úkol lze zadat jen osobě nebo útvaru, které jsou u procesu vybrané." onclick="pmTaskAdd('${esc(q.key)}')">＋ Úkol</button></div>`;
+        <button type="button" class="pm-addbtn" data-tip="Úkol pro ${esc(actorName(q.key))}\nPřidá úkol s termínem od–do tomuto gestoru nebo spolugestorovi. Úkol lze zadat jen osobě nebo subjektu, které jsou u procesu vybrané." onclick="pmTaskAdd('${esc(q.key)}')">＋ Úkol</button></div>`;
     }).join('');
     const orph=o[k].map((t,i)=>[t,i]).filter(([t])=>!known.has(t.who));
     if(orph.length)h+=`<div class="pm-tgrp bad"><div class="pm-tgrp-h"><b>Úkoly bez gestora (${orph.length})</b><span class="pm-tresp">gestor nebo spolugestor byl změněn či odebrán — přiřaďte úkol vybranému</span></div>${orph.map(([t,i])=>row(t,i)).join('')}</div>`;
@@ -8740,7 +8808,7 @@ function pmSubRender(k){
     h=o[k].map((id,i)=>`<div class="pm-subrow">
         <select data-prev="${esc(id||'')}" onchange="pmPersonPick(this,'affected',${i})">${who(id)}</select>${pmRpWrap('aff:'+i)}
         <button type="button" class="x" onclick="subCtx.obj.affected.splice(${i},1);pmSubRender('affected');subFire()">✕</button></div>`).join('');
-    h+=`<button type="button" class="pm-addbtn" data-tip="Dotčená osoba\nPřidá řádek pro osobu nebo útvar, který má být o procesu informován nebo konzultován." onclick="subCtx.obj.affected.push('');pmSubRender('affected')">＋ Osoba</button>`;
+    h+=`<button type="button" class="pm-addbtn" data-tip="Dotčená osoba\nPřidá řádek pro osobu nebo subjekt, který má být o procesu informován nebo konzultován." onclick="subCtx.obj.affected.push('');pmSubRender('affected')">＋ Osoba</button>`;
   }
   else {
     h=o[k].map((id,i)=>`<div class="pm-subrow">
@@ -8909,12 +8977,12 @@ const PM_HELP={
  'process.end':'Konec\nDen, kdy proces končí — určuje délku boxu.\nU nadřazeného procesu (s podprocesy) se konec odvozuje z podprocesů a pole je zamčené.\nDopad: posune nezamčené milníky navázané na konec. Zamčený milník se nehýbe a při pozdějším konci procesu se zvýrazní červeně jako porušený termín. Nesmí být před začátkem.',
  'process.lane':'Pruh (souběh)\nČíslo sloupce (ve vodorovné ose řádku), ve kterém proces stojí. Ve stejném pruhu jdou procesy za sebou, v různých pruzích běží souběžně.\nDopad: změna pruhu proces přesune do jiného sloupce, ale nezmění, ke kterému streamu patří. Pro přesun do jiného streamu změňte raději Nadřazený proces.',
  'process.parent':'Nadřazený proces\nKterému procesu (streamu) proces patří. Prázdná volba = kořenová úroveň, tedy samostatný stream. Zanoření je nejvýš na tři úrovně.\nDopad: proces se přesune do sloupců nového streamu, převezme jeho barvu a celý koncept se přečísluje (7.3 → 4.1 apod.). Rodič a potomek nemohou být vázáni časovou vazbou.',
- 'process.gestor':'Gestor\nOsoba nebo útvar, který za proces odpovídá.\nDopad: zobrazuje se u procesu a v přehledech odpovědnosti. Nový podproces vzniká bez gestora, doplňujete ho sami.',
- 'process.cogestors':'Spolugestoři\nDalší osoby nebo útvary, které se na procesu podílejí, a za co konkrétně odpovídají.\nDopad: jen evidence odpovědnosti, zobrazí se v přehledu odpovědnosti procesu. Termíny neovlivňuje.',
+ 'process.gestor':'Gestor\nOsoba nebo subjekt, který za proces odpovídá.\nDopad: zobrazuje se u procesu a v přehledech odpovědnosti. Nový podproces vzniká bez gestora, doplňujete ho sami.',
+ 'process.cogestors':'Spolugestoři\nDalší osoby nebo subjekty, které se na procesu podílejí, a za co konkrétně odpovídají.\nDopad: jen evidence odpovědnosti, zobrazí se v přehledu odpovědnosti procesu. Termíny neovlivňuje.',
  'process.affected':'Dotčení a konzultovaní\nKdo musí být o procesu informován nebo se k němu vyjádřit, ale neodpovídá za něj.\nDopad: jen evidence, bez vlivu na termíny a vazby.',
  'process.links':'Vazby na předchůdce\nNa čem proces závisí — co mu musí předcházet. Každá vazba má typ (FS, SS, FF), prodlevu ve dnech, volitelný směr ↔, předmět (co předchůdce předává) a popis.\nDopad: v konceptu vazby nic neposouvají; typ a prodleva se uplatní až při zpevnění do mapy, kde se hlídají porušené návaznosti. Vazba se ukládá u následníka; opačný směr je v seznamu Navazující procesy.',
- 'roles.catalog':'Role\nSpolečný číselník rolí (např. garant, schvalovatel, zpracovatel). Každá osoba, odbor, oddělení nebo jiný útvar může mít jednu i více rolí.\nDopad: změna názvu nebo barvy se projeví všude, kde se role používá. Smazání role ji odebere všem osobám a útvarům; před smazáním se zobrazí počet použití. Změny se uloží tlačítkem Uložit.',
- 'process.tasks':'Úkoly odpovědnosti\nÚkoly (s termínem od–do a stavem), které plní gestor nebo spolugestoři procesu. Úkol patří vybranému gestorovi nebo spolugestorovi; navíc k němu lze přidat konkrétní řešitele (osoby nebo útvary), každého s vlastní rolí.\nŘešitel mimo útvar gestora se označí ⚠, ale povolen je. Pořadí úkolů se mění přetažením za ⋮⋮ (nebo Alt + ↑ / ↓); přetažení k jinému gestoru úkol přeřadí.\nDopad: evidence práce uvnitř procesu — termíny ani vazby procesu se nemění. Při změně nebo odebrání gestora úkoly zůstanou a ukážou se jako „bez gestora“. Do mapy se kopírují při zpevnění.',
+ 'roles.catalog':'Role\nSpolečný číselník rolí (např. garant, schvalovatel, zpracovatel). Každá osoba, odbor, oddělení nebo jiný subjekt může mít jednu i více rolí.\nDopad: změna názvu nebo barvy se projeví všude, kde se role používá. Smazání role ji odebere všem osobám a subjektům; před smazáním se zobrazí počet použití. Změny se uloží tlačítkem Uložit.',
+ 'process.tasks':'Úkoly odpovědnosti\nÚkoly (s termínem od–do a stavem), které plní gestor nebo spolugestoři procesu. Úkol patří vybranému gestorovi nebo spolugestorovi; navíc k němu lze přidat konkrétní řešitele (osoby nebo subjekty), každého s vlastní rolí.\nŘešitel mimo subjekt gestora se označí ⚠, ale povolen je. Pořadí úkolů se mění přetažením za ⋮⋮ (nebo Alt + ↑ / ↓); přetažení k jinému gestoru úkol přeřadí.\nDopad: evidence práce uvnitř procesu — termíny ani vazby procesu se nemění. Při změně nebo odebrání gestora úkoly zůstanou a ukážou se jako „bez gestora“. Do mapy se kopírují při zpevnění.',
  'process.msEnd':'Milníky na konci procesu\nMilník se posouvá spolu s koncem procesu.\nDopad: zamčený milník se nehýbe a pozdější konec procesu se zvýrazní červeně jako porušený termín.',
  'process.msStart':'Milníky na začátku procesu\nMilník se posouvá spolu se začátkem procesu.\nDopad: změna začátku procesu posune datum nezamčeného milníku.',
  'link.type':'Typ vazby\nneutrální = jen spojnice bez časového významu; FS = následník začne po konci předchůdce; SS = oba začínají současně; FF = oba končí současně.\nDopad: v konceptu se neuplatňuje, při zpevnění do mapy se použije pro hlídání a přepočet termínů.',
@@ -8963,7 +9031,7 @@ const PM_TIPS_BTN={
  'pmViewBack':'Původní pohled\nVrátí plátno na místo, kde bylo naposledy v klidu, než jste jím posunuli.',
  'pmToggleFull':'Celá obrazovka\nPlátno přes celou obrazovku; ukončíte klávesou Esc. Na mobilu se mapa ukáže jen k prohlížení, bez úprav.',
  'pmLegHide:false':'Legenda\nVrátí legendu fází pod plátno.',
- 'openPeople':'Osoby a útvary\nSpolečný seznam pro celý projekt. Přejmenování, odebrání nebo zařazení se projeví u všech procesů (gestor, spolugestoři, dotčení) ve všech konceptech.',
+ 'openPeople':'Osoby a subjekty\nSpolečný seznam pro celý projekt. Přejmenování, odebrání nebo zařazení se projeví u všech procesů (gestor, spolugestoři, dotčení) ve všech konceptech.',
  'pmNewConcept':'Nová varianta\nZaloží novou prázdnou variantu. Stávající varianty se nemění.',
  'pmTemplateConcept':'Ze šablony\nZaloží novou variantu z připravené šablony (ETCS, LEU, O14) i s procesy, vazbami a termíny odvozenými od začátku projektu. Stávající varianty se nemění.',
  'pmEditConcept':'Varianta — úpravy\nNázev, časová osa, T0, zdroj mapy a údaje pro podklad vedení. Změna osy nebo T0 mění zobrazení, procesy zůstávají.',
@@ -9152,7 +9220,7 @@ function pmRpSaveEdit(id){
 function pmRpDelete(id){
   const r=roles[id]; if(!r)return;
   const u=roleUsage(id);
-  const txt=u.n?`Role „${r.name}“ se používá: osoby ${u.o}×, útvary ${u.u}×, přiřazení u procesů ${u.a}×.\\nSmazáním se odebere všude. Pokračovat?`:`Smazat roli „${r.name}“?`;
+  const txt=u.n?`Role „${r.name}“ se používá: osoby ${u.o}×, subjekty ${u.u}×, přiřazení u procesů ${u.a}×.\\nSmazáním se odebere všude. Pokračovat?`:`Smazat roli „${r.name}“?`;
   if(!confirm(txt))return;
   delete roles[id];
   Object.keys(staff).forEach(c=>{staff[c].roles=(staff[c].roles||[]).filter(x=>x!==id)});
@@ -9202,7 +9270,7 @@ function impactScan(){
   all.forEach(p=>{
     if(p.parent&&!byId.has(p.parent))push(p,{kind:'parent-missing',sev:'error',tab:'cas',title:'Nadřazený proces neexistuje',detail:'Proces odkazuje na nadřazený proces, který už není. Vyberte nový nadřazený proces.'});
     [...(p.msStart||[]),...(p.msEnd||[])].forEach(m=>{if(!milestones.some(x=>x.id===m))push(p,{kind:'ms-missing',sev:'error',tab:'milniky',extra:m,title:`Odkaz na neexistující milník ${m}`,detail:'Milník byl smazán. Odeberte ho z procesu nebo vyberte jiný.'})});
-    const chk=(code,role,extra)=>{if(code&&!actorOk(code))push(p,{kind:'actor-missing',sev:'error',tab:'lide',extra:role+code+(extra||''),title:`Neexistující ${role} „${String(code).replace(UNIT_PREFIX,'')}“`,detail:'Odkaz na osobu nebo útvar, které už nejsou v seznamu. Vyberte jiného aktéra.'})};
+    const chk=(code,role,extra)=>{if(code&&!actorOk(code))push(p,{kind:'actor-missing',sev:'error',tab:'lide',extra:role+code+(extra||''),title:`Neexistující ${role} „${String(code).replace(UNIT_PREFIX,'')}“`,detail:'Odkaz na osobu nebo subjekt, které už nejsou v seznamu. Vyberte jiného aktéra.'})};
     chk(p.gestor,'gestor'); (p.cogestors||[]).forEach(r=>chk(r.who,'spolugestor')); (p.affected||[]).forEach(a=>chk(a,'dotčený'));
     const rl=(ids,kde,extra)=>(ids||[]).forEach(id=>{if(!roleOk(id))push(p,{kind:'role-missing',sev:'error',tab:'lide',extra:kde+id+(extra||''),title:`Přiřazená role „${id}“ neexistuje`,detail:`Role byla smazána, ale zůstala u ${kde}. Vyberte jinou roli.`})});
     rl(p.gestorRoles,'gestora'); (p.cogestors||[]).forEach(r=>rl(r.roles,'spolugestora',r.who)); Object.keys(p.affRoles||{}).forEach(k=>rl(p.affRoles[k],'dotčeného',k));
@@ -9219,8 +9287,8 @@ function impactScan(){
         chk(a.who,'řešitel',t.id);
         (a.roles||[]).forEach(id=>{if(!roleOk(id))push(p,{kind:'role-missing',sev:'error',tab:'lide',taskId:t.id,extra:'r'+t.id+a.who+id,title:`Role „${id}“ u řešitele úkolu „${nm}“ neexistuje`,detail:'Role byla smazána. Vyberte jinou roli řešitele.'})});
         if(!actorIsUnit(a.who)&&actorOk(a.who)&&exp&&((staff[a.who]||{}).unit||'')!==exp)
-          push(p,{kind:'assignee-outside',sev:'warn',tab:'lide',taskId:t.id,extra:t.id+a.who,title:`Řešitel „${actorName(a.who)}“ úkolu „${nm}“ je mimo útvar gestora`,
-            detail:`Gestor: ${orgUnits[exp]?orgUnits[exp].name:exp}; řešitel patří do: ${(orgUnits[(staff[a.who]||{}).unit]||{}).name||'žádného útvaru'}. Je to povolené, jen na to upozorňujeme.`});
+          push(p,{kind:'assignee-outside',sev:'warn',tab:'lide',taskId:t.id,extra:t.id+a.who,title:`Řešitel „${actorName(a.who)}“ úkolu „${nm}“ je mimo subjekt gestora`,
+            detail:`Gestor: ${orgUnits[exp]?orgUnits[exp].name:exp}; řešitel patří do: ${(orgUnits[(staff[a.who]||{}).unit]||{}).name||'žádného subjektu'}. Je to povolené, jen na to upozorňujeme.`});
       });
     });
     /* texty s čísly procesů, která už nikomu nepatří */
@@ -9327,8 +9395,8 @@ function impactWrap(name,fn){
   impactWrap('pmRpDelete',id=>`smazána role „${roleName(id)}“`);
   impactWrap('pplRoleDelete',id=>`smazána role „${PPL&&PPL.roles[id]?PPL.roles[id].name:id}“`);
   impactWrap('pplRemove',c=>`odebrána osoba ${actorName(c)}`);
-  impactWrap('pplRemoveUnit',u=>`odebrán útvar ${(orgUnits[u]||{}).name||u}`);
-  impactWrap('personReplace',c=>`osoba nebo útvar ${actorName(c)} nahrazen či odebrán`);
+  impactWrap('pplRemoveUnit',u=>`odebrán subjekt ${(orgUnits[u]||{}).name||u}`);
+  impactWrap('personReplace',c=>`osoba nebo subjekt ${actorName(c)} nahrazen či odebrán`);
   impactWrap('pmMoveStreamTo',id=>`přesun streamu ${pn(id)}`);
   impactWrap('pmDeleteProcess',id=>`smazán proces ${pn(id)}`);
   impactWrap('pmDeleteStream',id=>`smazán stream ${pn(id)}`);
