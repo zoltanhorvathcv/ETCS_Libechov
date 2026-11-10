@@ -1973,6 +1973,9 @@ const ORG_KINDS_INT=['Odbor','Oddělení','Útvar','Sekce','Pracovní skupina','
 const ORG_KINDS=ORG_KINDS_INT.concat(['Externí']);
 /* Subjekt je interní, nebo externí (druh „Externí“). Interní subjekty tvoří strom (units[kód].parent). */
 const unitExt=u=>!!u&&u.kind==='Externí';
+/* abecední řazení osob (Czech locale) podle příjmení, pak jména; role a subjekty podle názvu */
+function personSortKey(n){const w=String(n||'').trim().split(/\s+/).filter(Boolean);return w.length>1?w[w.length-1]+' '+w.slice(0,-1).join(' '):(w[0]||'')}
+function sortPeople(codes,names){return codes.slice().sort((a,b)=>personSortKey(names[a]).localeCompare(personSortKey(names[b]),'cs',{sensitivity:'base'})||String(a).localeCompare(String(b)))}
 function unitTree(units){
   const codes=Object.keys(units).filter(c=>!unitExt(units[c]));
   const kids={}, roots=[];
@@ -2362,7 +2365,7 @@ function renderBoard(){
   $('#ms-filters').innerHTML=['all',...milestones.map(m=>m.id)].map(id=>
     `<button class="fchip ${msFilter===id?'on':''}" onclick="filterMs('${id}')">${id==='all'?'Všechny milníky':id+' · '+(milestones.find(m=>m.id===id)||{}).name}</button>`).join('');
   const of=$('#owner-filter');
-  if(of.options.length===1)Object.keys(people).forEach(k=>of.add(new Option(people[k],k)));
+  if(of.options.length===1)sortPeople(Object.keys(people),people).forEach(k=>of.add(new Option(people[k],k)));
   const ow=of.value;
   const inMs=x=>msFilter==='all'||x.ms===msFilter||!x.ms;
   const prioName=p=>p==='p1'?'Kritická':p==='p2'?'Vysoká':'Běžná';
@@ -2620,7 +2623,7 @@ function setEdit(force){
 
 /* ================= UNIVERZÁLNÍ EDITOR (schema-driven) ================= */
 const monCz=['LED','ÚNO','BŘE','DUB','KVĚ','ČVN','ČVC','SRP','ZÁŘ','ŘÍJ','LIS','PRO'];
-const OWNER_OPTS=()=>Object.keys(people).map(k=>[k,people[k]]);
+const OWNER_OPTS=()=>sortPeople(Object.keys(people),people).map(k=>[k,people[k]]);
 const MS_OPTS=()=>milestones.map(m=>[m.id,m.id+' · '+m.name]);
 const Q_OPTS=()=>questions.map(q=>[q.id,q.id+' · '+q.q.slice(0,36)]);
 const ST_OPTS=Object.keys(STATUS).map(k=>[k,STATUS[k][0]]);
@@ -2726,7 +2729,7 @@ const NEW_PERSON='__new__';
 /* Volby pro pole „kdo“ — osoby i subjekty, aby gestorem mohl být i subjekt. */
 function actorOptionsHTML(sel){
   sel=sel==null?'':String(sel);
-  const ppl=Object.keys(people).map(k=>{const pz=personPos(k);return `<option value="${esc(k)}" ${k===sel?'selected':''}>${esc(people[k])}${pz?' — '+esc(pz):''}</option>`}).join('');
+  const ppl=sortPeople(Object.keys(people),people).map(k=>{const pz=personPos(k);return `<option value="${esc(k)}" ${k===sel?'selected':''}>${esc(people[k])}${pz?' — '+esc(pz):''}</option>`}).join('');
   const opt=(k,pre)=>{const v=UNIT_PREFIX+k;return `<option value="${esc(v)}" ${v===sel?'selected':''}>${pre||''}${esc(orgUnits[k].name)}</option>`};
   const unI=unitTree(orgUnits).map(x=>opt(x.code,unitIndent(x.depth))).join('');
   const unE=unitExtCodes(orgUnits).map(k=>opt(k)).join('');
@@ -4765,7 +4768,7 @@ function pplRender(){
   if(PPL)PPL.dirty=true;
   const unitOpts=sel=>['<option value="">—</option>'].concat(
     unitTree(PPL.units).map(x=>`<option value="${esc(x.code)}" ${x.code===sel?'selected':''}>${unitIndent(x.depth)}${esc(PPL.units[x.code].name)}</option>`)).join('');
-  const codes=Object.keys(PPL.names);
+  const codes=sortPeople(Object.keys(PPL.names),PPL.names);
   const rows=codes.map(c=>{
     const m=PPL.meta[c]||{};
     return `<div class="ppl-row person">
@@ -4817,9 +4820,9 @@ function pplRender(){
 }
 /* ---- role v dialogu Osoby a subjekty ---- */
 function pplRoleBox(kind,code,ids){
-  const mine=(ids||[]).filter(id=>PPL.roles[id]);
+  const mine=(ids||[]).filter(id=>PPL.roles[id]).sort((a,b)=>String(PPL.roles[a].name).localeCompare(String(PPL.roles[b].name),'cs',{sensitivity:'base'}));
   const chips=mine.map(id=>`<span class="rchip" style="--rc:${esc(roleHex(PPL.roles[id].color)||'var(--border2)')}">${esc(PPL.roles[id].name)}<button type="button" title="Odebrat roli" onclick="pplRoleOff('${kind}','${esc(code)}','${esc(id)}')">✕</button></span>`).join('');
-  const volne=Object.keys(PPL.roles).filter(id=>!mine.includes(id)&&(PPL.roles[id].for==='oba'||!PPL.roles[id].for||PPL.roles[id].for===(kind==='p'?'osoba':'utvar')));
+  const volne=Object.keys(PPL.roles).filter(id=>!mine.includes(id)&&(PPL.roles[id].for==='oba'||!PPL.roles[id].for||PPL.roles[id].for===(kind==='p'?'osoba':'utvar'))).sort((a,b)=>String(PPL.roles[a].name).localeCompare(String(PPL.roles[b].name),'cs',{sensitivity:'base'}));
   const sel=`<select title="Přidat roli" onchange="pplRoleOn('${kind}','${esc(code)}',this.value)"><option value="">＋ role</option>${volne.map(id=>`<option value="${esc(id)}">${esc(PPL.roles[id].name)}</option>`).join('')}<option value="__new">＋ Nová role…</option></select>`;
   return `<div class="rolebox">${chips}${sel}</div>`;
 }
@@ -4927,7 +4930,7 @@ function pplDrop(code,label){
   const n=actorUses(code);
   let to='';
   if(n){
-    const others=Object.keys(PPL.names).filter(c=>c!==code)
+    const others=sortPeople(Object.keys(PPL.names),PPL.names).filter(c=>c!==code)
       .concat(Object.keys(PPL.units).filter(u=>UNIT_PREFIX+u!==code).map(u=>UNIT_PREFIX+u));
     const list=others.map((c,i)=>`${i+1}) ${actorName(c)}`).join('\n');
     const ans=(prompt(
@@ -8775,9 +8778,9 @@ function pmSubRender(k){
           <button type="button" class="rpbtn" data-tip="Role řešitele\nVyberte roli, v níž tento řešitel úkol plní." onclick="pmRolePop(this,'tk:${i}:${j}')">role</button>
           <button type="button" title="Odebrat řešitele" onclick="pmTaskAssDel(${i},${j})">✕</button></span>`}).join('');
       const used=new Set(as.map(a=>a.who));
-      const pers=Object.keys(people).filter(c=>!used.has(c));
+      const pers=sortPeople(Object.keys(people),people).filter(c=>!used.has(c));
       const same=pers.filter(c=>exp&&(staff[c]||{}).unit===exp), other=pers.filter(c=>!same.includes(c));
-      const uns=Object.keys(orgUnits).map(u=>UNIT_PREFIX+u).filter(c=>!used.has(c));
+      const uns=Object.keys(orgUnits).sort((a,b)=>String(orgUnits[a].name).localeCompare(String(orgUnits[b].name),'cs',{sensitivity:'base'})).map(u=>UNIT_PREFIX+u).filter(c=>!used.has(c));
       const og=(lab,arr)=>arr.length?`<optgroup label="${lab}">${arr.map(c=>`<option value="${esc(c)}">${esc(actorName(c))}</option>`).join('')}</optgroup>`:'';
       const sel=`<select class="as-add" onchange="pmTaskAssAdd(${i},this.value);this.value=''"><option value="">＋ řešitel</option>${og('Z subjektu gestora',same)}${og('Ostatní osoby (mimo subjekt gestora)',other)}${og('Subjekty',uns)}</select>`;
       return `<div class="pm-tas">${chips}${sel}</div>`;
