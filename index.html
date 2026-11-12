@@ -4425,7 +4425,8 @@ function renderPMap(){
        /* jen tam, kam se vejde za název (a případně gestora), aby se texty nepřekrývaly */
        const fsH=Math.max(8,9*(PM.rowZoom||1)), nameEnd=pl.x+lab.length*pl.fs*0.54+(gp&&gp.mode==='inline'?(gp.label.length+3)*gp.fs*0.54:0);
        const right=g.x+g.w-(kids&&!PM.print?46:10), avail=right-nameEnd-12;
-       if(avail>=60)s+=pmRemainText(ri,right,g.y+g.h/2+fsH*0.35+(ri.rest&&avail<ri.full.length*fsH*0.52+24?fsH*0.6:0),avail,fsH,SK,true)}}
+       const cand=[ri.full,ri.rest||ri.end].filter(Boolean), pick=cand.find(t=>avail>=t.length*fsH*0.53+10);
+       if(pick)s+=`<text x="${right}" y="${g.y+g.h/2+fsH*0.35}" text-anchor="end" font-size="${fsH}" fill="var(--accent)" font-family="Inter,sans-serif" font-weight="600" stroke="${SK.bg}" stroke-width="3" paint-order="stroke" stroke-linejoin="round" pointer-events="none">${escXml(pick)}</text>`}}
     const gestTip=p.gestor?' · gestor: '+pmGestorLabel(p.gestor):'';
     s+=`<rect class="pmgrip" data-grip="${p.id}" data-edge="end" x="${g.x+g.w-7}" y="${g.y}" width="9" height="${g.h}" fill="transparent" style="cursor:ew-resize"/>`;
     s+=`<rect class="pmgrip" data-grip="${p.id}" data-edge="start" x="${g.x-2}" y="${g.y}" width="9" height="${g.h}" fill="transparent" style="cursor:ew-resize"/>`;
