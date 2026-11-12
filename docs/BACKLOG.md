@@ -15,7 +15,7 @@
 
 ## Skupiny streamů — dořešit návaznosti
 
-- **Hotovo:** z vybraných streamů lze vytvořit pojmenovanou skupinu (tlačítko ▦ Skupina streamů), členové se přeřadí vedle sebe a skupina se zobrazí jako pás v záhlaví svislé osy. Uloženo u varianty (`sgroups`), v mapě u projektu (`mapSGroups`). Klik na pás vybere členy, dvojklik přejmenuje, u streamu v pásu karet jde skupinu přejmenovat, stream vyjmout nebo skupinu zrušit.
+- **Hotovo:** z vybraných streamů lze vytvořit pojmenovanou skupinu (tlačítko ▦ Skupina streamů), pořadí streamů se nemění; skupina se zobrazí jako pás v záhlaví svislé osy a nesousedící členy ukáže víc pásů téže skupiny a barvy. Uloženo u varianty (`sgroups`), v mapě u projektu (`mapSGroups`). Klik na pás vybere členy, dvojklik přejmenuje, u streamu v pásu karet jde skupinu přejmenovat, stream vyjmout nebo skupinu zrušit.
 - **K dořešení (zatím záměrně ne):**
   - návaznosti: vazby mezi skupinami a mezi skupinou a streamem / procesem, odvozování termínů skupiny z jejích streamů,
   - zobrazení skupin ve vodorovné ose a v přehledu stromem (nyní jen svislá osa),
