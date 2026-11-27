@@ -39,7 +39,17 @@ function serve() {
   page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
 
   const D = () => page.evaluate(() => JSON.parse(JSON.stringify(window.procesniMapa.data)));
-  const view = () => page.evaluate(() => ({ ...window.procesniMapa.view }));
+  const view = () => page.evaluate(() => ({ ...window.procesniMapa.view, scale: window.procesniMapa.scale }));
+  const yOf = iso => page.evaluate(i => window.procesniMapa.dToY(window.procesniMapa.parseISO(i)), iso);
+  const boxOf = pid => page.$eval(`.proc[data-pid="${pid}"]`, e => ({ top: parseFloat(e.style.top), h: parseFloat(e.style.height) }));
+  const expBox = (f, t) => page.evaluate(([f, t]) => {
+    const pm = window.procesniMapa, a = pm.dToY(pm.parseISO(f)), b = pm.dToY(pm.parseISO(t) + 1);
+    return { top: a + 1, h: Math.max(18, b - a - 2) };
+  }, [f, t]);
+  function near(a, b, msg, tol = 0.01) {
+    const okk = a && b && Object.keys(b).every(k => Math.abs(a[k] - b[k]) <= tol);
+    ok(okk, `${msg} (čekáno ${JSON.stringify(b)}, je ${JSON.stringify(a)})`);
+  }
   const byName = async n => (await D()).processes.find(p => p.name === n);
   const streamBy = async n => (await D()).streams.find(s => s.name === n);
   const toastText = () => page.textContent('#toast');
@@ -56,9 +66,10 @@ function serve() {
       const col = document.querySelector(`.scol[data-sid="${sid}"]`);
       sc.scrollTop = Math.max(0, y - 200);
       const colLeft = col.offsetLeft + document.getElementById('axis').offsetWidth;
-      sc.scrollLeft = Math.max(0, colLeft + lane * 190 - 300);
+      const lw = pm.view.laneW;
+      sc.scrollLeft = Math.max(0, colLeft + lane * lw - 300);
       const r = col.getBoundingClientRect();
-      return { x: r.left + lane * 190 + 95, y: r.top + y + 3 };
+      return { x: r.left + lane * lw + lw / 2, y: r.top + y + 3 };
     }, { sid, lane, iso });
     const lanes = await page.evaluate(sid => window.procesniMapa.data.streams.find(s => s.id === sid).lanes, sid);
     if (lane >= lanes) throw new Error(`test: stream ${sid} má jen ${lanes} drah`);
@@ -95,26 +106,28 @@ function serve() {
   eq(labels[131], 'pro', 'poslední řádek je prosinec');
   let years = await page.$$eval('#axis .ax.yr span', els => els.map(e => e.textContent));
   eq(years, ['2020', '2021', '2022', '2023', '2024', '2025', '2026', '2027', '2028', '2029', '2030'], 'roky 2020 až 2030');
-  // poloha procesu: Studie proveditelnosti 1. 1. 2025 – 30. 9. 2025 = řádky 60–68
   let p1 = await byName('Studie proveditelnosti');
-  let box = await page.$eval(`.proc[data-pid="${p1.id}"]`, e => ({ top: e.offsetTop, h: e.offsetHeight }));
-  eq(box.top, 60 * 46 + 1, 'začátek procesu sedí na lednu 2025');
-  eq(box.h, 9 * 46 - 2, 'výška procesu = 9 měsíců');
+  near(await boxOf(p1.id), await expBox('2025-01-01', '2025-09-30'), 'proces leží přesně na 1. 1. – 30. 9. 2025');
+  const axMonth = await page.$$eval('#axis .ax.row', els => els.slice(60, 61).map(e => ({ t: parseFloat(e.style.top), h: parseFloat(e.style.height) }))[0]);
+  near({ top: axMonth.t }, { top: (await yOf('2025-01-01')) }, 'řádek „led 2025“ na ose je ve stejné výšce jako začátek procesu');
 
-  current = '3 Týdny a kvartály';
+  current = '3 Týdny a kvartály (tlačítka)';
   await page.click('#scaleSeg button[data-scale=week]');
   eq((await view()).scale, 'week', 'přepnuto na týdny');
   labels = await page.$$eval('#axis .ax.row', els => els.map(e => e.textContent));
-  ok(labels[0].startsWith('T01') && labels[0].includes('30. pro'), 'první týden T01 začíná 30. pro (2019) – ' + labels[0]);
-  const weeks = await page.$$eval('#axis .ax.row', els => els.length);
-  eq(weeks, 575, 'počet týdnů pokrývajících 2020–2030');
+  ok(labels[0].startsWith('T01') && labels[0].includes('1. led'), 'první týden T01 začíná 1. led 2020 – ' + labels[0]);
+  ok(labels[1].startsWith('T02') && labels[1].includes('6. led'), 'druhý týden T02 od pondělí 6. led – ' + labels[1]);
+  const wtitles = await page.$$eval('#axis .ax.row', els => els.map(e => e.title));
+  ok(wtitles[wtitles.length - 1].includes('30. 12. 2030 – 31. 12. 2030'), 'poslední (zkrácený) týden 30.–31. 12. 2030 – ' + wtitles[wtitles.length - 1]);
+  ok(labels.slice(0, -1).every(l => /^T\d\d/.test(l)), 'všechny týdny mají zkratku T01…T53');
+  ok(labels.some(l => l.startsWith('T53')), 'roky s 53 týdny mají T53');
   const months = await page.$$eval('#axis .ax.mo span', els => els.map(e => e.textContent));
   eq(months.length, 132, 'v týdnech je i sloupec měsíců');
   eq(months.slice(0, 3), ['led', 'úno', 'bře'], 'měsíce v týdenní ose');
-  ok(await page.locator('.oor').count() === 2, 'oblast mimo období (před 1. 1. 2020 a po 31. 12. 2030) je šrafovaná');
-  box = await page.$eval(`.proc[data-pid="${p1.id}"]`, e => ({ top: e.offsetTop, h: e.offsetHeight }));
-  let exp = await page.evaluate(() => window.procesniMapa.dToY(window.procesniMapa.parseISO('2025-01-01')));
-  ok(Math.abs(box.top - exp - 1) < 0.6, 'v týdnech proces začíná na správném týdnu');
+  eq(await page.$$eval('#axis .ax.yr span', els => els.length), 11, 'v týdnech jsou na ose i roky');
+  near(await boxOf(p1.id), await expBox('2025-01-01', '2025-09-30'), 'v týdnech proces sedí na svém termínu');
+  const clipped = await page.evaluate(() => { const r = [...document.querySelectorAll('#axis .ax.row')].map(e => e.offsetWidth >= e.scrollWidth); return r.every(Boolean); });
+  ok(clipped, 'popisky týdnů nejsou oříznuté');
   // přilepené popisky roku a měsíce zůstávají vidět i uprostřed roku
   await page.selectOption('#yearSel', '2027');
   eq(await page.inputValue('#yearSel'), '2027', 'po skoku na rok ukazuje výběr roku 2027');
@@ -129,24 +142,99 @@ function serve() {
   eq(stick, { yr: ['2027'], mo: ['čvn'] }, 'rok a měsíc jsou vidět nahoře u osy uprostřed roku');
   eq(await page.inputValue('#yearSel'), '2027', 'výběr roku sleduje posun');
   await page.click('#scaleSeg button[data-scale=quarter]');
+  eq((await view()).scale, 'quarter', 'přepnuto na kvartály');
   labels = await page.$$eval('#axis .ax.row span', els => els.map(e => e.textContent));
   eq(labels.length, 44, '44 kvartálů');
   eq(labels.slice(0, 4), ['Q1', 'Q2', 'Q3', 'Q4'], 'označení kvartálů');
-  box = await page.$eval(`.proc[data-pid="${p1.id}"]`, e => ({ top: e.offsetTop, h: e.offsetHeight }));
-  eq(box.top, 20 * 120 + 1, 'v kvartálech proces začíná Q1 2025');
-  eq(box.h, 3 * 120 - 2, 'v kvartálech má proces 3 kvartály');
+  near(await boxOf(p1.id), await expBox('2025-01-01', '2025-09-30'), 'v kvartálech proces sedí na Q1–Q3 2025');
   await page.click('#scaleSeg button[data-scale=month]');
 
-  current = '4 Přiblížení';
-  await page.click('#bZoomIn');
-  eq((await view()).zoom, 1.25, 'zoom +');
-  box = await page.$eval(`.proc[data-pid="${p1.id}"]`, e => e.offsetTop);
-  eq(box, 60 * Math.round(46 * 1.25) + 1, 'po zoomu se poloha přepočítá');
-  for (let i = 0; i < 10; i++) if (!(await page.isDisabled('#bZoomOut'))) await page.click('#bZoomOut');
-  eq((await view()).zoom, 0.5, 'nejmenší zoom 50 %');
-  ok(await page.isDisabled('#bZoomOut'), 'tlačítko − je na minimu zakázané');
-  await page.click('#bZoomIn'); await page.click('#bZoomIn');
-  eq((await view()).zoom, 1, 'zpět na 100 %');
+  current = '4 Zoom času (tlačítka) – plynulé přepínání týden / měsíc / kvartál';
+  let v0 = await view();
+  await page.click('#bTimeIn');
+  let v1 = await view();
+  ok(Math.abs(v1.ppd / v0.ppd - 1.25) < 1e-6, 'zoom + přiblíží o 25 %');
+  near(await boxOf(p1.id), await expBox('2025-01-01', '2025-09-30'), 'po zoomu se poloha přepočítá');
+  const seen = new Set([v1.scale]);
+  for (let i = 0; i < 30 && !(await page.isDisabled('#bTimeIn')); i++) { await page.click('#bTimeIn'); seen.add((await view()).scale); }
+  eq((await view()).scale, 'week', 'nejbližší rozlišení je týden');
+  ok(await page.isDisabled('#bTimeIn'), 'na maximu je + zakázané');
+  for (let i = 0; i < 40 && !(await page.isDisabled('#bTimeOut')); i++) { await page.click('#bTimeOut'); seen.add((await view()).scale); }
+  eq((await view()).scale, 'quarter', 'nejvzdálenější rozlišení je kvartál');
+  ok(await page.isDisabled('#bTimeOut'), 'na minimu je − zakázané');
+  eq([...seen].sort(), ['month', 'quarter', 'week'], 'při zoomu se prošly všechny tři rozlišení');
+  eq(await page.$$eval('#axis .ax.yr span', els => els.length), 11, 'roky jsou vidět i při největším oddálení');
+  const totalH = await page.evaluate(() => document.getElementById('body').offsetHeight);
+  ok(totalH < 1000, 'při největším oddálení je celé desetiletí na ~1 obrazovce (' + totalH + ' px)');
+  await page.click('#bTimeFit');
+  const fitH = await page.evaluate(() => [document.getElementById('body').offsetHeight, document.getElementById('scroller').clientHeight - 72]);
+  ok(Math.abs(fitH[0] - fitH[1]) <= 2, 'tlačítko ⤢ vejde celé období na výšku (' + fitH + ')');
+  await page.click('#scaleSeg button[data-scale=month]');
+  eq((await view()).ppd, 1.5, 'tlačítko Měsíce vrátí výchozí přiblížení');
+
+  current = '4b Zoom kolečkem myši';
+  // kolečko nad časovou osou – datum pod kurzorem zůstane na místě
+  const axisBox = await page.locator('#axis').boundingBox();
+  const mx = axisBox.x + 20, my = 500;
+  const dayUnder = () => page.evaluate(y => { const sc = document.getElementById('scroller'); const b = document.getElementById('body').getBoundingClientRect(); return (y - b.top) / window.procesniMapa.view.ppd; }, my);
+  const du0 = await dayUnder();
+  await page.mouse.move(mx, my);
+  await page.mouse.wheel(0, -300); await page.waitForTimeout(80);
+  v1 = await view();
+  ok(v1.ppd > 1.5, 'kolečko nahoru nad časovou osou přiblíží čas (' + v1.ppd.toFixed(2) + ')');
+  ok(Math.abs((await dayUnder()) - du0) < 1, 'datum pod kurzorem zůstalo na místě');
+  await page.mouse.wheel(0, 300); await page.waitForTimeout(80);
+  ok(Math.abs((await view()).ppd - 1.5) < 0.01, 'kolečko dolů oddálí zpět');
+  // kolečko nad záhlavím streamů – šířka streamů
+  const hb = await page.locator('#head .shead').first().boundingBox();
+  const w0 = (await view()).laneW;
+  await page.mouse.move(hb.x + 100, hb.y + 20);
+  await page.mouse.wheel(0, 300); await page.waitForTimeout(80);
+  const w1 = (await view()).laneW;
+  ok(w1 < w0, `kolečko dolů nad záhlavím zúží streamy (${w0} → ${w1})`);
+  const pw = await page.$eval(`.proc[data-pid="${p1.id}"]`, e => e.offsetWidth);
+  eq(pw, w1 - 8, 'boxy procesů se zúží s drahou');
+  const shw = await page.$eval('.shead', e => e.offsetWidth);
+  eq(shw, 2 * w1, 'záhlaví streamu (2 dráhy) se zúží');
+  await page.mouse.wheel(0, -300); await page.waitForTimeout(80);
+  ok(Math.abs((await view()).laneW - w0) <= 2, 'kolečko nahoru streamy zase rozšíří');
+  // Ctrl + kolečko nad plochou = čas, Ctrl + Shift + kolečko = streamy, samotné kolečko = posun
+  const bb = await page.locator('#scroller').boundingBox();
+  await page.mouse.move(bb.x + 600, bb.y + 400);
+  const st0 = await page.evaluate(() => document.getElementById('scroller').scrollTop);
+  await page.mouse.wheel(0, 200); await page.waitForTimeout(80);
+  ok((await page.evaluate(() => document.getElementById('scroller').scrollTop)) > st0, 'samotné kolečko nad plochou mapu posouvá');
+  const ppdNow = (await view()).ppd;
+  ok(Math.abs(ppdNow - 1.5) < 0.01, 'samotné kolečko nad plochou nezoomuje');
+  await page.keyboard.down('Control'); await page.mouse.wheel(0, -200); await page.keyboard.up('Control'); await page.waitForTimeout(80);
+  ok((await view()).ppd > ppdNow + 0.1, 'Ctrl + kolečko přiblíží čas');
+  await page.keyboard.down('Control'); await page.keyboard.down('Shift'); await page.mouse.wheel(0, 200);
+  await page.keyboard.up('Shift'); await page.keyboard.up('Control'); await page.waitForTimeout(80);
+  ok((await view()).laneW < w0, 'Ctrl + Shift + kolečko zúží streamy');
+
+  // u dlouhého procesu zůstane název vidět, i když jeho začátek odjede nahoru
+  const stickyOk = await page.evaluate(pid => {
+    const pm = window.procesniMapa, sc = document.getElementById('scroller');
+    sc.scrollTop = pm.dToY(pm.parseISO('2025-06-01'));
+    const name = document.querySelector(`.proc[data-pid="${pid}"] .p-name`).getBoundingClientRect();
+    const top = sc.getBoundingClientRect().top + pm.HEAD_H;
+    return name.top >= top - 1 && name.top < top + 20;
+  }, p1.id);
+  ok(stickyOk, 'název dlouhého procesu zůstává vidět pod záhlavím');
+
+  current = '4c Zoom streamů (tlačítka)';
+  await page.click('#scaleSeg button[data-scale=month]');
+  for (let i = 0; i < 20 && !(await page.isDisabled('#bLaneOut')); i++) await page.click('#bLaneOut');
+  eq((await view()).laneW, 56, 'nejmenší šířka dráhy 56 px');
+  ok(await page.evaluate(() => document.getElementById('board').classList.contains('tiny')), 'při úzkých drahách kompaktní zobrazení');
+  ok(await page.isHidden('.shead [data-act=add-proc] >> nth=0'), 'v úzkém záhlaví zůstane jen ⋯');
+  for (let i = 0; i < 20 && !(await page.isDisabled('#bLaneIn')); i++) await page.click('#bLaneIn');
+  eq((await view()).laneW, 420, 'největší šířka dráhy 420 px');
+  await page.click('#bLaneFit');
+  const fit = await page.evaluate(() => { const sc = document.getElementById('scroller'); const last = [...document.querySelectorAll('.shead')].pop().getBoundingClientRect(); return last.right <= sc.getBoundingClientRect().right; });
+  ok(fit, 'tlačítko ⤢ vejde všechny streamy na šířku obrazovky');
+  // vrátit výchozí šířku
+  await page.evaluate(() => { const pm = window.procesniMapa; pm.view.laneW = 190; pm.render(); });
 
   current = '5 Nový stream tlačítkem';
   await page.click('#bStream');
@@ -279,8 +367,7 @@ function serve() {
   await submit();
   pa = await byName('Proces A');
   eq([pa.from, pa.to, pa.lane], ['2026-02-01', '2026-04-30', 0], 'termín změněn, dráha zůstala');
-  box = await page.$eval(`.proc[data-pid="${pa.id}"]`, e => ({ top: e.offsetTop, h: e.offsetHeight }));
-  eq(box, { top: (6 * 12 + 1) * 46 + 1, h: 3 * 46 - 2 }, 'box se přesunul na únor–duben 2026');
+  near(await boxOf(pa.id), await expBox('2026-02-01', '2026-04-30'), 'box se přesunul na únor–duben 2026');
   // změna termínu do kolize → automatický přesun do volné dráhy
   await rightClickProc('Proces A');
   await menuItem('Změnit od – do');
@@ -445,8 +532,7 @@ function serve() {
   await submit();
   const kq = await byName('Kvartální proces');
   eq([kq.streamId, kq.lane], [ts.id, 1], 'kvartální proces v kliknutém streamu a dráze');
-  box = await page.$eval(`.proc[data-pid="${kq.id}"]`, e => ({ top: e.offsetTop, h: e.offsetHeight }));
-  eq(box, { top: 34 * 120 + 1, h: 118 }, 'box přesně na Q3 2028');
+  near(await boxOf(kq.id), await expBox('2028-07-01', '2028-09-30'), 'box přesně na Q3 2028');
   await page.click('#scaleSeg button[data-scale=month]');
 
   current = '20 Celé období 2020–2030';
@@ -456,8 +542,178 @@ function serve() {
   await page.fill('#modal input[name=to]', '2030-12-31');
   await submit();
   const co = await byName('Celé období');
-  box = await page.$eval(`.proc[data-pid="${co.id}"]`, e => ({ top: e.offsetTop, h: e.offsetHeight }));
-  eq(box, { top: 1, h: 132 * 46 - 2 }, 'proces přes celé období vyplní celou osu');
+  const bodyH = await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('body')).height));
+  near(await boxOf(co.id), { top: 1, h: bodyH - 2 }, 'proces přes celé období vyplní celou osu');
+
+  current = '20b Přetahování myší – příprava';
+  await page.click('#scaleSeg button[data-scale=month]');
+  await page.click('#bStream');
+  await page.fill('#modal input[name=name]', 'Tažení');
+  await submit();
+  const tz = await streamBy('Tažení');
+  await page.click('#bProc');
+  await page.selectOption('#modal select[name=stream]', tz.id);
+  await page.fill('#modal input[name=name]', 'X');
+  await page.fill('#modal input[name=from]', '2026-01-01');
+  await page.fill('#modal input[name=to]', '2026-03-31');
+  await submit();
+  let X = await byName('X');
+  /** Nastaví posun tak, aby byl proces uprostřed obrazovky, a vrátí bod pro uchopení. */
+  async function grabPoint(pid, part) {
+    await page.evaluate(pid => {
+      const pm = window.procesniMapa, sc = document.getElementById('scroller');
+      const p = pm.data.processes.find(q => q.id === pid);
+      sc.scrollTop = pm.dToY(pm.parseISO(p.from)) - 250;
+      const col = document.querySelector(`.scol[data-sid="${p.streamId}"]`);
+      sc.scrollLeft = Math.max(0, col.offsetLeft + p.lane * pm.view.laneW - 250);
+    }, pid);
+    await page.waitForTimeout(30);
+    const b = await page.locator(`.proc[data-pid="${pid}"]`).boundingBox();
+    const x = b.x + Math.min(60, b.width / 2);
+    const y = part === 'top' ? b.y + 2 : part === 'bot' ? b.y + b.height - 2 : b.y + Math.min(b.height / 2, 30);
+    return { x, y };
+  }
+  async function dragProc(pid, part, dx, dy, { alt = false, release = true } = {}) {
+    const g = await grabPoint(pid, part);
+    await page.mouse.move(g.x, g.y);
+    await page.mouse.down();
+    if (alt) await page.keyboard.down('Alt');
+    await page.mouse.move(g.x + dx / 2, g.y + dy / 2, { steps: 4 });
+    await page.mouse.move(g.x + dx, g.y + dy, { steps: 4 });
+    if (release) { await page.mouse.up(); if (alt) await page.keyboard.up('Alt'); }
+    return g;
+  }
+  const px = async (a, b) => (await yOf(b)) - (await yOf(a));
+  const XX = async () => { const q = await byName('X'); return [q.from, q.to, q.streamId, q.lane]; };
+
+  current = '20c Přesun v čase (měsíce)';
+  await dragProc(X.id, 'move', 0, (await px('2026-01-01', '2026-03-01')) + 6);
+  eq(await XX(), ['2026-03-01', '2026-05-31', tz.id, 0], 'posun o 2 měsíce, konec měsíce zůstal koncem měsíce');
+  ok((await toastText()).includes('1. 3. 2026 – 31. 5. 2026'), 'hlášení o novém termínu');
+  near(await boxOf(X.id), await expBox('2026-03-01', '2026-05-31'), 'box se vykreslil na novém místě');
+  ok(await page.isEnabled('#bEdit'), 'přetažený proces je vybraný');
+  await page.click('#bUndo');
+  eq(await XX(), ['2026-01-01', '2026-03-31', tz.id, 0], 'Zpět vrátí přesun');
+  await dragProc(X.id, 'move', 0, -(await px('2025-12-01', '2026-01-01')) - 6);
+  eq(await XX(), ['2025-12-01', '2026-02-28', tz.id, 0], 'posun o měsíc nahoru (31. 3. → 28. 2.)');
+  await page.click('#bUndo');
+  await dragProc(X.id, 'move', 0, 8);
+  eq(await XX(), ['2026-01-01', '2026-03-31', tz.id, 0], 'malý pohyb pod polovinu měsíce termín nezmění');
+
+  current = '20d Přesun po dnech (Alt) a po týdnech';
+  await dragProc(X.id, 'move', 0, 10 * 1.5 + 0.4, { alt: true });
+  eq(await XX(), ['2026-01-11', '2026-04-10', tz.id, 0], 'Alt = posun přesně o 10 dní');
+  await page.click('#bUndo');
+  await page.selectOption('#snapSel', 'week');
+  await dragProc(X.id, 'move', 0, 15 * 1.5);
+  eq(await XX(), ['2026-01-15', '2026-04-14', tz.id, 0], 'krok týden = posun o 14 dní');
+  await page.click('#bUndo');
+  await page.selectOption('#snapSel', 'auto');
+
+  current = '20e Změna začátku a konce tažením hran';
+  await dragProc(X.id, 'bot', 0, (await px('2026-03-31', '2026-04-30')) + 4);
+  eq(await XX(), ['2026-01-01', '2026-04-30', tz.id, 0], 'dolní hrana: konec o měsíc později (konec dubna)');
+  await dragProc(X.id, 'top', 0, -(await px('2025-12-01', '2026-01-01')) + 4);
+  eq(await XX(), ['2025-12-01', '2026-04-30', tz.id, 0], 'horní hrana: začátek o měsíc dříve (1. 12.)');
+  await dragProc(X.id, 'top', 0, (await px('2025-12-01', '2026-02-01')) - 3);
+  eq(await XX(), ['2026-02-01', '2026-04-30', tz.id, 0], 'horní hrana dolů: začátek 1. 2.');
+  await dragProc(X.id, 'bot', 0, -600);
+  eq(await XX(), ['2026-02-01', '2026-02-28', tz.id, 0], 'konec nejde před začátek – zůstane aspoň jeden měsíc');
+  await dragProc(X.id, 'top', 0, 900);
+  eq(await XX(), ['2026-02-01', '2026-02-28', tz.id, 0], 'začátek nejde za konec');
+
+  current = '20f Přesun do jiného streamu a dráhy';
+  const s2id = (await streamBy('Realizace')).id;
+  await page.click('#bLaneFit');                         // všechny streamy na obrazovku, aby šlo táhnout přes ně
+  let g = await grabPoint(X.id, 'move');
+  await page.evaluate(() => { document.getElementById('scroller').scrollLeft = 0; });
+  await page.waitForTimeout(30);
+  const xb = await page.locator(`.proc[data-pid="${X.id}"]`).boundingBox();
+  g = { x: xb.x + xb.width / 2, y: xb.y + 15 };
+  const colR = await page.locator(`.scol[data-sid="${s2id}"]`).boundingBox();
+  await page.mouse.move(g.x, g.y); await page.mouse.down();
+  await page.mouse.move(colR.x + 20, g.y + 3, { steps: 8 });
+  ok(await page.isVisible('#dragTip'), 'při tažení je vidět bublina s termínem a cílem');
+  ok((await page.textContent('#dragTip')).includes('Realizace · dráha 1'), 'bublina ukazuje cílový stream a dráhu – ' + (await page.textContent('#dragTip')));
+  await page.mouse.up();
+  eq(await XX(), ['2026-02-01', '2026-02-28', s2id, 0], 'proces přesunut do streamu Realizace, dráha 1');
+  ok(await page.isHidden('#dragTip'), 'po puštění bublina zmizí');
+  ok(await page.$(`.scol[data-sid="${s2id}"] .proc[data-pid="${X.id}"]`), 'box je ve sloupci nového streamu');
+  // přesun na obsazené místo → volná paralelní dráha
+  const pVyber = await byName('Výběr zhotovitele');
+  const dy = (await px('2026-02-01', pVyber.from)) + 4;
+  g = await grabPoint(X.id, 'move');
+  await page.mouse.move(g.x, g.y); await page.mouse.down();
+  await page.mouse.move(g.x, g.y + dy / 2, { steps: 4 });
+  await page.mouse.move(g.x, g.y + dy, { steps: 4 });
+  ok(await page.evaluate(id => document.querySelector(`.proc[data-pid="${id}"]`).classList.contains('warn'), X.id), 'obsazené místo je při tažení vyznačeno');
+  ok((await page.textContent('#dragTip')).includes('volná'), 'bublina hlásí přesun do volné dráhy');
+  await page.mouse.up();
+  let xq = await byName('X');
+  eq([xq.from, xq.streamId], [pVyber.from, s2id], 'termín přesunut na obsazené období');
+  ok(xq.lane !== pVyber.lane, 'proces se nepřekrývá – je v jiné dráze (' + xq.lane + ')');
+  ok((await toastText()).includes('volné dráhy'), 'uživatel je informován o volné dráze');
+  await page.click('#bUndo'); await page.click('#bUndo');
+  eq(await XX(), ['2026-02-01', '2026-02-28', tz.id, 0], 'dvakrát Zpět vrátí proces zpět do streamu Tažení');
+  await page.evaluate(() => { const pm = window.procesniMapa; pm.view.laneW = 190; pm.render(); });
+
+  current = '20g Zrušení tažení, klik a dvojklik';
+  await dragProc(X.id, 'move', 0, 200, { release: false });
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  eq(await XX(), ['2026-02-01', '2026-02-28', tz.id, 0], 'Esc tažení zruší bez změny');
+  ok(await page.isHidden('#dragTip'), 'po Esc bublina zmizí');
+  near(await boxOf(X.id), await expBox('2026-02-01', '2026-02-28'), 'box se vrátil na původní místo');
+  await page.click('body', { position: { x: 5, y: 5 } }).catch(() => {});
+  await page.locator(`.proc[data-pid="${X.id}"]`).click({ position: { x: 40, y: 12 } });
+  ok(await page.isEnabled('#bEdit'), 'obyčejný klik proces vybere (nezačne tažení)');
+  eq(await XX(), ['2026-02-01', '2026-02-28', tz.id, 0], 'klik termín nezmění');
+  await page.locator(`.proc[data-pid="${X.id}"]`).dblclick({ position: { x: 40, y: 12 } });
+  eq(await page.textContent('#mdlTitle'), 'Upravit proces', 'dvojklik stále otevře úpravu');
+  await page.keyboard.press('Escape');
+  await page.locator(`.proc[data-pid="${X.id}"]`).click({ button: 'right', position: { x: 40, y: 12 } });
+  ok(await page.isVisible('#ctx'), 'pravé tlačítko stále otevře menu (netáhne)');
+  await page.keyboard.press('Escape');
+
+  current = '20h Hranice období a automatické posouvání';
+  const zac = await byName('Začátek');
+  await dragProc(zac.id, 'move', 0, -150);
+  const zac2 = await byName('Začátek');
+  eq([zac2.from, zac2.to], ['2020-01-01', '2020-01-05'], 'proces nejde posunout před 1. 1. 2020');
+  const kon = await byName('Konec');
+  await dragProc(kon.id, 'move', 0, 150);
+  const kon2 = await byName('Konec');
+  eq([kon2.from, kon2.to], ['2030-12-30', '2030-12-31'], 'proces nejde posunout za 31. 12. 2030');
+  g = await grabPoint(X.id, 'move');
+  const sTop0 = await page.evaluate(() => document.getElementById('scroller').scrollTop);
+  const scb = await page.locator('#scroller').boundingBox();
+  await page.mouse.move(g.x, g.y); await page.mouse.down();
+  await page.mouse.move(g.x, scb.y + scb.height - 8, { steps: 6 });
+  await page.waitForTimeout(500);
+  const sTop1 = await page.evaluate(() => document.getElementById('scroller').scrollTop);
+  ok(sTop1 > sTop0 + 100, `u okraje se mapa sama posouvá (${sTop0} → ${sTop1})`);
+  await page.mouse.up();
+  xq = await byName('X');
+  ok(xq.from > '2026-06-01', 'proces přetažen daleko za původní obrazovku – ' + xq.from);
+  await page.click('#bUndo');
+
+  current = '20i Tažení v týdnech a kvartálech';
+  await page.click('#scaleSeg button[data-scale=week]');
+  await dragProc(X.id, 'move', 0, (await px('2026-02-01', '2026-02-15')) + 3);
+  eq(await XX(), ['2026-02-15', '2026-03-14', tz.id, 0], 'v týdnech se posouvá po týdnech (14 dní)');
+  await page.click('#bUndo');
+  await dragProc(X.id, 'bot', 0, (await px('2026-03-01', '2026-03-09')) + 2);
+  const xw = await byName('X');
+  eq(xw.to, '2026-03-08', 'v týdnech se konec přichytí na neděli');
+  await page.click('#bUndo');
+  await page.click('#scaleSeg button[data-scale=quarter]');
+  await dragProc(X.id, 'move', 0, (await px('2026-02-01', '2026-05-01')) + 3);
+  eq(await XX(), ['2026-05-01', '2026-05-31', tz.id, 0], 'v kvartálech se posouvá po kvartálech (3 měsíce)');
+  await page.click('#bUndo');
+  await dragProc(X.id, 'bot', 0, (await px('2026-03-01', '2026-06-30')) + 2);
+  eq((await byName('X')).to, '2026-06-30', 'v kvartálech se konec přichytí na konec kvartálu');
+  await page.click('#bUndo');
+  await page.click('#scaleSeg button[data-scale=month]');
 
   current = '21 Uložení a obnovení po načtení';
   await page.click('#scaleSeg button[data-scale=week]');
@@ -465,6 +721,14 @@ function serve() {
   await page.reload();
   eq(await D(), snap, 'data přežijí znovunačtení stránky');
   eq((await view()).scale, 'week', 'měřítko přežije znovunačtení');
+  await page.selectOption('#snapSel', 'day');
+  await page.click('#bLaneOut');
+  const vv = await view();
+  await page.reload();
+  const vv2 = await view();
+  eq([vv2.ppd, vv2.laneW, vv2.snap], [vv.ppd, vv.laneW, 'day'], 'zoom času, zoom streamů a krok tažení přežijí znovunačtení');
+  await page.selectOption('#snapSel', 'auto');
+  await page.click('#bLaneIn');
   await page.click('#scaleSeg button[data-scale=month]');
 
   current = '22 Export a import';

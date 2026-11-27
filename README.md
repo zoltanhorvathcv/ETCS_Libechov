@@ -14,8 +14,18 @@ automatický deploy.
 Jednoduchý editor procesní mapy na jedné stránce, bez přihlášení a bez Supabase
 (ukládá se v prohlížeči, záloha přes **Export / Import** JSON).
 
-- **Svislá osa = čas** od ledna 2020 do prosince 2030, měřítko **Týdny / Měsíce /
-  Kvartály**, české zkratky měsíců (led, úno, bře, …).
+- **Svislá osa = čas** od ledna 2020 do prosince 2030 s roky, českými zkratkami
+  měsíců (led, úno, bře, …) a zkratkami týdnů (T01–T53).
+- **Zoom času** (− / +, kolečko myši nad časovou osou, Ctrl + kolečko): plynule
+  přibližuje a oddaluje; rozlišení se samo mění od **týdnů** (nejblíž) přes
+  **měsíce** po **kvartály** (nejdál). ⤢ = celé období na výšku.
+- **Zoom streamů** (− / +, kolečko nad záhlavím streamů, Ctrl + Shift + kolečko):
+  zúží / rozšíří streamy, takže je jich na obrazovce vidět víc nebo méně.
+  ⤢ = všechny streamy na šířku.
+- **Přetahování myší:** proces chyťte a táhněte v čase (délka se zachová) nebo
+  do jiného streamu či dráhy; tažením horní / dolní hrany měníte začátek / konec.
+  Přichytává se podle měřítka (týden / měsíc / kvartál, volba „Krok“), s Alt po
+  dnech, Esc tažení zruší. Na obsazeném místě se proces uloží do volné dráhy.
 - **Vodorovná osa = streamy**; každý stream může mít více **paralelních drah**,
   takže procesy mohou běžet souběžně vedle sebe.
 - Proces má **název, role, od–do a gesci**.

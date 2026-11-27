@@ -21,7 +21,7 @@ body{display:flex;flex-direction:column;background:var(--bg);color:var(--text);
 button,input,select{font:inherit;color:inherit}
 
 /* ---------- ovládací panel ---------- */
-.tb{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:8px 16px;background:var(--panel);
+.tb{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:8px 16px;background:var(--panel);
   border-bottom:1px solid var(--border);position:relative;z-index:30}
 .tb h1{font-size:16px;margin:0 4px 0 0;font-weight:700;white-space:nowrap}
 .grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
@@ -37,9 +37,10 @@ button,input,select{font:inherit;color:inherit}
 .seg{border:1px solid var(--border);border-radius:8px;padding:2px;gap:2px;background:var(--panel2)}
 .seg button{height:28px;padding:0 10px;border:0;border-radius:6px;background:transparent;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--panel);box-shadow:0 1px 2px rgba(0,0,0,.12);font-weight:600;color:var(--accent)}
-#zoomLbl{min-width:48px;text-align:center;font-size:12px;color:var(--muted)}
+.zl{min-width:44px;text-align:center;font-size:12px;color:var(--muted)}
+.btn.sq{width:32px;justify-content:center;padding:0}
 select.btn{padding:0 6px}
-.sel-info{font-size:12px;color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sel-info{font-size:12px;color:var(--muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ---------- plocha mapy ---------- */
 main{flex:1;min-height:0;position:relative}
@@ -52,8 +53,7 @@ main{flex:1;min-height:0;position:relative}
 #corner b{color:var(--text);font-size:12px}
 #head{position:sticky;top:0;z-index:10;display:flex;background:var(--panel);border-bottom:1px solid var(--border)}
 #axis{position:sticky;left:0;z-index:8;background:var(--panel);border-right:1px solid var(--border);height:var(--totalH)}
-#body{position:relative;height:var(--totalH);background-color:var(--panel);
-  background-image:linear-gradient(to bottom,var(--grid) 1px,transparent 1px);background-size:100% var(--rowH)}
+#body{position:relative;height:var(--totalH);background-color:var(--panel)}
 
 /* záhlaví streamů */
 .shead{flex:none;display:flex;flex-direction:column;border-right:1px solid var(--border);border-top:4px solid var(--c);
@@ -82,14 +82,16 @@ main{flex:1;min-height:0;position:relative}
 .ax.mo span{position:sticky;top:calc(var(--headH) + 4px);padding:3px 6px}
 .ax.row{color:var(--text)}
 .ax.row small{color:var(--faint);margin-left:5px}
+.ax.row:not(.wk){flex-direction:column}
+.ax.row:not(.wk) small{margin:0}
 .ax.row.alt{background:var(--panel2)}
 
 /* mřížka v ploše */
 .ov{position:absolute;left:0;right:0;pointer-events:none}
 .yband.odd{background:rgba(15,23,42,.025)}
 .yline{height:0;border-top:2px solid var(--grid2)}
+.rline{height:0;border-top:1px solid var(--grid)}
 .mline{height:0;border-top:1px dashed var(--grid2);opacity:.7}
-.oor{background:repeating-linear-gradient(135deg,var(--shade) 0 6px,transparent 6px 12px);z-index:1}
 .today{height:0;border-top:2px solid var(--today);z-index:4}
 .today span{position:absolute;left:4px;top:-9px;font-size:10px;font-weight:700;color:#fff;background:var(--today);
   padding:1px 5px;border-radius:4px}
@@ -100,11 +102,12 @@ main{flex:1;min-height:0;position:relative}
 .scol-add{flex:none;width:150px}
 
 /* procesy */
-.proc{position:absolute;border-radius:6px;padding:3px 24px 3px 8px;overflow:hidden;cursor:pointer;z-index:3;
+.proc{position:absolute;border-radius:6px;padding:3px 24px 3px 8px;overflow:hidden;overflow:clip;cursor:grab;z-index:3;user-select:none;
   font-size:12px;line-height:1.3;background:color-mix(in srgb,var(--c) 15%,#fff);
   border:1px solid color-mix(in srgb,var(--c) 45%,#fff);border-left:4px solid var(--c);box-shadow:0 1px 2px rgba(0,0,0,.07)}
 .proc:hover{z-index:6;box-shadow:0 3px 10px rgba(0,0,0,.16)}
 .proc.sel{outline:2px solid var(--accent);outline-offset:1px;z-index:7}
+.p-in{position:sticky;top:calc(var(--headH) + 2px)}   /* název zůstane vidět i u dlouhého procesu */
 .p-name{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .p-dates{color:var(--muted);font-size:11px;white-space:nowrap}
 .p-gesce{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -114,6 +117,25 @@ main{flex:1;min-height:0;position:relative}
 .p-more{position:absolute;top:2px;right:2px;width:20px;height:20px;border:0;border-radius:5px;background:transparent;
   cursor:pointer;color:var(--muted);font-size:14px;line-height:1;padding:0}
 .p-more:hover{background:rgba(255,255,255,.9);color:var(--text)}
+.rz{position:absolute;left:0;right:0;height:7px;cursor:ns-resize;z-index:2}
+.rz-t{top:0}.rz-b{bottom:0}
+.rz:hover{background:color-mix(in srgb,var(--c) 35%,transparent)}
+.proc.dragging{pointer-events:none;z-index:30;opacity:.92;box-shadow:0 10px 28px rgba(20,30,50,.3);outline:2px solid var(--accent)}
+.proc.dragging.warn{outline:2px dashed #d97706}
+body.dragging,body.dragging *{user-select:none !important}
+body.drag-move,body.drag-move *{cursor:grabbing !important}
+body.drag-rz,body.drag-rz *{cursor:ns-resize !important}
+#dragTip{position:fixed;z-index:90;pointer-events:none;background:#1f2937;color:#fff;font-size:12px;line-height:1.4;
+  padding:6px 9px;border-radius:7px;box-shadow:0 6px 18px rgba(0,0,0,.25);white-space:nowrap}
+#dragTip[hidden]{display:none}
+#dragTip small{color:#cbd5e1}
+/* úzké dráhy při oddálení streamů */
+#board.narrow .sh-top .ib[data-act=add-proc],#board.narrow .sh-top .ib[data-act=add-lane]{display:none}
+#board.narrow .proc{padding:2px 18px 2px 6px;font-size:11px}
+#board.narrow .p-dates,#board.narrow .p-gesce{font-size:10px}
+#board.tiny .sh-dot,#board.tiny .p-roles,#board.tiny .p-gesce{display:none}
+#board.tiny .sh-top{padding:4px 2px 4px 5px}
+#board.tiny .sh-name{font-size:11px}
 
 /* kontextové menu */
 .ctx{position:fixed;z-index:60;min-width:230px;max-width:340px;background:var(--panel);border:1px solid var(--border);
@@ -196,17 +218,32 @@ main{flex:1;min-height:0;position:relative}
     <button class="btn" id="bLane" title="Přidat do streamu další paralelní dráhu (sloupec pro souběžné procesy)">⫴ Paralelní dráha</button>
   </div>
   <div class="grp">
-    <span class="grp-lbl">Časová osa:</span>
     <div class="grp seg" id="scaleSeg" role="group" aria-label="Měřítko časové osy">
       <button data-scale="week" aria-pressed="false">Týdny</button>
       <button data-scale="month" aria-pressed="true">Měsíce</button>
       <button data-scale="quarter" aria-pressed="false">Kvartály</button>
     </div>
   </div>
+  <div class="grp" title="Zoom časové osy: také kolečkem myši nad časovou osou (vlevo) nebo Ctrl + kolečko kdekoli v mapě">
+    <span class="grp-lbl">🔍 Čas</span>
+    <button class="btn sq" id="bTimeOut" title="Oddálit časovou osu (víc času na obrazovce, až po kvartály)" aria-label="Oddálit časovou osu">−</button>
+    <span class="zl" id="timeLbl">100 %</span>
+    <button class="btn sq" id="bTimeIn" title="Přiblížit časovou osu (méně času na obrazovce, až po týdny)" aria-label="Přiblížit časovou osu">+</button>
+    <button class="btn sq" id="bTimeFit" title="Celé období 2020–2030 na výšku obrazovky" aria-label="Celé období na výšku">⤢</button>
+  </div>
+  <div class="grp" title="Zoom streamů: také kolečkem myši nad záhlavím streamů (nahoře) nebo Ctrl + Shift + kolečko">
+    <span class="grp-lbl">🔍 Streamy</span>
+    <button class="btn sq" id="bLaneOut" title="Oddálit streamy (víc streamů na obrazovce)" aria-label="Oddálit streamy">−</button>
+    <span class="zl" id="laneLbl">100 %</span>
+    <button class="btn sq" id="bLaneIn" title="Přiblížit streamy (méně streamů, širší procesy)" aria-label="Přiblížit streamy">+</button>
+    <button class="btn sq" id="bLaneFit" title="Všechny streamy na šířku obrazovky" aria-label="Všechny streamy na šířku">⤢</button>
+  </div>
   <div class="grp">
-    <button class="btn" id="bZoomOut" title="Zmenšit výšku řádků" aria-label="Oddálit">−</button>
-    <span id="zoomLbl">100 %</span>
-    <button class="btn" id="bZoomIn" title="Zvětšit výšku řádků" aria-label="Přiblížit">+</button>
+    <span class="grp-lbl">Krok</span>
+    <select class="btn" id="snapSel" title="Na jaké jednotky se přichytává přetahovaný proces (Alt při tažení = po dnech)" aria-label="Krok tažení">
+      <option value="auto">dle měřítka</option><option value="day">Den</option><option value="week">Týden</option>
+      <option value="month">Měsíc</option><option value="quarter">Kvartál</option>
+    </select>
   </div>
   <div class="grp">
     <select class="btn" id="yearSel" title="Přejít na rok" aria-label="Přejít na rok"></select>
@@ -250,11 +287,12 @@ main{flex:1;min-height:0;position:relative}
     </div>
   </div>
 </main>
-<div class="tips">Tip: pravým tlačítkem na stream přidáte proces nebo dráhu · pravým tlačítkem na proces přidáte roli, změníte termín od–do nebo gesci · dvojklik = upravit · na dotykovém zařízení použijte ⋯</div>
+<div class="tips">Tip: proces přetáhněte myší (hrany = začátek / konec, Alt = po dnech) · kolečko nad časovou osou = zoom času, nad záhlavím = zoom streamů · pravé tlačítko = menu · dvojklik = upravit</div>
 
 <div class="ctx" id="ctx" role="menu" hidden></div>
 <div id="modal" hidden></div>
 <div id="toast" role="status" aria-live="polite" hidden></div>
+<div id="dragTip" hidden></div>
 <datalist id="dlRoles"></datalist>
 <datalist id="dlGesce"></datalist>
 
@@ -269,13 +307,18 @@ const dn = (y, m, d) => Math.round(Date.UTC(y, m, d) / DAY);      // měsíc 0�
 const Y0 = 2020, Y1 = 2030;
 const MIN_N = dn(Y0, 0, 1), MAX_N = dn(Y1, 11, 31);
 const MIN_ISO = '2020-01-01', MAX_ISO = '2030-12-31';
-const LANE_W = 190, HEAD_H = 72;
+const HEAD_H = 72, AXIS_W = 160;
+// přiblížení časové osy v pixelech na den; podle něj se samo volí měřítko (nejjemněji týden, nejhruběji kvartál)
 const SCALES = {
-  week:    { name: 'Týdny',    rowH: 26,  cols: [48, 42, 84] },
-  month:   { name: 'Měsíce',   rowH: 46,  cols: [48, 52] },
-  quarter: { name: 'Kvartály', rowH: 120, cols: [48, 74] },
+  week:    { name: 'Týdny',    preset: 4 },
+  month:   { name: 'Měsíce',   preset: 1.5 },
+  quarter: { name: 'Kvartály', preset: 0.45 },
 };
-const ZOOMS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
+const UNIT_DAYS = { week: 7, month: 30.44, quarter: 91.31 };
+const AXIS_COLS = { week: [44, 38, 78], month: [44, 116], quarter: [44, 116] };
+const PPD_MIN = 0.12, PPD_MAX = 24, WEEK_FROM = 2.6, MONTH_FROM = 0.6;
+const scaleFor = v => v >= WEEK_FROM - 1e-9 ? 'week' : v >= MONTH_FROM - 1e-9 ? 'month' : 'quarter';
+const LANE_MIN = 56, LANE_MAX = 420, LANE_DEF = 190;
 const COLORS = ['#2f6fde', '#e07b00', '#1f9d6b', '#c2387a', '#7a4fd6', '#0f8fa8', '#b8860b', '#d23b3b', '#4a5d7e'];
 const STORE = 'procesni-mapa:data:v1', VIEW = 'procesni-mapa:view:v1';
 
@@ -388,7 +431,13 @@ function saveData() { try { localStorage.setItem(STORE, JSON.stringify(data)); }
 function loadView() {
   let v = {};
   try { v = JSON.parse(localStorage.getItem(VIEW) || '{}') || {}; } catch (e) { v = {}; }
-  return { scale: SCALES[v.scale] ? v.scale : 'month', zoom: ZOOMS.includes(v.zoom) ? v.zoom : 1 };
+  const num = x => typeof x === 'number' && isFinite(x);
+  let p = num(v.ppd) ? v.ppd : SCALES[SCALES[v.scale] ? v.scale : 'month'].preset;
+  return {
+    ppd: Math.min(PPD_MAX, Math.max(PPD_MIN, p)),
+    laneW: num(v.laneW) ? Math.min(LANE_MAX, Math.max(LANE_MIN, Math.round(v.laneW))) : LANE_DEF,
+    snap: ['auto', 'day', 'week', 'month', 'quarter'].includes(v.snap) ? v.snap : 'auto',
+  };
 }
 function saveView() { try { localStorage.setItem(VIEW, JSON.stringify(view)); } catch (e) { /* bez úložiště */ } }
 
@@ -431,8 +480,11 @@ function redo() {
 }
 
 /* ================= časová osa ================= */
-let rows = [], rowH = 46;
+// Osa je lineární: y = (den − 1. 1. 2020) × ppd (pixelů na den). Měřítko (týdny / měsíce / kvartály)
+// se volí samo podle přiblížení: nejjemněji týdny, nejhruběji kvartály.
+let rows = [], rowH = 46, ppd = 1.5, LW = LANE_DEF, curScale = 'month';
 const rowCache = {};
+const weekday0 = n => (new Date(n * DAY).getUTCDay() + 6) % 7;      // pondělí = 0
 function buildRows(scale) {
   if (rowCache[scale]) return rowCache[scale];
   const r = [];
@@ -443,12 +495,13 @@ function buildRows(scale) {
     for (let y = Y0; y <= Y1; y++) for (let q = 0; q < 4; q++)
       r.push({ s: dn(y, q * 3, 1), e: dn(y, q * 3 + 3, 1), label: `Q${q + 1}`, sub: `${MONTHS[q * 3]}–${MONTHS[q * 3 + 2]}`, y });
   } else {
-    // týdny od pondělí; první týden roku 2020 začíná 30. 12. 2019
-    let s = MIN_N - ((new Date(MIN_N * DAY).getUTCDay() + 6) % 7);
+    // týdny pondělí–neděle; první (1.–5. 1. 2020) a poslední (30.–31. 12. 2030) jsou oříznuté na období
+    let s = MIN_N;
     while (s <= MAX_N) {
-      const { m, d } = ymd(s);
-      r.push({ s, e: s + 7, label: `T${pad(isoWeek(s))}`, sub: `${d}. ${MONTHS[m]}` });
-      s += 7;
+      const e = Math.min(s - weekday0(s) + 7, MAX_N + 1);
+      const { y, m, d } = ymd(s);
+      r.push({ s, e, label: `T${pad(isoWeek(s))}`, sub: `${d}. ${MONTHS[m]}`, y });
+      s = e;
     }
   }
   return (rowCache[scale] = r);
@@ -459,45 +512,78 @@ function rowIndex(n) {
   while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (rows[mid].s <= n) lo = mid; else hi = mid - 1; }
   return lo;
 }
-function dToY(n) {
-  if (n <= rows[0].s) return 0;
-  const last = rows[rows.length - 1];
-  if (n >= last.e) return rows.length * rowH;
-  const i = rowIndex(n), r = rows[i];
-  return (i + (n - r.s) / (r.e - r.s)) * rowH;
-}
-function yToD(y) {
-  const i = Math.max(0, Math.min(rows.length - 1, Math.floor(y / rowH)));
-  const r = rows[i], f = Math.min(0.9999, Math.max(0, y / rowH - i));
-  return clampN(r.s + Math.floor(f * (r.e - r.s)));
-}
-/** Období jednoho řádku aktuálního měřítka, ve kterém leží den n (oříznuté na 2020–2030). */
+const dToY = n => (Math.min(MAX_N + 1, Math.max(MIN_N, n)) - MIN_N) * ppd;
+const yToDf = y => MIN_N + y / ppd;                                  // zlomkový den (pro tažení)
+const yToD = y => clampN(Math.floor(yToDf(y)));
+/** Období jednoho řádku aktuálního měřítka, ve kterém leží den n. */
 function periodAt(n) { const r = rows[rowIndex(clampN(n))]; return { from: Math.max(MIN_N, r.s), to: Math.min(MAX_N, r.e - 1) }; }
 function periodLabel(n) {
   const r = rows[rowIndex(clampN(n))];
-  if (view.scale === 'month') return `${r.label} ${r.y}`;
-  if (view.scale === 'quarter') return `${r.label} ${r.y}`;
+  if (curScale !== 'week') return `${r.label} ${r.y}`;
   const p = periodAt(n);
   return `${r.label}: ${fmtCz(p.from)} – ${fmtCz(p.to)}`;
 }
+
+/* ---------- přichytávání při tažení ---------- */
+function floorB(n, u) {
+  if (u === 'day') return n;
+  if (u === 'week') return n - weekday0(n);
+  const { y, m } = ymd(n);
+  return u === 'month' ? dn(y, m, 1) : dn(y, m - m % 3, 1);
+}
+function nextB(n, u) {
+  if (u === 'day') return n + 1;
+  if (u === 'week') return floorB(n, u) + 7;
+  const { y, m } = ymd(n);
+  return u === 'month' ? dn(y, m + 1, 1) : dn(y, m - m % 3 + 3, 1);
+}
+function nearestB(x, u) { const n = Math.floor(x), a = floorB(n, u), b = nextB(n, u); return x - a <= b - x ? a : b; }
+function addMonths(n, k) {
+  const { y, m, d } = ymd(n);
+  if (n === dn(y, m + 1, 1) - 1) return dn(y, m + k + 1, 1) - 1;      // konec měsíce zůstane koncem měsíce
+  return dn(y, m + k, Math.min(d, dn(y, m + k + 1, 1) - dn(y, m + k, 1)));
+}
+const monthPos = x => { const n = Math.floor(x), { y, m, d } = ymd(n); return y * 12 + m + (d - 1 + x - n) / (dn(y, m + 1, 1) - dn(y, m, 1)); };
+/** Posun celého procesu o tolik jednotek, o kolik se posunula myš (d0 → d1). Délka se zachová. */
+function shiftRange(f, t, d0, d1, u) {
+  let nf, nt;
+  if (u === 'day' || u === 'week') {
+    const k = u === 'day' ? Math.round(d1 - d0) : Math.round((d1 - d0) / 7) * 7;
+    nf = f + k; nt = t + k;
+  } else {
+    const dm = monthPos(d1) - monthPos(d0);
+    const k = u === 'month' ? Math.round(dm) : Math.round(dm / 3) * 3;
+    nf = addMonths(f, k); nt = addMonths(t, k);
+  }
+  if (nf < MIN_N) { nt += MIN_N - nf; nf = MIN_N; }
+  if (nt > MAX_N) { nf -= nt - MAX_N; nt = MAX_N; }
+  return [Math.max(MIN_N, nf), Math.min(MAX_N, nt)];
+}
+function resizeStart(x, to, u) { let nf = nearestB(x, u); if (nf > to) nf = floorB(to, u); return Math.min(to, Math.max(MIN_N, nf)); }
+function resizeEnd(x, from, u) { let nt = nearestB(x, u) - 1; if (nt < from) nt = nextB(from, u) - 1; return Math.max(from, Math.min(MAX_N, nt)); }
+const snapUnit = () => view.snap === 'auto' ? curScale : view.snap;
+const UNIT_NAME = { day: 'den', week: 'týden', month: 'měsíc', quarter: 'kvartál' };
 
 /* ================= vykreslení ================= */
 const board = $('board'), head = $('head'), axis = $('axis'), body = $('body'), scroller = $('scroller');
 
 function render() {
-  const sc = SCALES[view.scale];
-  rows = buildRows(view.scale);
-  rowH = Math.max(12, Math.round(sc.rowH * view.zoom));
-  const totalH = rows.length * rowH;
-  const axisW = sc.cols.reduce((a, b) => a + b, 0);
-  board.style.setProperty('--axisW', axisW + 'px');
+  if (drag) cancelDrag();
+  view.ppd = Math.min(PPD_MAX, Math.max(PPD_MIN, view.ppd));
+  view.laneW = Math.min(LANE_MAX, Math.max(LANE_MIN, Math.round(view.laneW)));
+  ppd = view.ppd; LW = view.laneW; curScale = scaleFor(ppd);
+  rows = buildRows(curScale);
+  rowH = UNIT_DAYS[curScale] * ppd;
+  const totalH = dToY(MAX_N + 1);
+  board.style.setProperty('--axisW', AXIS_W + 'px');
   board.style.setProperty('--headH', HEAD_H + 'px');
-  board.style.setProperty('--rowH', rowH + 'px');
   board.style.setProperty('--totalH', totalH + 'px');
-  board.style.setProperty('--axFont', Math.min(12, Math.max(9, rowH - 5)) + 'px');
+  board.style.setProperty('--axFont', Math.min(12, Math.max(9, Math.floor(rowH) - 6)) + 'px');
+  board.classList.toggle('narrow', LW < 130);
+  board.classList.toggle('tiny', LW < 90);
   if (selectedId && !P(selectedId)) selectedId = null;
-  $('corner').innerHTML = `<b>${sc.name}</b><span>2020 – 2030</span>`;
-  renderHead(); renderAxis(sc); renderBody(totalH); renderToolbar(); renderDatalists();
+  $('corner').innerHTML = `<b>${SCALES[curScale].name}</b><span>2020 – 2030</span>`;
+  renderHead(); renderAxis(); renderBody(totalH); renderToolbar(); renderDatalists();
   $('empty').hidden = data.streams.length > 0;
 }
 
@@ -507,10 +593,10 @@ function renderHead() {
     let lanes = '';
     for (let l = 0; l < st.lanes; l++) {
       const empty = !data.processes.some(p => p.streamId === st.id && p.lane === l);
-      lanes += `<div class="lane-h" style="width:${LANE_W}px">Dráha ${l + 1}${st.lanes > 1 && empty
+      lanes += `<div class="lane-h" style="width:${LW}px"><span>${LW < 90 ? '' : 'Dráha '}${l + 1}</span>${st.lanes > 1 && empty
         ? `<button class="lane-x" data-act="rm-lane" data-lane="${l}" title="Odebrat prázdnou dráhu ${l + 1}" aria-label="Odebrat dráhu ${l + 1}">×</button>` : ''}</div>`;
     }
-    h += `<div class="shead" data-sid="${esc(st.id)}" style="width:${st.lanes * LANE_W}px;--c:${st.color}">
+    h += `<div class="shead" data-sid="${esc(st.id)}" style="width:${st.lanes * LW}px;--c:${st.color}">
       <div class="sh-top"><span class="sh-dot"></span><span class="sh-name" title="${esc(st.name)}">${esc(st.name)}</span>
         <button class="ib" data-act="add-proc" title="Přidat proces do streamu" aria-label="Přidat proces do streamu ${esc(st.name)}">＋</button>
         <button class="ib" data-act="add-lane" title="Přidat paralelní dráhu" aria-label="Přidat paralelní dráhu do streamu ${esc(st.name)}">⇉</button>
@@ -521,25 +607,27 @@ function renderHead() {
   head.innerHTML = h;
 }
 
-function renderAxis(sc) {
-  const [c0, c1, c2] = sc.cols;
+function renderAxis() {
+  const [c0, c1, c2] = AXIS_COLS[curScale];
   let h = '';
   for (let y = Y0; y <= Y1; y++) {
     const t = dToY(dn(y, 0, 1)), b = dToY(dn(y + 1, 0, 1));
     h += `<div class="ax yr" style="top:${t}px;height:${b - t}px;left:0;width:${c0}px"><span>${y}</span></div>`;
   }
-  if (view.scale === 'week') {
+  if (curScale === 'week') {
     for (let y = Y0; y <= Y1; y++) for (let m = 0; m < 12; m++) {
       const t = dToY(dn(y, m, 1)), b = dToY(dn(y, m + 1, 1));
       h += `<div class="ax mo" style="top:${t}px;height:${b - t}px;left:${c0}px;width:${c1}px"><span>${MONTHS[m]}</span></div>`;
     }
     rows.forEach((r, i) => {
-      h += `<div class="ax row${i % 2 ? ' alt' : ''}" style="top:${i * rowH}px;height:${rowH}px;left:${c0 + c1}px;width:${c2}px">${r.label}${rowH >= 16 ? `<small>${r.sub}</small>` : ''}</div>`;
+      const t = dToY(r.s), hh = dToY(r.e) - t;
+      h += `<div class="ax row wk${i % 2 ? ' alt' : ''}" style="top:${t}px;height:${hh}px;left:${c0 + c1}px;width:${c2}px" title="${r.label}: ${fmtCz(r.s)} – ${fmtCz(r.e - 1)}">${hh >= 11 ? r.label : ''}${hh >= 16 ? `<small>${r.sub}</small>` : ''}</div>`;
     });
   } else {
-    rows.forEach((r, i) => {
-      h += `<div class="ax row${r.y % 2 ? ' alt' : ''}" style="top:${i * rowH}px;height:${rowH}px;left:${c0}px;width:${c1}px;flex-direction:column">
-        <span>${r.label}</span>${r.sub && rowH >= 30 ? `<small style="margin:0">${r.sub}</small>` : ''}</div>`;
+    rows.forEach(r => {
+      const t = dToY(r.s), hh = dToY(r.e) - t;
+      h += `<div class="ax row${r.y % 2 ? ' alt' : ''}" style="top:${t}px;height:${hh}px;left:${c0}px;width:${c1}px">
+        <span>${r.label}</span>${r.sub && hh >= 16 ? `<small>${r.sub}</small>` : ''}</div>`;
     });
   }
   axis.innerHTML = h;
@@ -548,16 +636,17 @@ function renderAxis(sc) {
 function procHTML(p, st) {
   const f = parseISO(p.from), t = parseISO(p.to);
   const top = dToY(f), bot = dToY(t + 1);
-  const h = Math.max(20, bot - top - 2);
+  const h = Math.max(18, bot - top - 2);
   const days = t - f + 1;
-  const tip = `${p.name}\n${fmtCz(f)} – ${fmtCz(t)} (${days} ${plural(days, 'den', 'dny', 'dní')})\nGesce: ${p.gesce || '—'}\nRole: ${p.roles.join(', ') || '—'}\nStream: ${st.name}, dráha ${p.lane + 1}`;
+  const tip = `${p.name}\n${fmtCz(f)} – ${fmtCz(t)} (${days} ${plural(days, 'den', 'dny', 'dní')})\nGesce: ${p.gesce || '—'}\nRole: ${p.roles.join(', ') || '—'}\nStream: ${st.name}, dráha ${p.lane + 1}\n\nTáhnutím přesunete, tažením horní / dolní hrany změníte začátek / konec.`;
   return `<div class="proc${p.id === selectedId ? ' sel' : ''}" data-pid="${esc(p.id)}" tabindex="0"
-    style="top:${top + 1}px;height:${h}px;left:${p.lane * LANE_W + 6}px;width:${LANE_W - 12}px" title="${esc(tip)}">
-    <div class="p-name">${esc(p.name)}</div>
+    style="top:${top + 1}px;height:${h}px;left:${p.lane * LW + 4}px;width:${LW - 8}px" title="${esc(tip)}">
+    <div class="p-in"><div class="p-name">${esc(p.name)}</div>
     <div class="p-dates">${fmtCz(f)} – ${fmtCz(t)}</div>
     ${p.gesce ? `<div class="p-gesce"><b>Gesce:</b> ${esc(p.gesce)}</div>` : ''}
-    ${p.roles.length ? `<div class="p-roles">${p.roles.map(r => `<span class="chip">${esc(r)}</span>`).join('')}</div>` : ''}
-    <button class="p-more" title="Možnosti procesu" aria-label="Možnosti procesu ${esc(p.name)}">⋯</button></div>`;
+    ${p.roles.length ? `<div class="p-roles">${p.roles.map(r => `<span class="chip">${esc(r)}</span>`).join('')}</div>` : ''}</div>
+    <button class="p-more" title="Možnosti procesu" aria-label="Možnosti procesu ${esc(p.name)}">⋯</button>
+    <div class="rz rz-t" data-rz="top" title="Táhnutím změníte začátek"></div><div class="rz rz-b" data-rz="bot" title="Táhnutím změníte konec"></div></div>`;
 }
 
 function renderBody(totalH) {
@@ -567,32 +656,37 @@ function renderBody(totalH) {
     h += `<div class="ov yband${y % 2 ? ' odd' : ''}" style="top:${t}px;height:${b - t}px"></div>`;
     if (y > Y0) h += `<div class="ov yline" style="top:${t}px"></div>`;
   }
-  if (view.scale !== 'month') {
+  // čáry řádků (týdny / měsíce / kvartály) a v týdnech a kvartálech navíc tečkované hranice měsíců
+  rows.forEach((r, i) => { if (i && ymd(r.s).m + ymd(r.s).d !== 1) h += `<div class="ov rline" style="top:${dToY(r.s)}px"></div>`; });
+  if (curScale !== 'month') {
     for (let y = Y0; y <= Y1; y++) for (let m = 1; m < 12; m++) {
-      if (view.scale === 'quarter' && m % 3 === 0) continue;   // hranice kvartálu = čára řádku
+      if (curScale === 'quarter' && m % 3 === 0) continue;
       h += `<div class="ov mline" style="top:${dToY(dn(y, m, 1))}px"></div>`;
     }
   }
-  const a = dToY(MIN_N), z = dToY(MAX_N + 1);
-  if (a > 0) h += `<div class="ov oor" style="top:0;height:${a}px" title="Mimo období 2020–2030"></div>`;
-  if (z < totalH) h += `<div class="ov oor" style="top:${z}px;height:${totalH - z}px" title="Mimo období 2020–2030"></div>`;
-  if (todayN >= MIN_N && todayN <= MAX_N) h += `<div class="ov today" style="top:${dToY(todayN) + rowH * 0}px"><span>dnes</span></div>`;
+  if (todayN >= MIN_N && todayN <= MAX_N) h += `<div class="ov today" style="top:${dToY(todayN)}px"><span>dnes</span></div>`;
   h += '<div class="cols">';
   for (const st of data.streams) {
-    h += `<div class="scol" data-sid="${esc(st.id)}" style="width:${st.lanes * LANE_W}px;--c:${st.color}">`;
-    for (let l = 1; l < st.lanes; l++) h += `<div class="lsep" style="left:${l * LANE_W}px"></div>`;
+    h += `<div class="scol" data-sid="${esc(st.id)}" style="width:${st.lanes * LW}px;--c:${st.color}">`;
+    for (let l = 1; l < st.lanes; l++) h += `<div class="lsep" style="left:${l * LW}px"></div>`;
     for (const p of data.processes) if (p.streamId === st.id) h += procHTML(p, st);
     h += '</div>';
   }
   h += '<div class="scol-add"></div></div>';
   body.innerHTML = h;
+  void totalH;
 }
 
 function renderToolbar() {
-  document.querySelectorAll('#scaleSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.scale === view.scale)));
-  $('zoomLbl').textContent = Math.round(view.zoom * 100) + ' %';
-  $('bZoomOut').disabled = view.zoom === ZOOMS[0];
-  $('bZoomIn').disabled = view.zoom === ZOOMS[ZOOMS.length - 1];
+  document.querySelectorAll('#scaleSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.scale === curScale)));
+  $('timeLbl').textContent = Math.round(ppd / SCALES.month.preset * 100) + ' %';
+  $('timeLbl').title = `${SCALES[curScale].name} · ${ppd.toFixed(2)} px na den`;
+  $('bTimeOut').disabled = ppd <= PPD_MIN + 1e-9;
+  $('bTimeIn').disabled = ppd >= PPD_MAX - 1e-9;
+  $('laneLbl').textContent = Math.round(LW / LANE_DEF * 100) + ' %';
+  $('bLaneOut').disabled = LW <= LANE_MIN;
+  $('bLaneIn').disabled = LW >= LANE_MAX;
+  $('snapSel').value = view.snap;
   $('bUndo').disabled = !undoStack.length;
   $('bRedo').disabled = !redoStack.length;
   const sel = selectedId && P(selectedId);
@@ -616,40 +710,189 @@ function renderDatalists() {
   $('dlGesce').innerHTML = [...gesce].sort((a, b) => a.localeCompare(b, 'cs')).map(r => `<option value="${esc(r)}">`).join('');
 }
 
-/* ---------- posun zobrazení ---------- */
+/* ---------- posun a zoom zobrazení ---------- */
 const viewH = () => Math.max(50, scroller.clientHeight - HEAD_H);
+const viewW = () => Math.max(50, scroller.clientWidth - AXIS_W);
 function centerDay() { return yToD(scroller.scrollTop + viewH() / 2); }
 function scrollToDay(n, where = 'top') {
   const y = dToY(n);
   scroller.scrollTop = where === 'center' ? y - viewH() / 2 : y;
 }
 function scrollToProcess(p) {
-  const f = parseISO(p.from), t = parseISO(p.to);
-  const top = dToY(f), bot = dToY(t + 1);
-  if (top < scroller.scrollTop || top > scroller.scrollTop + viewH() - 30) scroller.scrollTop = top - rowH;
-  const st = S(p.streamId);
-  let x = SCALES[view.scale].cols.reduce((a, b) => a + b, 0);
-  for (const s of data.streams) { if (s === st) break; x += s.lanes * LANE_W; }
-  x += p.lane * LANE_W;
-  const axisW = SCALES[view.scale].cols.reduce((a, b) => a + b, 0);
-  if (x - axisW < scroller.scrollLeft || x + LANE_W > scroller.scrollLeft + scroller.clientWidth) scroller.scrollLeft = x - axisW - 20;
-  void bot;
+  const top = dToY(parseISO(p.from));
+  if (top < scroller.scrollTop || top > scroller.scrollTop + viewH() - 30) scroller.scrollTop = top - Math.min(rowH, 60);
+  let x = 0;
+  for (const s of data.streams) { if (s.id === p.streamId) break; x += s.lanes * LW; }
+  x += p.lane * LW;
+  if (x < scroller.scrollLeft || x + LW > scroller.scrollLeft + viewW()) scroller.scrollLeft = x - 20;
+}
+/** Zoom časové osy; kotva = místo (clientY), které má zůstat pod kurzorem. */
+function zoomTime(factor, clientY) {
+  const sr = scroller.getBoundingClientRect();
+  const ay = clientY == null ? viewH() / 2 : Math.max(0, clientY - sr.top - HEAD_H);
+  const dF = yToDf(scroller.scrollTop + ay);
+  const np = Math.min(PPD_MAX, Math.max(PPD_MIN, view.ppd * factor));
+  if (Math.abs(np - view.ppd) < 1e-9) return;
+  view.ppd = np; saveView(); render();
+  scroller.scrollTop = (dF - MIN_N) * ppd - ay;
+}
+/** Zoom streamů (šířka dráhy); kotva = místo (clientX), které má zůstat pod kurzorem. */
+function zoomLanes(factor, clientX) {
+  const sr = scroller.getBoundingClientRect();
+  const ax = clientX == null ? viewW() / 2 : Math.max(0, clientX - sr.left - AXIS_W);
+  const old = view.laneW;
+  const cx = scroller.scrollLeft + ax;
+  const nw = Math.min(LANE_MAX, Math.max(LANE_MIN, Math.round(old * factor)));
+  if (nw === old) return;
+  view.laneW = nw; saveView(); render();
+  scroller.scrollLeft = cx * nw / old - ax;
 }
 function setScale(scale) {
-  if (!SCALES[scale] || scale === view.scale) return;
+  if (!SCALES[scale]) return;
   const c = centerDay();
-  view.scale = scale; saveView(); render(); scrollToDay(c, 'center');
+  view.ppd = SCALES[scale].preset; saveView(); render(); scrollToDay(c, 'center');
 }
-function setZoom(dir) {
-  const i = ZOOMS.indexOf(view.zoom) + dir;
-  if (i < 0 || i >= ZOOMS.length) return;
-  const c = centerDay();
-  view.zoom = ZOOMS[i]; saveView(); render(); scrollToDay(c, 'center');
+function fitTime() {
+  view.ppd = Math.max(PPD_MIN, Math.min(PPD_MAX, viewH() / (MAX_N + 1 - MIN_N)));
+  saveView(); render(); scroller.scrollTop = 0;
+  toast('Celé období 2020–2030 na výšku obrazovky.');
+}
+function fitLanes() {
+  const lanes = data.streams.reduce((a, s) => a + s.lanes, 0);
+  if (!lanes) return;
+  const w = Math.floor((viewW() - 150) / lanes);
+  view.laneW = Math.min(LANE_MAX, Math.max(LANE_MIN, w));
+  saveView(); render(); scroller.scrollLeft = 0;
+  toast(w < LANE_MIN ? `Všechny streamy se nevejdou, nastavena nejmenší šířka (${LANE_MIN} px na dráhu).` : 'Všechny streamy na šířku obrazovky.');
 }
 function syncYear() {
-  const y = ymd(yToD(scroller.scrollTop + rowH * 0.5)).y;
+  const y = ymd(yToD(scroller.scrollTop + Math.min(rowH, 40) * 0.5)).y;
   if ($('yearSel').value !== String(y)) $('yearSel').value = String(y);
 }
+
+/* ================= tažení procesů myší ================= */
+let drag = null, suppressClickUntil = 0;
+const dragTip = $('dragTip');
+function startDrag() {
+  closeMenu();
+  drag.started = true;
+  select(drag.pid);
+  drag.el.classList.add('dragging');
+  document.body.classList.add('dragging', drag.mode === 'move' ? 'drag-move' : 'drag-rz');
+  try { drag.el.setPointerCapture(drag.pointerId); } catch (e) { /* nevadí */ }
+  const tick = () => {
+    if (!drag || !drag.started) return;
+    const sr = scroller.getBoundingClientRect(), E = 40;
+    let dy = 0, dx = 0;
+    if (drag.cy < sr.top + HEAD_H + E) dy = -Math.ceil((sr.top + HEAD_H + E - drag.cy) / 3);
+    else if (drag.cy > sr.bottom - E) dy = Math.ceil((drag.cy - sr.bottom + E) / 3);
+    if (drag.mode === 'move') {
+      if (drag.cx < sr.left + AXIS_W + E) dx = -Math.ceil((sr.left + AXIS_W + E - drag.cx) / 3);
+      else if (drag.cx > sr.right - E) dx = Math.ceil((drag.cx - sr.right + E) / 3);
+    }
+    if (dx || dy) {
+      const t0 = scroller.scrollTop, l0 = scroller.scrollLeft;
+      scroller.scrollTop += dy; scroller.scrollLeft += dx;
+      if (scroller.scrollTop !== t0 || scroller.scrollLeft !== l0) updateDrag();
+    }
+    drag.raf = requestAnimationFrame(tick);
+  };
+  drag.raf = requestAnimationFrame(tick);
+}
+function updateDrag() {
+  const d = drag, o = d.orig;
+  const y1 = d.cy - body.getBoundingClientRect().top;
+  const d0 = yToDf(d.bodyY0), d1 = yToDf(y1);
+  const unit = d.alt ? 'day' : snapUnit();
+  let from = o.from, to = o.to, sid = o.sid, lane = o.lane;
+  if (d.mode === 'move') {
+    [from, to] = shiftRange(o.from, o.to, d0, d1, unit);
+    const col = document.elementsFromPoint(d.cx, d.cy).find(x => x.classList && x.classList.contains('scol'));
+    if (col && S(col.dataset.sid)) {
+      const st = S(col.dataset.sid), r = col.getBoundingClientRect();
+      d.sid = st.id; d.lane = Math.max(0, Math.min(st.lanes - 1, Math.floor((d.cx - r.left) / LW)));
+    }
+    sid = d.sid; lane = d.lane;
+  } else if (d.mode === 'top') from = resizeStart(d1, o.to, unit);
+  else to = resizeEnd(d1, o.from, unit);
+  const st = S(sid);
+  const placed = findLane(sid, from, to, d.pid, lane);
+  d.res = { from, to, sid, lane: placed };
+  const col = body.querySelector(`.scol[data-sid="${CSS.escape(sid)}"]`);
+  const showLane = placed < st.lanes ? placed : lane;
+  const top = dToY(from), bot = dToY(to + 1);
+  d.el.style.top = (top + 1) + 'px';
+  d.el.style.height = Math.max(18, bot - top - 2) + 'px';
+  d.el.style.left = (col.offsetLeft - d.el.parentElement.offsetLeft + showLane * LW + 4) + 'px';
+  d.el.classList.toggle('warn', placed !== lane);
+  const dates = d.el.querySelector('.p-dates');
+  if (dates) dates.textContent = `${fmtCz(from)} – ${fmtCz(to)}`;
+  const days = to - from + 1;
+  dragTip.innerHTML = `<b>${fmtCz(from)} – ${fmtCz(to)}</b> (${days} ${plural(days, 'den', 'dny', 'dní')})<br>${esc(st.name)} · dráha ${placed + 1}${placed >= st.lanes ? ' <i>(nová)</i>' : placed !== lane ? ' <i>(volná)</i>' : ''}<br><small>krok: ${UNIT_NAME[unit]}${d.alt ? '' : ' · Alt = po dnech'} · Esc = zrušit</small>`;
+  dragTip.hidden = false;
+  const tw = dragTip.offsetWidth, th = dragTip.offsetHeight;
+  dragTip.style.left = Math.min(window.innerWidth - tw - 6, d.cx + 16) + 'px';
+  dragTip.style.top = Math.min(window.innerHeight - th - 6, d.cy + 18) + 'px';
+}
+function endDragUI() {
+  cancelAnimationFrame(drag.raf);
+  document.body.classList.remove('dragging', 'drag-move', 'drag-rz');
+  dragTip.hidden = true;
+  try { drag.el.releasePointerCapture(drag.pointerId); } catch (e) { /* nevadí */ }
+  suppressClickUntil = performance.now() + 350;
+}
+function cancelDrag() {
+  if (!drag) return;
+  const d = drag;
+  if (d.started) { endDragUI(); drag = null; render(); } else drag = null;
+  void d;
+}
+function finishDrag() {
+  const d = drag;
+  endDragUI();
+  drag = null;
+  const r = d.res, o = d.orig, p = P(d.pid);
+  if (!r || !p || (r.from === o.from && r.to === o.to && r.sid === o.sid && r.lane === o.lane)) { render(); return; }
+  const st = S(r.sid);
+  commit(() => {
+    const q = P(d.pid);
+    q.from = toISO(r.from); q.to = toISO(r.to); q.streamId = r.sid;
+    setLane(q, r.lane);
+  }, `„${p.name}“: ${fmtCz(r.from)} – ${fmtCz(r.to)} · ${st.name}, dráha ${r.lane + 1}${r.lane !== (d.mode === 'move' ? d.lane : o.lane) ? ' (přesunuto do volné dráhy)' : ''}.`);
+}
+board.addEventListener('pointerdown', e => {
+  if (e.button !== 0 || e.pointerType === 'touch' || drag) return;
+  const pe = e.target.closest('.proc');
+  if (!pe || e.target.closest('.p-more')) return;
+  const p = P(pe.dataset.pid);
+  if (!p) return;
+  const rz = e.target.closest('[data-rz]');
+  drag = { pid: p.id, el: pe, mode: rz ? rz.dataset.rz : 'move', pointerId: e.pointerId,
+    x: e.clientX, y: e.clientY, cx: e.clientX, cy: e.clientY, alt: e.altKey, started: false,
+    bodyY0: e.clientY - body.getBoundingClientRect().top,
+    orig: { from: parseISO(p.from), to: parseISO(p.to), sid: p.streamId, lane: p.lane }, sid: p.streamId, lane: p.lane };
+});
+window.addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.pointerId) return;
+  drag.cx = e.clientX; drag.cy = e.clientY; drag.alt = e.altKey;
+  if (!drag.started) {
+    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 4) return;
+    startDrag();
+  }
+  e.preventDefault();
+  updateDrag();
+});
+window.addEventListener('pointerup', e => {
+  if (!drag || e.pointerId !== drag.pointerId) return;
+  if (drag.started) finishDrag(); else drag = null;
+});
+window.addEventListener('pointercancel', e => { if (drag && e.pointerId === drag.pointerId) cancelDrag(); });
+window.addEventListener('keydown', e => {
+  if (!drag || !drag.started) return;
+  if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cancelDrag(); toast('Přesun zrušen.'); }
+  else if (e.key === 'Alt' && !drag.alt) { e.preventDefault(); drag.alt = true; updateDrag(); }
+}, true);
+window.addEventListener('keyup', e => { if (drag && drag.started && e.key === 'Alt') { e.preventDefault(); drag.alt = false; updateDrag(); } }, true);
 
 /* ================= toast ================= */
 let toastT = 0;
@@ -993,7 +1236,9 @@ function helpDialog() {
   openModal({
     title: 'Nápověda', submit: 'Rozumím', cancel: '',
     html: `<ul>
-      <li><b>Svislá osa</b> je čas (leden 2020 – prosinec 2030). Měřítko přepnete na <b>Týdny / Měsíce / Kvartály</b>, výšku řádků tlačítky − a +.</li>
+      <li><b>Svislá osa</b> je čas (leden 2020 – prosinec 2030). <b>Zoom čas</b> (− / +, nebo kolečko myši nad časovou osou, nebo Ctrl + kolečko) přibližuje a oddaluje čas; rozlišení se samo mění od <b>týdnů</b> (nejblíž) přes <b>měsíce</b> po <b>kvartály</b> (nejdál). Tlačítka Týdny / Měsíce / Kvartály skočí přímo na dané rozlišení, ⤢ ukáže celé období.</li>
+      <li><b>Zoom streamy</b> (− / +, nebo kolečko myši nad záhlavím streamů, nebo Ctrl + Shift + kolečko) zužuje a rozšiřuje streamy, takže jich na obrazovce vidíte víc nebo méně; ⤢ vejde všechny streamy na šířku.</li>
+      <li><b>Přetahování myší:</b> proces chyťte a táhněte nahoru / dolů (posun v čase se zachováním délky) nebo do jiného streamu či dráhy. Tažením <b>horní hrany</b> měníte začátek, <b>dolní hrany</b> konec. Proces se přichytává podle měřítka (týden / měsíc / kvartál, lze změnit v „Krok tažení“), s klávesou <b>Alt</b> po dnech. Esc tažení zruší. Když je cílové místo obsazené, proces se uloží do volné paralelní dráhy.</li>
       <li><b>Vodorovná osa</b> obsahuje <b>streamy</b>. Každý stream může mít více <b>paralelních drah</b>, aby mohly procesy běžet souběžně vedle sebe.</li>
       <li><b>＋ Stream</b> přidá stream, <b>＋ Proces</b> přidá proces, <b>⇉ Paralelní proces</b> přidá proces souběžně k vybranému, <b>⫴ Paralelní dráha</b> přidá prázdnou dráhu.</li>
       <li><b>Pravým tlačítkem na stream</b> přidáte proces přesně do kliknutého období a dráhy, přidáte nebo odeberete dráhu, přejmenujete nebo smažete stream.</li>
@@ -1074,11 +1319,12 @@ function importFile(file) {
 /* ================= události ================= */
 function posInColumn(col, e) {
   const st = S(col.dataset.sid), r = col.getBoundingClientRect();
-  const lane = Math.max(0, Math.min(st.lanes - 1, Math.floor((e.clientX - r.left) / LANE_W)));
+  const lane = Math.max(0, Math.min(st.lanes - 1, Math.floor((e.clientX - r.left) / LW)));
   return { lane, day: yToD(e.clientY - r.top) };
 }
 
 board.addEventListener('click', e => {
+  if (performance.now() < suppressClickUntil) return;          // klik na konci přetažení
   const a = e.target.closest('[data-act]');
   if (a) {
     const sid = a.closest('[data-sid]')?.dataset.sid;
@@ -1150,8 +1396,36 @@ $('bEdit').onclick = () => selectedId && processDialog({ mode: 'edit', id: selec
 $('bDel').onclick = () => selectedId && deleteProcess(selectedId);
 $('bUndo').onclick = undo;
 $('bRedo').onclick = redo;
-$('bZoomIn').onclick = () => setZoom(+1);
-$('bZoomOut').onclick = () => setZoom(-1);
+$('bTimeIn').onclick = () => zoomTime(1.25);
+$('bTimeOut').onclick = () => zoomTime(0.8);
+$('bTimeFit').onclick = fitTime;
+$('bLaneIn').onclick = () => zoomLanes(1.25);
+$('bLaneOut').onclick = () => zoomLanes(0.8);
+$('bLaneFit').onclick = fitLanes;
+$('snapSel').onchange = e => { view.snap = e.target.value; saveView(); toast(`Krok tažení: ${e.target.selectedOptions[0].text.toLowerCase()}.`); };
+
+// kolečko myši: nad časovou osou = zoom času, nad záhlavím streamů = zoom streamů,
+// Ctrl + kolečko (i gesto sevření na touchpadu) = zoom času, Ctrl + Shift + kolečko = zoom streamů
+let wheelAcc = null;
+scroller.addEventListener('wheel', e => {
+  if (drag && drag.started) { e.preventDefault(); return; }
+  let mode = null;
+  if (e.ctrlKey || e.metaKey) mode = e.shiftKey ? 'lanes' : 'time';
+  else if (e.target.closest('#axis,#corner')) mode = 'time';
+  else if (e.target.closest('#head') && Math.abs(e.deltaY) >= Math.abs(e.deltaX)) mode = 'lanes';
+  if (!mode) return;
+  e.preventDefault();
+  let dl = e.deltaY || e.deltaX;
+  if (e.deltaMode === 1) dl *= 16; else if (e.deltaMode === 2) dl *= 400;
+  const f = Math.exp(-Math.max(-250, Math.min(250, dl)) * 0.0018);
+  if (wheelAcc && wheelAcc.mode === mode) { wheelAcc.f *= f; wheelAcc.x = e.clientX; wheelAcc.y = e.clientY; return; }
+  if (wheelAcc) return;
+  wheelAcc = { mode, f, x: e.clientX, y: e.clientY };
+  requestAnimationFrame(() => {
+    const w = wheelAcc; wheelAcc = null;
+    if (w.mode === 'time') zoomTime(w.f, w.y); else zoomLanes(w.f, w.x);
+  });
+}, { passive: false });
 $('bToday').onclick = () => scrollToDay(clampN(todayN), 'center');
 $('bExport').onclick = exportJSON;
 $('bImport').onclick = () => { $('fileIn').value = ''; $('fileIn').click(); };
@@ -1192,7 +1466,8 @@ scrollToDay(todayN >= MIN_N && todayN <= MAX_N ? Math.min(todayN, firstProc ?? t
 syncYear();
 
 // rozhraní pro automatické testy a ladění
-window.procesniMapa = { get data() { return data; }, get view() { return view; }, dToY: n => dToY(n), parseISO, toISO, render };
+window.procesniMapa = { get data() { return data; }, get view() { return view; }, get scale() { return curScale; },
+  dToY: n => dToY(n), parseISO, toISO, render, AXIS_W, HEAD_H };
 })();
 </script>
 </body>
