@@ -112,6 +112,21 @@ main{flex:1;min-height:0;position:relative}
 .p-dates{color:var(--muted);font-size:11px;white-space:nowrap}
 .p-gesce{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .p-roles{display:flex;flex-wrap:wrap;gap:3px;margin-top:2px}
+.p-dates.est{color:#b45309;font-style:italic;white-space:normal;line-height:1.25}
+.p-io{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-miss{font-size:11px;color:#b45309;font-weight:600;line-height:1.25;margin-top:1px}
+.p-miss.bad{color:var(--danger)}
+.proc.nodate{border-style:dashed;border-left-style:dashed;
+  background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--c) 7%,#fff) 0 7px,color-mix(in srgb,var(--c) 17%,#fff) 7px 14px)}
+.proc.incomplete::after{content:'';position:absolute;right:0;bottom:0;border:6px solid transparent;
+  border-right-color:#f59e0b;border-bottom-color:#f59e0b;border-bottom-right-radius:5px}
+.proc.conflict{border-color:var(--danger);box-shadow:0 0 0 1px var(--danger)}
+svg.links{position:absolute;left:0;top:0;z-index:1;pointer-events:none;overflow:visible}
+svg.links path.lk{fill:none;stroke:#7d879b;stroke-width:1.6;opacity:.9}
+svg.links path.lk.est{stroke-dasharray:5 4}
+svg.links.has-sel path.lk:not(.rel):not(.bad){opacity:.22}
+svg.links path.lk.rel{stroke:var(--accent);stroke-width:2.4;opacity:1}
+svg.links path.lk.bad{stroke:var(--danger);stroke-width:2.2;opacity:1}
 .chip{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:0 6px;border-radius:9px;
   background:rgba(255,255,255,.8);border:1px solid color-mix(in srgb,var(--c,#2f6fde) 35%,#fff);white-space:nowrap}
 .p-more{position:absolute;top:2px;right:2px;width:20px;height:20px;border:0;border-radius:5px;background:transparent;
@@ -154,7 +169,7 @@ body.drag-rz,body.drag-rz *{cursor:ns-resize !important}
 #modal{position:fixed;inset:0;z-index:70;background:rgba(20,28,45,.38);display:flex;align-items:flex-start;justify-content:center;
   padding:8vh 16px 16px;overflow:auto}
 #modal[hidden]{display:none}
-.mdl{width:100%;max-width:520px;background:var(--panel);border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.25);padding:18px 20px}
+.mdl{width:100%;max-width:580px;background:var(--panel);border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.25);padding:18px 20px}
 .mdl h2{margin:0 0 12px;font-size:17px}
 .mdl label,.mdl .fld{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:600}
 .mdl input[type=text],.mdl input[type=date],.mdl select{height:36px;padding:0 10px;border:1px solid var(--border);border-radius:7px;
@@ -178,6 +193,31 @@ body.drag-rz,body.drag-rz *{cursor:ns-resize !important}
 .swatches input:checked+span{box-shadow:0 0 0 2px var(--text)}
 .swatches input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
 .mdl ul{margin:0;padding-left:18px;font-size:13px;color:var(--text)}
+.mdl label.chk{flex-direction:row;align-items:center;gap:8px;font-weight:400;color:var(--text);font-size:13px}
+.mdl label.chk input{margin:0;width:16px;height:16px;flex:none}
+.mdl .io{display:flex;flex-direction:column;gap:6px}
+.mdl ul.io-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px}
+.io-list li{display:flex;align-items:center;justify-content:space-between;gap:6px;background:var(--panel2);border:1px solid var(--border);
+  border-radius:6px;padding:4px 4px 4px 8px;font-size:13px;font-weight:400;color:var(--text)}
+.io-list li.none{color:#b45309;background:#fff7ed;border-color:#fed7aa;padding:6px 8px}
+.io-list li button{border:0;background:transparent;cursor:pointer;color:var(--muted);font-size:16px;line-height:1;padding:2px 6px;border-radius:4px}
+.io-list li button:hover{color:var(--danger);background:#fde8e8}
+.io-add{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:6px}
+.io-add select,.io-add input{width:100%;min-width:0}
+.io-add [data-k]{grid-column:1;grid-row:1}
+.io-add [data-need]{grid-column:2;grid-row:1}
+.io-add [data-p],.io-add [data-t]{grid-column:1 / 3;grid-row:2}
+.io-add [data-add]{grid-column:3;grid-row:1 / 3;height:auto;align-self:stretch}
+.mdl [hidden]{display:none !important}
+.chk-h{font-size:14px;margin:12px 0 6px}
+.mdl ul.chk-l{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:3px;max-height:34vh;overflow:auto}
+.chk-l button{width:100%;text-align:left;border:1px solid var(--border);background:var(--panel2);border-radius:6px;padding:6px 8px;
+  cursor:pointer;font-size:13px;color:var(--text)}
+.chk-l button:hover{border-color:var(--accent);background:var(--accent-soft)}
+.cnt{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:#f59e0b;color:#fff;font-size:11px;
+  line-height:18px;text-align:center;font-weight:700}
+.cnt.zero{background:#1f9d6b}
+.btn[aria-pressed="true"]{background:var(--accent-soft);border-color:#b9cff5;color:var(--accent)}
 .mdl li{margin:3px 0}
 
 /* prázdný stav, toast, tipy */
@@ -252,6 +292,8 @@ body.drag-rz,body.drag-rz *{cursor:ns-resize !important}
   <div class="grp">
     <button class="btn" id="bUndo" title="Vrátit poslední změnu (Ctrl+Z)">↶ Zpět</button>
     <button class="btn" id="bRedo" title="Zopakovat vrácenou změnu (Ctrl+Y)">↷ Znovu</button>
+    <button class="btn" id="bLinks" aria-pressed="true" title="Zobrazit / skrýt šipky vazeb mezi procesy (co je nutné dokončit, aby šlo proces zahájit či dokončit)">🔗 Vazby</button>
+    <button class="btn" id="bCheck" title="Kontrola mapy: chybějící základní parametry (gestor, od–do, vstup, výstup) a konflikty vazeb">⚠ Kontrola <span class="cnt" id="checkCnt">0</span></button>
   </div>
   <div class="grp">
     <span class="sel-info" id="selInfo">Nic není vybráno</span>
@@ -282,12 +324,12 @@ body.drag-rz,body.drag-rz *{cursor:ns-resize !important}
       <p>Začněte vytvořením streamu. Procesy do něj pak přidáte tlačítkem nebo pravým tlačítkem myši.</p>
       <div>
         <button class="btn primary" id="eStream">＋ Vytvořit stream</button>
-        <button class="btn" id="eSample">Načíst ukázková data</button>
+        <button class="btn" id="eSample">Načíst mapu stavby podle zadání</button>
       </div>
     </div>
   </div>
 </main>
-<div class="tips">Tip: proces přetáhněte myší (hrany = začátek / konec, Alt = po dnech) · kolečko nad časovou osou = zoom času, nad záhlavím = zoom streamů · pravé tlačítko = menu · dvojklik = upravit</div>
+<div class="tips">Tip: proces přetáhněte myší (hrany = začátek / konec, Alt = po dnech; proces bez termínu tím zakotvíte) · kolečko nad časovou osou = zoom času, nad záhlavím = zoom streamů · pravé tlačítko = menu (role, termín, gestor, vstupy, výstupy) · dvojklik = upravit</div>
 
 <div class="ctx" id="ctx" role="menu" hidden></div>
 <div id="modal" hidden></div>
@@ -352,30 +394,52 @@ const plural = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4 ? b : c);
 /* ================= data ================= */
 function emptyMap() { return { version: 1, streams: [], processes: [] }; }
 
-function sample() {
-  const s = (id, name, color, lanes) => ({ id, name, color, lanes });
-  const p = (id, streamId, lane, name, from, to, gesce, roles) => ({ id, streamId, lane, name, from, to, gesce, roles });
+/** Mapa stavby podle zadání: příprava a dokumentace, realizace, schvalování a přezkoušení. */
+function projectMap() {
+  const P_ = (id, streamId, lane, name, from, to, gesce, extra = {}) =>
+    ({ id, streamId, lane, name, from, to, gesce, roles: [], inputs: [], outputs: [], anchor: null, ...extra });
+  const fin = pid => ({ kind: 'proc', pid, need: 'finish' });
+  const after = pid => ({ anchor: { pid, mode: 'after' } });
   return {
     version: 1,
     streams: [
-      s('s1', 'Příprava stavby', COLORS[0], 2),
-      s('s2', 'Realizace', COLORS[1], 1),
-      s('s3', 'Schvalování a bezpečnost', COLORS[2], 1),
+      { id: 's1', name: 'Příprava stavby a dokumentace stavby', color: COLORS[0], lanes: 4 },
+      { id: 's2', name: 'Realizace', color: COLORS[1], lanes: 1 },
+      { id: 's3', name: 'Schvalování a přezkoušení', color: COLORS[2], lanes: 2 },
     ],
     processes: [
-      p('p1', 's1', 0, 'Studie proveditelnosti', '2025-01-01', '2025-09-30', 'Odbor přípravy staveb', ['Projektový manažer', 'Projektant']),
-      p('p2', 's1', 0, 'Dokumentace pro povolení', '2025-10-01', '2026-06-30', 'Odbor přípravy staveb', ['Projektant']),
-      p('p3', 's1', 1, 'Majetkoprávní vypořádání', '2025-11-01', '2026-08-31', 'Odbor správy majetku', ['Inženýr', 'Právník']),
-      p('p4', 's2', 0, 'Výběr zhotovitele', '2026-07-01', '2026-12-31', 'Odbor veřejných zakázek', ['Zadavatel']),
-      p('p5', 's2', 0, 'Stavba', '2027-02-01', '2028-10-31', 'Stavební správa', ['Stavbyvedoucí', 'TDS']),
-      p('p6', 's3', 0, 'Posouzení bezpečnosti', '2027-06-01', '2028-12-31', 'Odbor bezpečnosti', ['Posuzovatel']),
+      P_('pdps', 's1', 0, 'PDPS – projektová dokumentace pro provádění stavby', '2026-03-01', '2027-03-31', '',
+        { inputs: ['dlzt', 'asbo', 'ic', 'sr', 'aut'].map(fin) }),
+      P_('ic', 's1', 1, 'Inženýrská činnost', '2026-12-01', '2027-03-31', ''),
+      P_('sr', 's1', 2, 'Souhrnný rozpočet', '2026-11-15', '2026-12-15', ''),
+      P_('aut', 's1', 3, 'Autorizace', '2026-12-01', '2027-02-28', 'Aleš Cipris'),
+      P_('rds', 's1', 0, 'RDS – realizační dokumentace stavby', '', '', '', after('pdps')),
+      P_('dsps', 's1', 0, 'DSPS – dokumentace skutečného provedení stavby', '', '', '', after('rds')),
+      P_('predani', 's2', 0, 'Předání staveniště', '', '', '', after('pdps')),
+      P_('denik', 's2', 0, 'Stavební deník', '', '', '', after('predani')),
+      P_('vykop', 's2', 0, 'Výkopové práce', '', '', '', after('denik')),
+      P_('kabel', 's2', 0, 'Kabelizace', '', '', '', after('vykop')),
+      P_('montaz', 's2', 0, 'Montáž technologie', '', '', '', { ...after('kabel'), inputs: [fin('sm008')] }),
+      P_('dlzt', 's3', 0, 'DLZT', '2026-11-15', '2026-12-15', 'CTD'),
+      P_('asbo', 's3', 1, 'AsBo', '2026-11-15', '2026-12-15', 'CTD'),
+      P_('noboisv', 's3', 0, 'NoBo – ISV', '2027-02-01', '2027-03-31', 'O26, O25, SSZ', { inputs: [fin('pdps')] }),
+      P_('sm008', 's3', 1, 'Dokončení schválení přípustnosti LEU jednotek a balíz Siemens Mobility dle SM 008', '', '', '',
+        { anchor: { pid: 'noboisv', mode: 'with' } }),
+      P_('tpaz', 's3', 0, 'TPaZ UTZ – technické prohlídky a zkoušky UTZ', '', '', '', after('noboisv')),
+      P_('tbz', 's3', 0, 'TBZ – technicko-bezpečnostní zkouška', '', '', '', after('tpaz')),
+      P_('nobo', 's3', 0, 'NoBo', '', '', '', after('tbz')),
+      P_('dupzutz', 's3', 0, 'Drážní úřad – průkaz způsobilosti UTZ', '', '', '', after('nobo')),
+      P_('dupzdr', 's3', 0, 'Drážní úřad – průkaz způsobilosti dráhy', '', '', '', after('dupzutz')),
     ],
   };
 }
 
 function conflictsIn(list, sid, lane, f, t, exId) {
-  return list.filter(p => p.id !== exId && p.streamId === sid && p.lane === lane &&
-    parseISO(p.from) <= t && f <= parseISO(p.to));
+  return list.filter(p => {
+    if (p.id === exId || p.streamId !== sid || p.lane !== lane) return false;
+    const pf = parseISO(p.from), pt = parseISO(p.to);
+    return pf != null && pt != null && pf <= t && f <= pt;      // proces bez termínu dráhu neblokuje
+  });
 }
 
 /** Ověří a vyčistí data (z localStorage nebo importu). Vyhodí chybu, když nejde o procesní mapu. */
@@ -396,29 +460,65 @@ function normalize(d) {
       _oldId: s.id,
     });
   });
+  const idMap = new Map(), raw = [];
   d.processes.forEach(p => {
     if (!p || typeof p !== 'object') return;
     const st = out.streams.find(s => s._oldId === p.streamId || s.id === p.streamId);
     if (!st) return;
     let f = parseISO(p.from), t = parseISO(p.to);
-    if (f == null || t == null) return;
-    f = clampN(f); t = clampN(t);
-    if (t < f) [f, t] = [t, f];
+    if (f == null || t == null) f = t = null;                   // termín je nepovinný – buď celý, nebo žádný
+    else { f = clampN(f); t = clampN(t); if (t < f) [f, t] = [t, f]; }
     let id = String(p.id || '') || uid('p');
     if (pids.has(id)) id = uid('p');
     pids.add(id);
+    if (p.id != null && !idMap.has(String(p.id))) idMap.set(String(p.id), id);
     const roles = Array.isArray(p.roles) ? [...new Set(p.roles.map(r => String(r).trim()).filter(Boolean))] : [];
     const proc = { id, streamId: st.id, lane: 0, name: (String(p.name ?? '').trim() || 'Proces').slice(0, 200),
-      from: toISO(f), to: toISO(t), gesce: String(p.gesce ?? '').trim().slice(0, 200), roles };
+      from: f == null ? '' : toISO(f), to: t == null ? '' : toISO(t), gesce: String(p.gesce ?? '').trim().slice(0, 200), roles,
+      inputs: [], outputs: [], anchor: null };
     let lane = Number.isInteger(p.lane) && p.lane >= 0 && p.lane < 40 ? p.lane : 0;
-    if (conflictsIn(out.processes, st.id, lane, f, t, null).length) {
+    if (f != null && conflictsIn(out.processes, st.id, lane, f, t, null).length) {
       lane = 0;
       while (conflictsIn(out.processes, st.id, lane, f, t, null).length) lane++;
     }
     proc.lane = lane;
     if (lane >= st.lanes) st.lanes = lane + 1;
     out.processes.push(proc);
+    raw.push([proc, p]);
   });
+  const txt = v => String(v ?? '').trim().slice(0, 300);
+  const byOld = id => out.processes.find(q => q.id === idMap.get(String(id)));
+  raw.forEach(([proc, p]) => {
+    (Array.isArray(p.inputs) ? p.inputs : []).forEach(i => {
+      if (!i || typeof i !== 'object') return;
+      if (i.kind === 'proc') {
+        const q = byOld(i.pid);
+        if (q && q !== proc && !proc.inputs.some(x => x.kind === 'proc' && x.pid === q.id))
+          proc.inputs.push({ kind: 'proc', pid: q.id, need: i.need === 'start' ? 'start' : 'finish' });
+      } else if (i.kind === 'doc' || i.kind === 'sub') {
+        const t = txt(i.text);
+        if (t && !proc.inputs.some(x => x.kind === i.kind && x.text === t)) proc.inputs.push({ kind: i.kind, text: t });
+      }
+    });
+    (Array.isArray(p.outputs) ? p.outputs : []).forEach(o => {
+      if (!o || typeof o !== 'object') return;
+      if (o.kind === 'doc' || o.kind === 'sub') {
+        const t = txt(o.text);
+        if (t && !proc.outputs.some(x => x.kind === o.kind && x.text === t)) proc.outputs.push({ kind: o.kind, text: t });
+      }
+    });
+    if (p.anchor && typeof p.anchor === 'object') {
+      const q = byOld(p.anchor.pid);
+      if (q && q !== proc) proc.anchor = { pid: q.id, mode: p.anchor.mode === 'with' ? 'with' : 'after' };
+    }
+  });
+  // výstup „vstup pro proces X“ se ukládá jen jednou – jako vstup procesu X
+  raw.forEach(([proc, p]) => (Array.isArray(p.outputs) ? p.outputs : []).forEach(o => {
+    if (!o || o.kind !== 'proc') return;
+    const q = byOld(o.pid);
+    if (q && q !== proc && !q.inputs.some(i => i.kind === 'proc' && i.pid === proc.id))
+      q.inputs.push({ kind: 'proc', pid: proc.id, need: o.need === 'start' ? 'start' : 'finish' });
+  }));
   out.streams.forEach(s => delete s._oldId);
   return out;
 }
@@ -437,11 +537,12 @@ function loadView() {
     ppd: Math.min(PPD_MAX, Math.max(PPD_MIN, p)),
     laneW: num(v.laneW) ? Math.min(LANE_MAX, Math.max(LANE_MIN, Math.round(v.laneW))) : LANE_DEF,
     snap: ['auto', 'day', 'week', 'month', 'quarter'].includes(v.snap) ? v.snap : 'auto',
+    links: v.links !== false,
   };
 }
 function saveView() { try { localStorage.setItem(VIEW, JSON.stringify(view)); } catch (e) { /* bez úložiště */ } }
 
-let data = loadData() || normalize(sample());
+let data = loadData() || normalize(projectMap());
 let view = loadView();
 let selectedId = null;
 const undoStack = [], redoStack = [];
@@ -457,6 +558,118 @@ function findLane(sid, f, t, exId, prefer) {
   return st.lanes;
 }
 function setLane(p, lane) { const st = S(p.streamId); if (lane >= st.lanes) st.lanes = lane + 1; p.lane = lane; }
+
+/* ---------- procesy bez termínu: orientační umístění ---------- */
+const hasDates = p => !!(p.from && p.to);
+let effCache = null;
+/** Termín pro vykreslení: skutečný, nebo orientační (za / souběžně s procesem, za vstupy, za předchozím v dráze). */
+function effMap() {
+  if (effCache) return effCache;
+  const m = new Map(), visiting = new Set();
+  const get = p => {
+    if (m.has(p.id)) return m.get(p.id);
+    if (hasDates(p)) { const r = { f: parseISO(p.from), t: parseISO(p.to), est: false, why: '' }; m.set(p.id, r); return r; }
+    if (visiting.has(p.id)) return null;                        // kruh v orientačních vazbách
+    visiting.add(p.id);
+    let f = null, t = null, why = '';
+    const a = p.anchor && P(p.anchor.pid), ea = a && get(a);
+    if (ea) {
+      if (p.anchor.mode === 'with') { f = ea.f; t = ea.t; why = `souběžně s „${a.name}“`; }
+      else { f = ea.t + 1; why = `za „${a.name}“`; }
+    }
+    if (f == null) {
+      const ins = p.inputs.filter(i => i.kind === 'proc').map(i => P(i.pid)).filter(Boolean).map(get).filter(Boolean);
+      if (ins.length) { f = Math.max(...ins.map(e => e.t)) + 1; why = 'za svými vstupy'; }
+    }
+    if (f == null) {
+      for (let i = data.processes.indexOf(p) - 1; i >= 0; i--) {
+        const q = data.processes[i];
+        if (q.streamId !== p.streamId || q.lane !== p.lane) continue;
+        const e = get(q);
+        if (e) { f = e.t + 1; why = `za „${q.name}“`; break; }
+      }
+    }
+    if (f == null) { f = floorB(clampN(todayN), 'month'); why = 'bez návaznosti'; }
+    if (t == null) t = addMonths(f, 1) - 1;
+    if (t > MAX_N) { const len = t - f; t = MAX_N; f = Math.max(MIN_N, t - len); }
+    f = clampN(f); t = Math.max(f, clampN(t));
+    const r = { f, t, est: true, why };
+    visiting.delete(p.id); m.set(p.id, r);
+    return r;
+  };
+  data.processes.forEach(get);
+  return (effCache = m);
+}
+const eff = p => effMap().get(p.id) || { f: clampN(todayN), t: clampN(todayN), est: true, why: '' };
+
+/* ---------- vstupy, výstupy a vazby ---------- */
+/** Procesy, pro které je tento proces vstupem (výstup „vstup pro proces“). */
+const outputsProc = p => data.processes.filter(q => q.inputs.some(i => i.kind === 'proc' && i.pid === p.id));
+const needTxt = n => n === 'start' ? 'podmiňuje zahájení' : 'podmiňuje dokončení';
+function ioText(it, which) {
+  if (it.kind === 'doc') return `📄 Dokument: ${it.text}`;
+  if (it.kind === 'sub') return `↳ Podproces: ${it.text}`;
+  const q = P(it.pid), n = q ? `„${q.name}“` : '(smazaný proces)';
+  return which === 'in' ? `⏹ Dokončení ${n} – ${needTxt(it.need)}` : `➜ Vstup pro ${n} – ${needTxt(it.need)}`;
+}
+function setIO(q, inputs, outs) {
+  if (inputs) q.inputs = inputs.map(i => ({ ...i }));
+  if (outs) {
+    q.outputs = outs.filter(o => o.kind !== 'proc').map(o => ({ kind: o.kind, text: o.text }));
+    const targets = new Map(outs.filter(o => o.kind === 'proc').map(o => [o.pid, o.need]));
+    data.processes.forEach(t => {
+      if (t.id === q.id) return;
+      const i = t.inputs.findIndex(x => x.kind === 'proc' && x.pid === q.id);
+      if (targets.has(t.id)) { if (i < 0) t.inputs.push({ kind: 'proc', pid: q.id, need: targets.get(t.id) }); else t.inputs[i].need = targets.get(t.id); }
+      else if (i >= 0) t.inputs.splice(i, 1);
+    });
+  }
+}
+/** Najde kruh ve vazbách (A je vstupem B … je vstupem A). Vrátí názvy procesů v kruhu, nebo null. */
+function findCycle() {
+  const state = new Map(), stack = [];
+  const succ = id => data.processes.filter(q => q.inputs.some(i => i.kind === 'proc' && i.pid === id)).map(q => q.id);
+  const dfs = id => {
+    state.set(id, 1); stack.push(id);
+    for (const n of succ(id)) {
+      if (state.get(n) === 1) return stack.slice(stack.indexOf(n)).concat(n);
+      if (!state.get(n)) { const r = dfs(n); if (r) return r; }
+    }
+    state.set(id, 2); stack.pop();
+    return null;
+  };
+  for (const p of data.processes) if (!state.get(p.id)) { const r = dfs(p.id); if (r) return r.map(id => P(id).name); }
+  return null;
+}
+function assertNoCycle() {
+  const c = findCycle();
+  if (c) throw new Error(`Vazby by vytvořily kruh: ${c.join(' → ')}. Uložení zrušeno.`);
+}
+/** Chybějící základní parametry (gestor, od–do, vstup, výstup) a konflikty vazeb. */
+let issues = { miss: new Map(), conflicts: [] };
+function computeIssues() {
+  const used = new Set();
+  data.processes.forEach(q => q.inputs.forEach(i => { if (i.kind === 'proc') used.add(i.pid); }));
+  const miss = new Map(), conflicts = [];
+  data.processes.forEach(p => {
+    const m = [];
+    if (!p.gesce) m.push('gestor');
+    if (!hasDates(p)) m.push('od–do');
+    if (!p.inputs.length) m.push('vstup');
+    if (!p.outputs.length && !used.has(p.id)) m.push('výstup');
+    if (m.length) miss.set(p.id, m);
+    p.inputs.forEach(i => {
+      const q = i.kind === 'proc' && P(i.pid);
+      if (!q || !hasDates(q) || !hasDates(p)) return;
+      const qt = parseISO(q.to);
+      if (i.need === 'finish' && qt > parseISO(p.to))
+        conflicts.push({ src: q.id, tgt: p.id, msg: `„${q.name}“ končí ${fmtCz(qt)}, ale „${p.name}“ má skončit už ${fmtCz(parseISO(p.to))} – přitom jeho dokončení podmiňuje.` });
+      if (i.need === 'start' && qt >= parseISO(p.from))
+        conflicts.push({ src: q.id, tgt: p.id, msg: `„${q.name}“ končí ${fmtCz(qt)}, ale „${p.name}“ má začít už ${fmtCz(parseISO(p.from))} – přitom jeho dokončení podmiňuje zahájení.` });
+    });
+  });
+  return { miss, conflicts };
+}
 
 function commit(fn, msg) {
   const before = JSON.stringify(data);
@@ -569,6 +782,8 @@ const board = $('board'), head = $('head'), axis = $('axis'), body = $('body'), 
 
 function render() {
   if (drag) cancelDrag();
+  effCache = null;
+  issues = computeIssues();
   view.ppd = Math.min(PPD_MAX, Math.max(PPD_MIN, view.ppd));
   view.laneW = Math.min(LANE_MAX, Math.max(LANE_MIN, Math.round(view.laneW)));
   ppd = view.ppd; LW = view.laneW; curScale = scaleFor(ppd);
@@ -634,19 +849,65 @@ function renderAxis() {
 }
 
 function procHTML(p, st) {
-  const f = parseISO(p.from), t = parseISO(p.to);
+  const e = eff(p), f = e.f, t = e.t;
   const top = dToY(f), bot = dToY(t + 1);
   const h = Math.max(18, bot - top - 2);
   const days = t - f + 1;
-  const tip = `${p.name}\n${fmtCz(f)} – ${fmtCz(t)} (${days} ${plural(days, 'den', 'dny', 'dní')})\nGesce: ${p.gesce || '—'}\nRole: ${p.roles.join(', ') || '—'}\nStream: ${st.name}, dráha ${p.lane + 1}\n\nTáhnutím přesunete, tažením horní / dolní hrany změníte začátek / konec.`;
-  return `<div class="proc${p.id === selectedId ? ' sel' : ''}" data-pid="${esc(p.id)}" tabindex="0"
+  const miss = issues.miss.get(p.id) || [];
+  const conflict = issues.conflicts.some(c => c.src === p.id || c.tgt === p.id);
+  const outs = outputsProc(p);
+  const nIn = p.inputs.length, nOut = p.outputs.length + outs.length;
+  const termTxt = e.est ? `termín chybí – orientačně ${e.why}` : `${fmtCz(f)} – ${fmtCz(t)} (${days} ${plural(days, 'den', 'dny', 'dní')})`;
+  const tip = [p.name, termTxt, `Gestor: ${p.gesce || '—'}`,
+    'Vstupy: ' + (nIn ? '\n  ' + p.inputs.map(i => ioText(i, 'in')).join('\n  ') : '—'),
+    'Výstupy: ' + (nOut ? '\n  ' + [...outs.map(q => ioText({ kind: 'proc', pid: q.id, need: q.inputs.find(i => i.kind === 'proc' && i.pid === p.id).need }, 'out')), ...p.outputs.map(o => ioText(o, 'out'))].join('\n  ') : '—'),
+    p.roles.length ? `Role: ${p.roles.join(', ')}` : '', `Stream: ${st.name}, dráha ${p.lane + 1}`,
+    miss.length ? `\n⚠ Chybí: ${miss.join(', ')}` : '',
+    ...issues.conflicts.filter(c => c.src === p.id || c.tgt === p.id).map(c => `⛔ ${c.msg}`),
+    '\nTáhnutím přesunete, tažením horní / dolní hrany změníte začátek / konec.'].filter(Boolean).join('\n');
+  const cls = ['proc', p.id === selectedId && 'sel', e.est && 'nodate', miss.length && 'incomplete', conflict && 'conflict'].filter(Boolean).join(' ');
+  return `<div class="${cls}" data-pid="${esc(p.id)}" tabindex="0"
     style="top:${top + 1}px;height:${h}px;left:${p.lane * LW + 4}px;width:${LW - 8}px" title="${esc(tip)}">
     <div class="p-in"><div class="p-name">${esc(p.name)}</div>
-    <div class="p-dates">${fmtCz(f)} – ${fmtCz(t)}</div>
-    ${p.gesce ? `<div class="p-gesce"><b>Gesce:</b> ${esc(p.gesce)}</div>` : ''}
+    <div class="p-dates${e.est ? ' est' : ''}">${e.est ? `termín ? · orientačně ${esc(e.why)}` : `${fmtCz(f)} – ${fmtCz(t)}`}</div>
+    ${p.gesce ? `<div class="p-gesce"><b>Gestor:</b> ${esc(p.gesce)}</div>` : ''}
+    ${nIn || nOut ? `<div class="p-io">⮑ vstupy ${nIn} · výstupy ${nOut} ⮓</div>` : ''}
+    ${miss.length ? `<div class="p-miss">⚠ chybí: ${miss.join(', ')}</div>` : ''}
+    ${conflict ? '<div class="p-miss bad">⛔ konflikt vazby</div>' : ''}
     ${p.roles.length ? `<div class="p-roles">${p.roles.map(r => `<span class="chip">${esc(r)}</span>`).join('')}</div>` : ''}</div>
     <button class="p-more" title="Možnosti procesu" aria-label="Možnosti procesu ${esc(p.name)}">⋯</button>
     <div class="rz rz-t" data-rz="top" title="Táhnutím změníte začátek"></div><div class="rz rz-b" data-rz="bot" title="Táhnutím změníte konec"></div></div>`;
+}
+
+/** Šipky vazeb: od dokončení (spodní hrany) vstupního procesu k dokončení / zahájení navazujícího procesu. */
+function linksSVG(totalH) {
+  const sx = {};
+  let w = 0;
+  data.streams.forEach(s => { sx[s.id] = w; w += s.lanes * LW; });
+  const box = p => {
+    const e = eff(p), top = dToY(e.f) + 1, h = Math.max(18, dToY(e.t + 1) - dToY(e.f) - 2);
+    return { x: sx[p.streamId] + p.lane * LW + 4, w: LW - 8, top, bot: top + h };
+  };
+  const bad = new Set(issues.conflicts.map(c => c.src + '>' + c.tgt));
+  let paths = '';
+  data.processes.forEach(p => p.inputs.forEach(i => {
+    const q = i.kind === 'proc' && P(i.pid);
+    if (!q || sx[q.streamId] == null || sx[p.streamId] == null) return;
+    const A = box(q), B = box(p);
+    const sy = A.bot - 6, ty = i.need === 'start' ? B.top + 6 : B.bot - 6;
+    let x1, x2, c1, c2;
+    if (A.x + A.w <= B.x) { x1 = A.x + A.w; x2 = B.x - 1; const d = Math.max(24, (x2 - x1) / 2); c1 = x1 + d; c2 = x2 - d; }
+    else if (B.x + B.w <= A.x) { x1 = A.x; x2 = B.x + B.w + 1; const d = Math.max(24, (x1 - x2) / 2); c1 = x1 - d; c2 = x2 + d; }
+    else { x1 = A.x + A.w; x2 = B.x + B.w + 1; c1 = c2 = Math.max(x1, x2) + 34; }
+    const isBad = bad.has(q.id + '>' + p.id), est = eff(q).est || eff(p).est;
+    const rel = selectedId && (selectedId === p.id || selectedId === q.id);
+    paths += `<path class="lk${isBad ? ' bad' : ''}${est ? ' est' : ''}${rel ? ' rel' : ''}" data-src="${esc(q.id)}" data-tgt="${esc(p.id)}" data-need="${i.need}"
+      d="M${x1.toFixed(1)},${sy.toFixed(1)} C${c1.toFixed(1)},${sy.toFixed(1)} ${c2.toFixed(1)},${ty.toFixed(1)} ${x2.toFixed(1)},${ty.toFixed(1)}"
+      marker-end="url(#${isBad ? 'ahb' : rel ? 'ahr' : 'ah'})"/>`;
+  }));
+  const mk = (id, c) => `<marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="${c}"/></marker>`;
+  return `<svg class="links${selectedId ? ' has-sel' : ''}" width="${w}" height="${totalH}" aria-hidden="true">
+    <defs>${mk('ah', '#7d879b')}${mk('ahr', '#2f6fde')}${mk('ahb', '#c93636')}</defs>${paths}</svg>`;
 }
 
 function renderBody(totalH) {
@@ -666,6 +927,7 @@ function renderBody(totalH) {
   }
   if (todayN >= MIN_N && todayN <= MAX_N) h += `<div class="ov today" style="top:${dToY(todayN)}px"><span>dnes</span></div>`;
   h += '<div class="cols">';
+  if (view.links) h += linksSVG(totalH);
   for (const st of data.streams) {
     h += `<div class="scol" data-sid="${esc(st.id)}" style="width:${st.lanes * LW}px;--c:${st.color}">`;
     for (let l = 1; l < st.lanes; l++) h += `<div class="lsep" style="left:${l * LW}px"></div>`;
@@ -687,6 +949,10 @@ function renderToolbar() {
   $('bLaneOut').disabled = LW <= LANE_MIN;
   $('bLaneIn').disabled = LW >= LANE_MAX;
   $('snapSel').value = view.snap;
+  $('bLinks').setAttribute('aria-pressed', String(!!view.links));
+  const nIss = issues.miss.size + issues.conflicts.length;
+  $('checkCnt').textContent = nIss;
+  $('checkCnt').classList.toggle('zero', !nIss);
   $('bUndo').disabled = !undoStack.length;
   $('bRedo').disabled = !redoStack.length;
   const sel = selectedId && P(selectedId);
@@ -700,6 +966,15 @@ function select(id) {
   selectedId = id && P(id) ? id : null;
   document.querySelectorAll('.proc.sel').forEach(x => x.classList.remove('sel'));
   if (selectedId) document.querySelector(`.proc[data-pid="${CSS.escape(selectedId)}"]`)?.classList.add('sel');
+  const svg = body.querySelector('svg.links');
+  if (svg) {
+    svg.classList.toggle('has-sel', !!selectedId);
+    svg.querySelectorAll('path.lk').forEach(pa => {
+      const r = !!selectedId && (pa.dataset.src === selectedId || pa.dataset.tgt === selectedId);
+      pa.classList.toggle('rel', r);
+      pa.setAttribute('marker-end', `url(#${pa.classList.contains('bad') ? 'ahb' : r ? 'ahr' : 'ah'})`);
+    });
+  }
   renderToolbar();
 }
 
@@ -719,7 +994,7 @@ function scrollToDay(n, where = 'top') {
   scroller.scrollTop = where === 'center' ? y - viewH() / 2 : y;
 }
 function scrollToProcess(p) {
-  const top = dToY(parseISO(p.from));
+  const top = dToY(eff(p).f);
   if (top < scroller.scrollTop || top > scroller.scrollTop + viewH() - 30) scroller.scrollTop = top - Math.min(rowH, 60);
   let x = 0;
   for (const s of data.streams) { if (s.id === p.streamId) break; x += s.lanes * LW; }
@@ -852,13 +1127,14 @@ function finishDrag() {
   endDragUI();
   drag = null;
   const r = d.res, o = d.orig, p = P(d.pid);
-  if (!r || !p || (r.from === o.from && r.to === o.to && r.sid === o.sid && r.lane === o.lane)) { render(); return; }
+  // beze změny nic neukládat – kromě procesu bez termínu: puštěním na místě se zakotví na orientační termín
+  if (!r || !p || (!d.est && r.from === o.from && r.to === o.to && r.sid === o.sid && r.lane === o.lane)) { render(); return; }
   const st = S(r.sid);
   commit(() => {
     const q = P(d.pid);
-    q.from = toISO(r.from); q.to = toISO(r.to); q.streamId = r.sid;
+    q.from = toISO(r.from); q.to = toISO(r.to); q.streamId = r.sid; q.anchor = null;
     setLane(q, r.lane);
-  }, `„${p.name}“: ${fmtCz(r.from)} – ${fmtCz(r.to)} · ${st.name}, dráha ${r.lane + 1}${r.lane !== (d.mode === 'move' ? d.lane : o.lane) ? ' (přesunuto do volné dráhy)' : ''}.`);
+  }, `${d.est ? 'Zakotveno – ' : ''}„${p.name}“: ${fmtCz(r.from)} – ${fmtCz(r.to)} · ${st.name}, dráha ${r.lane + 1}${r.lane !== (d.mode === 'move' ? d.lane : o.lane) ? ' (přesunuto do volné dráhy)' : ''}.`);
 }
 board.addEventListener('pointerdown', e => {
   if (e.button !== 0 || e.pointerType === 'touch' || drag) return;
@@ -870,7 +1146,7 @@ board.addEventListener('pointerdown', e => {
   drag = { pid: p.id, el: pe, mode: rz ? rz.dataset.rz : 'move', pointerId: e.pointerId,
     x: e.clientX, y: e.clientY, cx: e.clientX, cy: e.clientY, alt: e.altKey, started: false,
     bodyY0: e.clientY - body.getBoundingClientRect().top,
-    orig: { from: parseISO(p.from), to: parseISO(p.to), sid: p.streamId, lane: p.lane }, sid: p.streamId, lane: p.lane };
+    orig: { from: eff(p).f, to: eff(p).t, sid: p.streamId, lane: p.lane }, sid: p.streamId, lane: p.lane, est: !hasDates(p) };
 });
 window.addEventListener('pointermove', e => {
   if (!drag || e.pointerId !== drag.pointerId) return;
@@ -945,7 +1221,9 @@ function processMenu(p, x, y) {
     { header: p.name },
     { icon: '👤', label: 'Přidat roli…', act: () => rolesDialog(p.id) },
     { icon: '📅', label: 'Změnit od – do…', act: () => datesDialog(p.id) },
-    { icon: '🏛', label: 'Změnit gesci…', act: () => gesceDialog(p.id) },
+    { icon: '🏛', label: 'Změnit gesci (gestora)…', act: () => gesceDialog(p.id) },
+    { icon: '⮑', label: `Vstupy… (${p.inputs.length})`, act: () => ioDialog(p.id, 'in') },
+    { icon: '⮓', label: `Výstupy… (${p.outputs.length + outputsProc(p).length})`, act: () => ioDialog(p.id, 'out') },
     { sep: 1 },
     { icon: '✎', label: 'Upravit vše (název, stream, dráha)…', act: () => processDialog({ mode: 'edit', id: p.id }) },
     { icon: '⇉', label: 'Přidat paralelní proces', act: () => parallelDialog(p.id) },
@@ -1072,9 +1350,111 @@ function laneOptions(st, selected, allowNew = true) {
   return o;
 }
 
+/* ---------- editor vstupů / výstupů ---------- */
+function procOptions(exId) {
+  return '<option value="">— vyberte proces z mapy —</option>' + data.streams.map(st => {
+    const ps = data.processes.filter(q => q.streamId === st.id && q.id !== exId);
+    return ps.length ? `<optgroup label="${esc(st.name)}">${ps.map(q => `<option value="${esc(q.id)}">${esc(q.name)}</option>`).join('')}</optgroup>` : '';
+  }).join('');
+}
+function ioHTML(which) {
+  const k = which === 'in'
+    ? '<option value="proc">Dokončení procesu v mapě</option><option value="doc">Dokument</option><option value="sub">Podproces (mimo mapu)</option>'
+    : '<option value="proc">Vstup pro proces v mapě</option><option value="doc">Dokument</option><option value="sub">Podproces (mimo mapu)</option>';
+  return `<div class="io" data-io="${which}"><ul class="io-list"></ul>
+    <div class="io-add"><select data-k aria-label="Typ ${which === 'in' ? 'vstupu' : 'výstupu'}">${k}</select>
+      <select data-p aria-label="Proces"></select>
+      <input type="text" data-t maxlength="300" hidden placeholder="název ${which === 'in' ? 'vstupního' : 'výstupního'} dokumentu / podprocesu" aria-label="Název">
+      <select data-need aria-label="Druh vazby"><option value="finish">podmiňuje dokončení</option><option value="start">podmiňuje zahájení</option></select>
+      <button type="button" class="btn" data-add>Přidat</button></div></div>`;
+}
+/** Vrátí funkci, která vrátí seznam položek (včetně vybrané, ale nepřidané položky). */
+function initIO(form, which, p) {
+  const box = form.querySelector(`[data-io="${which}"]`);
+  const list = box.querySelector('.io-list'), k = box.querySelector('[data-k]'), ps = box.querySelector('[data-p]');
+  const tx = box.querySelector('[data-t]'), need = box.querySelector('[data-need]');
+  ps.innerHTML = procOptions(p && p.id);
+  let items = which === 'in' ? (p ? p.inputs.map(i => ({ ...i })) : [])
+    : (p ? [...outputsProc(p).map(q => ({ kind: 'proc', pid: q.id, need: q.inputs.find(i => i.kind === 'proc' && i.pid === p.id).need })),
+      ...p.outputs.map(o => ({ ...o }))] : []);
+  const draw = () => {
+    list.innerHTML = items.length
+      ? items.map((it, i) => `<li><span>${esc(ioText(it, which))}</span><button type="button" data-rm="${i}" title="Odebrat" aria-label="Odebrat">×</button></li>`).join('')
+      : `<li class="none">${which === 'in' ? 'Žádný vstup – v mapě bude označen jako chybějící.' : 'Žádný výstup – v mapě bude označen jako chybějící.'}</li>`;
+  };
+  const sync = () => { const isP = k.value === 'proc'; ps.hidden = !isP; need.hidden = !isP; tx.hidden = isP; };
+  const add = () => {
+    if (k.value === 'proc') {
+      if (!ps.value) return 'Vyberte proces ze seznamu.';
+      if (!items.some(i => i.kind === 'proc' && i.pid === ps.value)) items.push({ kind: 'proc', pid: ps.value, need: need.value });
+      ps.value = '';
+    } else {
+      const t = tx.value.trim();
+      if (!t) return 'Napište název dokumentu nebo podprocesu.';
+      if (!items.some(i => i.kind === k.value && i.text === t)) items.push({ kind: k.value, text: t.slice(0, 300) });
+      tx.value = '';
+    }
+    draw();
+    return null;
+  };
+  k.addEventListener('change', () => { sync(); (k.value === 'proc' ? ps : tx).focus(); });
+  box.querySelector('[data-add]').addEventListener('click', () => { const er = add(); if (er) toast(er); });
+  tx.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); const er = add(); if (er) toast(er); } });
+  list.addEventListener('click', e => { const b = e.target.closest('[data-rm]'); if (b) { items.splice(+b.dataset.rm, 1); draw(); } });
+  sync(); draw();
+  return () => { if ((k.value === 'proc' && ps.value) || (k.value !== 'proc' && tx.value.trim())) add(); return items.map(i => ({ ...i })); };
+}
+function ioDialog(pid, which) {
+  const p = P(pid); if (!p) return;
+  openModal({
+    title: `${which === 'in' ? 'Vstupy' : 'Výstupy'} – ${p.name}`,
+    html: `<p class="hint" style="margin:0 0 10px">${which === 'in'
+      ? 'Vstupem může být dokončení jiného procesu z mapy (vazba se zobrazí šipkou), dokument nebo podproces, který v mapě není.'
+      : 'Výstupem může být vstup pro jiný proces z mapy (vazba se zobrazí šipkou), dokument nebo podproces, který v mapě není.'}</p>${ioHTML(which)}`,
+    onInit: form => initIO(form, which, p),
+    onSubmit: (form, get) => {
+      const items = get();
+      commit(() => { setIO(P(pid), which === 'in' ? items : null, which === 'out' ? items : null); assertNoCycle(); },
+        `${which === 'in' ? 'Vstupy' : 'Výstupy'} procesu „${p.name}“ uloženy (${items.length}).`);
+    },
+  });
+}
+/** Pole termínu: od–do, nebo „termín zatím neznámý“ s orientačním umístěním. */
+function termHTML(p, from, to, nodate) {
+  const a = p && p.anchor;
+  return `<label class="chk"><input type="checkbox" name="nodate"${nodate ? ' checked' : ''}> Termín zatím neznámý – proces se v mapě umístí jen orientačně a označí</label>
+    <div class="row2" data-dates${nodate ? ' hidden' : ''}>
+      <label>Od<input type="date" name="from" min="${MIN_ISO}" max="${MAX_ISO}" value="${from}"></label>
+      <label>Do<input type="date" name="to" min="${MIN_ISO}" max="${MAX_ISO}" value="${to}"></label>
+    </div>
+    <div class="row2" data-anchor${nodate ? '' : ' hidden'}>
+      <label>Orientačně umístit<select name="amode">
+        <option value="">automaticky (za vstupy / předchozím)</option>
+        <option value="after"${a && a.mode === 'after' ? ' selected' : ''}>za procesem</option>
+        <option value="with"${a && a.mode === 'with' ? ' selected' : ''}>souběžně s procesem</option></select></label>
+      <label>Proces<select name="apid">${procOptions(p && p.id)}</select></label>
+    </div>`;
+}
+function initTerm(form, p) {
+  const cb = form.elements.nodate;
+  if (p && p.anchor) form.elements.apid.value = p.anchor.pid;
+  const sync = () => { form.querySelector('[data-dates]').hidden = cb.checked; form.querySelector('[data-anchor]').hidden = !cb.checked; };
+  cb.addEventListener('change', sync);
+}
+/** Načte termín z formuláře: {nodate, f, t, anchor} nebo chybový text. */
+function readTerm(form) {
+  if (form.elements.nodate.checked) {
+    const mode = form.elements.amode.value, pid = form.elements.apid.value;
+    if (mode && !pid) return 'Vyberte proces, podle kterého se má proces orientačně umístit.';
+    return { nodate: true, anchor: mode && pid ? { pid, mode } : null };
+  }
+  const d = validateDates(form.elements.from.value, form.elements.to.value);
+  return typeof d === 'string' ? d : { nodate: false, f: d.f, t: d.t, anchor: null };
+}
+
 /**
  * Dialog procesu – vytvoření i úprava všech polí.
- * opts: {mode:'create'|'edit', id, streamId, lane:'auto'|number|'new', from, to, title}
+ * opts: {mode:'create'|'edit', id, streamId, lane:'auto'|number|'new', from, to, title, nodate, anchor}
  */
 function processDialog(opts) {
   if (!data.streams.length) { toast('Nejdřív vytvořte stream.'); return streamDialog(null, () => processDialog(opts)); }
@@ -1083,23 +1463,22 @@ function processDialog(opts) {
   if (edit && !p) return;
   let sid = edit ? p.streamId : (opts.streamId && S(opts.streamId) ? opts.streamId : (selectedId && P(selectedId) ? P(selectedId).streamId : data.streams[0].id));
   let per = { from: opts.from, to: opts.to };
-  if (!edit && (per.from == null || per.to == null)) {
-    per = periodAt(centerDay());
-  }
-  const from = edit ? p.from : toISO(per.from), to = edit ? p.to : toISO(per.to);
+  if (!edit && (per.from == null || per.to == null)) per = periodAt(centerDay());
+  const nodate = edit ? !hasDates(p) : !!opts.nodate;
+  const from = edit ? p.from : (opts.nodate ? '' : toISO(per.from)), to = edit ? p.to : (opts.nodate ? '' : toISO(per.to));
   const laneSel = edit ? p.lane : (opts.lane ?? 'auto');
+  const pseudo = edit ? p : (opts.anchor ? { id: null, anchor: opts.anchor } : null);
   const html = `
     <label>Název procesu<input type="text" name="name" maxlength="200" autofocus value="${edit ? esc(p.name) : ''}" placeholder="např. Výběr zhotovitele"></label>
+    <label>Gestor (gesce)<input type="text" name="gesce" list="dlGesce" maxlength="200" value="${edit ? esc(p.gesce) : ''}" placeholder="kdo za proces odpovídá"></label>
+    ${termHTML(pseudo, from, to, nodate)}
     <div class="row2">
       <label>Stream<select name="stream">${data.streams.map(s => `<option value="${esc(s.id)}"${s.id === sid ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>
       <label>Dráha (pozice vedle sebe)<select name="lane">${laneOptions(S(sid), laneSel)}</select></label>
     </div>
-    <div class="row2">
-      <label>Od<input type="date" name="from" min="${MIN_ISO}" max="${MAX_ISO}" value="${from}" required></label>
-      <label>Do<input type="date" name="to" min="${MIN_ISO}" max="${MAX_ISO}" value="${to}" required></label>
-    </div>
-    <label>Gesce<input type="text" name="gesce" list="dlGesce" maxlength="200" value="${edit ? esc(p.gesce) : ''}" placeholder="kdo za proces odpovídá"></label>
-    <div class="fld">Role${chipsHTML()}</div>`;
+    <div class="fld">Vstupy procesu${ioHTML('in')}</div>
+    <div class="fld">Výstupy procesu${ioHTML('out')}</div>
+    <div class="fld">Role (nepovinné)${chipsHTML()}</div>`;
   openModal({
     title: opts.title || (edit ? 'Upravit proces' : 'Nový proces'),
     submit: edit ? 'Uložit' : 'Přidat proces',
@@ -1111,12 +1490,13 @@ function processDialog(opts) {
         const keep = edit && streamSel.value === p.streamId ? p.lane : 'auto';
         laneEl.innerHTML = laneOptions(st, keep);
       });
-      return initChips(form, edit ? p.roles : []);
+      initTerm(form, pseudo);
+      return { roles: initChips(form, edit ? p.roles : []), ins: initIO(form, 'in', p), outs: initIO(form, 'out', p) };
     },
-    onSubmit: (form, getRoles) => {
+    onSubmit: (form, ctl) => {
       const name = form.elements.name.value.trim();
       if (!name) { form.elements.name.focus(); return 'Zadejte název procesu.'; }
-      const d = validateDates(form.elements.from.value, form.elements.to.value);
+      const d = readTerm(form);
       if (typeof d === 'string') return d;
       const st = S(form.elements.stream.value);
       if (!st) return 'Vyberte stream.';
@@ -1124,20 +1504,27 @@ function processDialog(opts) {
       const exId = edit ? p.id : null;
       let lane;
       if (lv === 'new') lane = st.lanes;
-      else if (lv === 'auto') lane = findLane(st.id, d.f, d.t, exId, edit && st.id === p.streamId ? p.lane : null);
+      else if (lv === 'auto') lane = d.nodate ? (edit && st.id === p.streamId ? p.lane : 0)
+        : findLane(st.id, d.f, d.t, exId, edit && st.id === p.streamId ? p.lane : null);
       else {
         lane = +lv;
-        const c = overlaps(st.id, lane, d.f, d.t, exId);
+        const c = d.nodate ? [] : overlaps(st.id, lane, d.f, d.t, exId);
         if (c.length) return `V dráze ${lane + 1} se proces v tomto období překrývá s „${c[0].name}“ (${fmtCz(parseISO(c[0].from))} – ${fmtCz(parseISO(c[0].to))}). Zvolte jinou dráhu nebo „Automaticky“.`;
       }
-      const roles = getRoles();
+      const roles = ctl.roles(), ins = ctl.ins(), outs = ctl.outs();
       const gesce = form.elements.gesce.value.trim();
       let newId = exId;
       commit(() => {
         let q = edit ? P(p.id) : null;
-        if (!q) { q = { id: uid('p'), streamId: st.id, lane: 0, name, from: '', to: '', gesce: '', roles: [] }; data.processes.push(q); newId = q.id; }
-        Object.assign(q, { streamId: st.id, name, from: toISO(d.f), to: toISO(d.t), gesce, roles });
+        if (!q) {
+          q = { id: uid('p'), streamId: st.id, lane: 0, name, from: '', to: '', gesce: '', roles: [], inputs: [], outputs: [], anchor: null };
+          data.processes.push(q); newId = q.id;
+        }
+        Object.assign(q, { streamId: st.id, name, from: d.nodate ? '' : toISO(d.f), to: d.nodate ? '' : toISO(d.t), gesce, roles, anchor: d.anchor });
+        if (q.anchor && q.anchor.pid === q.id) q.anchor = null;
         setLane(q, lane);
+        setIO(q, ins, outs);
+        assertNoCycle();
       }, edit ? `Proces „${name}“ uložen.` : `Proces „${name}“ přidán do streamu „${st.name}“, dráha ${lane + 1}.`);
       selectedId = newId; render();
       const q = P(newId); if (q && !edit) scrollToProcess(q);
@@ -1147,8 +1534,35 @@ function processDialog(opts) {
 
 function parallelDialog(pid) {
   const p = P(pid); if (!p) return;
+  if (!hasDates(p))
+    return processDialog({ mode: 'create', streamId: p.streamId, lane: 'new', nodate: true, anchor: { pid: p.id, mode: 'with' },
+      title: `Paralelní proces k „${p.name}“` });
   processDialog({ mode: 'create', streamId: p.streamId, lane: 'auto', from: parseISO(p.from), to: parseISO(p.to),
     title: `Paralelní proces k „${p.name}“` });
+}
+
+/** Kontrola mapy: konflikty vazeb a chybějící základní parametry. */
+function checkDialog() {
+  const li = (pid, txt) => `<li><button type="button" data-goto="${esc(pid)}">${esc(txt)}</button></li>`;
+  const conf = issues.conflicts.map(c => li(c.tgt, c.msg)).join('');
+  const miss = data.processes.filter(p => issues.miss.has(p.id))
+    .map(p => li(p.id, `${p.name} (${S(p.streamId).name}) – chybí: ${issues.miss.get(p.id).join(', ')}`)).join('');
+  openModal({
+    title: 'Kontrola mapy', submit: 'Zavřít', cancel: '',
+    html: `<p class="hint" style="margin:0 0 8px">Základní parametry procesu: název, gestor, od–do, vstup a výstup. Kliknutím na řádek proces najdete v mapě.</p>
+      <h3 class="chk-h">⛔ Konflikty vazeb (${issues.conflicts.length})</h3>
+      ${conf ? `<ul class="chk-l">${conf}</ul>` : '<p class="hint" style="margin:0 0 6px">Žádné – všechny vazby s termíny jsou splněné.</p>'}
+      <h3 class="chk-h">⚠ Chybějící parametry (${issues.miss.size})</h3>
+      ${miss ? `<ul class="chk-l">${miss}</ul>` : '<p class="hint">Všechny procesy mají vyplněné základní parametry.</p>'}`,
+    onInit: form => form.addEventListener('click', e => {
+      const b = e.target.closest('[data-goto]');
+      if (!b) return;
+      const p = P(b.dataset.goto);
+      closeModal();
+      if (p) { scrollToProcess(p); select(p.id); }
+    }),
+    onSubmit: () => {},
+  });
 }
 
 function rolesDialog(pid) {
@@ -1168,17 +1582,20 @@ function datesDialog(pid) {
   const p = P(pid); if (!p) return;
   openModal({
     title: `Termín – ${p.name}`,
-    html: `<div class="row2">
-      <label>Od<input type="date" name="from" min="${MIN_ISO}" max="${MAX_ISO}" value="${p.from}" autofocus></label>
-      <label>Do<input type="date" name="to" min="${MIN_ISO}" max="${MAX_ISO}" value="${p.to}"></label></div>
+    html: `${termHTML(p, p.from, p.to, !hasDates(p))}
       <p class="hint">Povolené období: 1. 1. 2020 – 31. 12. 2030. Pokud by se proces v dráze překryl s jiným, přesune se do volné paralelní dráhy.</p>`,
+    onInit: form => { initTerm(form, p); if (hasDates(p)) form.elements.from.focus(); },
     onSubmit: form => {
-      const d = validateDates(form.elements.from.value, form.elements.to.value);
+      const d = readTerm(form);
       if (typeof d === 'string') return d;
+      if (d.nodate) {
+        commit(() => { Object.assign(P(pid), { from: '', to: '', anchor: d.anchor }); }, `Termín „${p.name}“ zatím neznámý – proces je umístěn orientačně.`);
+        return;
+      }
       let moved = null;
       commit(() => {
         const q = P(pid);
-        q.from = toISO(d.f); q.to = toISO(d.t);
+        q.from = toISO(d.f); q.to = toISO(d.t); q.anchor = null;
         const lane = findLane(q.streamId, d.f, d.t, q.id, q.lane);
         if (lane !== q.lane) { moved = lane; setLane(q, lane); }
       }, `Termín „${p.name}“: ${fmtCz(d.f)} – ${fmtCz(d.t)}.`);
@@ -1190,9 +1607,9 @@ function datesDialog(pid) {
 function gesceDialog(pid) {
   const p = P(pid); if (!p) return;
   openModal({
-    title: `Gesce – ${p.name}`,
-    html: `<label>Gesce (kdo za proces odpovídá)<input type="text" name="gesce" list="dlGesce" maxlength="200" value="${esc(p.gesce)}" autofocus></label>
-      <p class="hint">Prázdné pole gesci odebere.</p>`,
+    title: `Gestor (gesce) – ${p.name}`,
+    html: `<label>Gestor – kdo za proces odpovídá<input type="text" name="gesce" list="dlGesce" maxlength="200" value="${esc(p.gesce)}" autofocus></label>
+      <p class="hint">Prázdné pole gestora odebere (proces bude označen jako neúplný).</p>`,
     onSubmit: form => {
       const g = form.elements.gesce.value.trim();
       commit(() => { P(pid).gesce = g; }, g ? `Gesce „${p.name}“: ${g}.` : `Gesce procesu „${p.name}“ odebrána.`);
@@ -1242,7 +1659,11 @@ function helpDialog() {
       <li><b>Vodorovná osa</b> obsahuje <b>streamy</b>. Každý stream může mít více <b>paralelních drah</b>, aby mohly procesy běžet souběžně vedle sebe.</li>
       <li><b>＋ Stream</b> přidá stream, <b>＋ Proces</b> přidá proces, <b>⇉ Paralelní proces</b> přidá proces souběžně k vybranému, <b>⫴ Paralelní dráha</b> přidá prázdnou dráhu.</li>
       <li><b>Pravým tlačítkem na stream</b> přidáte proces přesně do kliknutého období a dráhy, přidáte nebo odeberete dráhu, přejmenujete nebo smažete stream.</li>
-      <li><b>Pravým tlačítkem na proces</b> přidáte roli, změníte termín od–do, změníte gesci, přidáte paralelní proces nebo proces smažete.</li>
+      <li><b>Pravým tlačítkem na proces</b> přidáte roli, změníte termín od–do, gestora (gesci), vstupy a výstupy, přidáte paralelní proces nebo proces smažete.</li>
+      <li><b>Základní parametry procesu</b> jsou název, gestor, od–do, vstup a výstup. Co chybí, je přímo na procesu označeno <b>⚠ chybí: …</b> a oranžovým rohem; přehled dává tlačítko <b>⚠ Kontrola</b>.</li>
+      <li><b>Vstup</b> je dokončení jiného procesu z mapy (vybírá se ze seznamu, který odpovídá aktuální mapě), dokument nebo podproces, který v mapě není. U vazby na proces zvolíte, zda jeho dokončení <b>podmiňuje dokončení</b>, nebo <b>zahájení</b> tohoto procesu. <b>Výstup</b> je vstup pro jiný proces, dokument nebo podproces.</li>
+      <li><b>Šipky vazeb</b> (🔗 Vazby) vedou od konce vstupního procesu ke konci (nebo začátku) navazujícího procesu. <b>Červená</b> šipka = konflikt: vstup končí později, než dovolují termíny. Vybraný proces zvýrazní své vazby modře.</li>
+      <li><b>Proces bez termínu</b> (zaškrtnete „Termín zatím neznámý“) se zobrazí šrafovaně jen orientačně – za zvoleným procesem, souběžně s ním, za svými vstupy nebo za předchozím procesem v dráze. Přetažením myší ho zakotvíte na konkrétní termín.</li>
       <li>Kliknutím proces vyberete, dvojklikem ho upravíte. Klávesy: <b>Delete</b> smaže vybraný proces, <b>Ctrl+Z / Ctrl+Y</b> vrátí / zopakuje změnu.</li>
       <li>Mapa se ukládá automaticky v tomto prohlížeči. Pro zálohu nebo předání použijte <b>Export</b> a <b>Import</b> (soubor JSON).</li></ul>`,
     onSubmit: () => {},
@@ -1267,8 +1688,7 @@ function moveLane(pid, dir) {
   const p = P(pid); if (!p) return;
   const target = p.lane + dir;
   if (target < 0) return;
-  const f = parseISO(p.from), t = parseISO(p.to);
-  const c = overlaps(p.streamId, target, f, t, p.id);
+  const c = hasDates(p) ? overlaps(p.streamId, target, parseISO(p.from), parseISO(p.to), p.id) : [];
   if (c.length) return toast(`V dráze ${target + 1} je v tomto období proces „${c[0].name}“.`);
   commit(() => { setLane(P(pid), target); }, `Proces „${p.name}“ přesunut do dráhy ${target + 1}.`);
 }
@@ -1281,15 +1701,25 @@ function deleteStream(sid) {
   const st = S(sid); if (!st) return;
   const n = data.processes.filter(p => p.streamId === sid).length;
   const doIt = () => commit(() => {
+    const gone = new Set(data.processes.filter(p => p.streamId === sid).map(p => p.id));
     data.streams = data.streams.filter(s => s.id !== sid);
     data.processes = data.processes.filter(p => p.streamId !== sid);
+    dropRefs(gone);
   }, `Stream „${st.name}“ smazán.`);
   if (!n) return doIt();
   confirmDialog('Smazat stream?', `Stream <b>${esc(st.name)}</b> obsahuje ${n} ${plural(n, 'proces', 'procesy', 'procesů')}. Smazat ho i s nimi? (Lze vrátit tlačítkem Zpět.)`, 'Smazat stream', doIt);
 }
+function dropRefs(ids) {
+  data.processes.forEach(q => {
+    q.inputs = q.inputs.filter(i => !(i.kind === 'proc' && ids.has(i.pid)));
+    if (q.anchor && ids.has(q.anchor.pid)) q.anchor = null;
+  });
+}
 function deleteProcess(pid) {
   const p = P(pid); if (!p) return;
-  commit(() => { data.processes = data.processes.filter(q => q.id !== pid); }, `Proces „${p.name}“ smazán (lze vrátit tlačítkem Zpět).`);
+  const refs = data.processes.filter(q => q.inputs.some(i => i.kind === 'proc' && i.pid === pid)).length;
+  commit(() => { data.processes = data.processes.filter(q => q.id !== pid); dropRefs(new Set([pid])); },
+    `Proces „${p.name}“ smazán${refs ? `, odebrány vazby (${refs})` : ''} (lze vrátit tlačítkem Zpět).`);
   if (selectedId === pid) { selectedId = null; render(); }
 }
 function exportJSON() {
@@ -1430,11 +1860,23 @@ $('bToday').onclick = () => scrollToDay(clampN(todayN), 'center');
 $('bExport').onclick = exportJSON;
 $('bImport').onclick = () => { $('fileIn').value = ''; $('fileIn').click(); };
 $('fileIn').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) importFile(f); };
-$('bNew').onclick = () => confirmDialog('Nová mapa?', 'Současná mapa se vymaže a začnete s prázdnou. (Lze vrátit tlačítkem Zpět.)', 'Vymazat mapu',
-  () => { commit(() => { data = emptyMap(); }, 'Vytvořena prázdná mapa.'); selectedId = null; render(); });
+$('bNew').onclick = () => openModal({
+  title: 'Nová mapa', submit: 'Nahradit mapu', danger: true,
+  html: `<p style="margin:0 0 10px">Současná mapa se nahradí. (Lze vrátit tlačítkem Zpět.)</p>
+    <label class="chk"><input type="radio" name="kind" value="empty" checked> Prázdná mapa</label>
+    <label class="chk"><input type="radio" name="kind" value="project"> Mapa stavby podle zadání (příprava a dokumentace, realizace, schvalování a přezkoušení)</label>`,
+  onSubmit: form => {
+    const proj = form.querySelector('input[name=kind]:checked').value === 'project';
+    commit(() => { data = proj ? normalize(projectMap()) : emptyMap(); }, proj ? 'Načtena mapa stavby podle zadání.' : 'Vytvořena prázdná mapa.');
+    selectedId = null; render();
+    if (proj) scrollToDay(dn(2026, 1, 1));
+  },
+});
+$('bLinks').onclick = () => { view.links = !view.links; saveView(); render(); toast(view.links ? 'Vazby mezi procesy zobrazeny.' : 'Vazby mezi procesy skryty.'); };
+$('bCheck').onclick = checkDialog;
 $('bHelp').onclick = helpDialog;
 $('eStream').onclick = () => streamDialog(null);
-$('eSample').onclick = () => { commit(() => { data = normalize(sample()); }, 'Načtena ukázková data.'); scrollToDay(dn(2025, 0, 1)); };
+$('eSample').onclick = () => { commit(() => { data = normalize(projectMap()); }, 'Načtena mapa stavby podle zadání.'); scrollToDay(dn(2026, 1, 1)); };
 document.querySelectorAll('#scaleSeg button').forEach(b => { b.onclick = () => setScale(b.dataset.scale); });
 const ys = $('yearSel');
 for (let y = Y0; y <= Y1; y++) ys.insertAdjacentHTML('beforeend', `<option value="${y}">${y}</option>`);
@@ -1461,13 +1903,15 @@ window.addEventListener('storage', e => {
 
 /* ================= start ================= */
 render();
-const firstProc = data.processes.map(p => parseISO(p.from)).sort((a, b) => a - b)[0];
+const firstProc = data.processes.map(p => parseISO(p.from)).filter(n => n != null).sort((a, b) => a - b)[0];
 scrollToDay(todayN >= MIN_N && todayN <= MAX_N ? Math.min(todayN, firstProc ?? todayN) : MIN_N);
 syncYear();
 
 // rozhraní pro automatické testy a ladění
 window.procesniMapa = { get data() { return data; }, get view() { return view; }, get scale() { return curScale; },
-  dToY: n => dToY(n), parseISO, toISO, render, AXIS_W, HEAD_H };
+  dToY: n => dToY(n), parseISO, toISO, render, AXIS_W, HEAD_H,
+  eff: id => { const e = eff(P(id)); return { from: toISO(e.f), to: toISO(e.t), est: e.est, why: e.why }; },
+  get issues() { return { miss: Object.fromEntries(issues.miss), conflicts: issues.conflicts.map(c => ({ ...c })) }; } };
 })();
 </script>
 </body>

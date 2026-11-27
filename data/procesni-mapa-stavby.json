@@ -1,0 +1,362 @@
+{
+  "version": 1,
+  "streams": [
+    {
+      "id": "s1",
+      "name": "Příprava stavby a dokumentace stavby",
+      "color": "#2f6fde",
+      "lanes": 4
+    },
+    {
+      "id": "s2",
+      "name": "Realizace",
+      "color": "#e07b00",
+      "lanes": 1
+    },
+    {
+      "id": "s3",
+      "name": "Schvalování a přezkoušení",
+      "color": "#1f9d6b",
+      "lanes": 2
+    }
+  ],
+  "processes": [
+    {
+      "id": "pdps",
+      "streamId": "s1",
+      "lane": 0,
+      "name": "PDPS – projektová dokumentace pro provádění stavby",
+      "from": "2026-03-01",
+      "to": "2027-03-31",
+      "gesce": "",
+      "roles": [],
+      "inputs": [
+        {
+          "kind": "proc",
+          "pid": "dlzt",
+          "need": "finish"
+        },
+        {
+          "kind": "proc",
+          "pid": "asbo",
+          "need": "finish"
+        },
+        {
+          "kind": "proc",
+          "pid": "ic",
+          "need": "finish"
+        },
+        {
+          "kind": "proc",
+          "pid": "sr",
+          "need": "finish"
+        },
+        {
+          "kind": "proc",
+          "pid": "aut",
+          "need": "finish"
+        }
+      ],
+      "outputs": [],
+      "anchor": null
+    },
+    {
+      "id": "ic",
+      "streamId": "s1",
+      "lane": 1,
+      "name": "Inženýrská činnost",
+      "from": "2026-12-01",
+      "to": "2027-03-31",
+      "gesce": "",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": null
+    },
+    {
+      "id": "sr",
+      "streamId": "s1",
+      "lane": 2,
+      "name": "Souhrnný rozpočet",
+      "from": "2026-11-15",
+      "to": "2026-12-15",
+      "gesce": "",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": null
+    },
+    {
+      "id": "aut",
+      "streamId": "s1",
+      "lane": 3,
+      "name": "Autorizace",
+      "from": "2026-12-01",
+      "to": "2027-02-28",
+      "gesce": "Aleš Cipris",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": null
+    },
+    {
+      "id": "rds",
+      "streamId": "s1",
+      "lane": 0,
+      "name": "RDS – realizační dokumentace stavby",
+      "from": "",
+      "to": "",
+      "gesce": "",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": {
+        "pid": "pdps",
+        "mode": "after"
+      }
+    },
+    {
+      "id": "dsps",
+      "streamId": "s1",
+      "lane": 0,
+      "name": "DSPS – dokumentace skutečného provedení stavby",
+      "from": "",
+      "to": "",
+      "gesce": "",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": {
+        "pid": "rds",
+        "mode": "after"
+      }
+    },
+    {
+      "id": "predani",
+      "streamId": "s2",
+      "lane": 0,
+      "name": "Předání staveniště",
+      "from": "",
+      "to": "",
+      "gesce": "",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": {
+        "pid": "pdps",
+        "mode": "after"
+      }
+    },
+    {
+      "id": "denik",
+      "streamId": "s2",
+      "lane": 0,
+      "name": "Stavební deník",
+      "from": "",
+      "to": "",
+      "gesce": "",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": {
+        "pid": "predani",
+        "mode": "after"
+      }
+    },
+    {
+      "id": "vykop",
+      "streamId": "s2",
+      "lane": 0,
+      "name": "Výkopové práce",
+      "from": "",
+      "to": "",
+      "gesce": "",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": {
+        "pid": "denik",
+        "mode": "after"
+      }
+    },
+    {
+      "id": "kabel",
+      "streamId": "s2",
+      "lane": 0,
+      "name": "Kabelizace",
+      "from": "",
+      "to": "",
+      "gesce": "",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": {
+        "pid": "vykop",
+        "mode": "after"
+      }
+    },
+    {
+      "id": "montaz",
+      "streamId": "s2",
+      "lane": 0,
+      "name": "Montáž technologie",
+      "from": "",
+      "to": "",
+      "gesce": "",
+      "roles": [],
+      "inputs": [
+        {
+          "kind": "proc",
+          "pid": "sm008",
+          "need": "finish"
+        }
+      ],
+      "outputs": [],
+      "anchor": {
+        "pid": "kabel",
+        "mode": "after"
+      }
+    },
+    {
+      "id": "dlzt",
+      "streamId": "s3",
+      "lane": 0,
+      "name": "DLZT",
+      "from": "2026-11-15",
+      "to": "2026-12-15",
+      "gesce": "CTD",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": null
+    },
+    {
+      "id": "asbo",
+      "streamId": "s3",
+      "lane": 1,
+      "name": "AsBo",
+      "from": "2026-11-15",
+      "to": "2026-12-15",
+      "gesce": "CTD",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": null
+    },
+    {
+      "id": "noboisv",
+      "streamId": "s3",
+      "lane": 0,
+      "name": "NoBo – ISV",
+      "from": "2027-02-01",
+      "to": "2027-03-31",
+      "gesce": "O26, O25, SSZ",
+      "roles": [],
+      "inputs": [
+        {
+          "kind": "proc",
+          "pid": "pdps",
+          "need": "finish"
+        }
+      ],
+      "outputs": [],
+      "anchor": null
+    },
+    {
+      "id": "sm008",
+      "streamId": "s3",
+      "lane": 1,
+      "name": "Dokončení schválení přípustnosti LEU jednotek a balíz Siemens Mobility dle SM 008",
+      "from": "",
+      "to": "",
+      "gesce": "",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": {
+        "pid": "noboisv",
+        "mode": "with"
+      }
+    },
+    {
+      "id": "tpaz",
+      "streamId": "s3",
+      "lane": 0,
+      "name": "TPaZ UTZ – technické prohlídky a zkoušky UTZ",
+      "from": "",
+      "to": "",
+      "gesce": "",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": {
+        "pid": "noboisv",
+        "mode": "after"
+      }
+    },
+    {
+      "id": "tbz",
+      "streamId": "s3",
+      "lane": 0,
+      "name": "TBZ – technicko-bezpečnostní zkouška",
+      "from": "",
+      "to": "",
+      "gesce": "",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": {
+        "pid": "tpaz",
+        "mode": "after"
+      }
+    },
+    {
+      "id": "nobo",
+      "streamId": "s3",
+      "lane": 0,
+      "name": "NoBo",
+      "from": "",
+      "to": "",
+      "gesce": "",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": {
+        "pid": "tbz",
+        "mode": "after"
+      }
+    },
+    {
+      "id": "dupzutz",
+      "streamId": "s3",
+      "lane": 0,
+      "name": "Drážní úřad – průkaz způsobilosti UTZ",
+      "from": "",
+      "to": "",
+      "gesce": "",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": {
+        "pid": "nobo",
+        "mode": "after"
+      }
+    },
+    {
+      "id": "dupzdr",
+      "streamId": "s3",
+      "lane": 0,
+      "name": "Drážní úřad – průkaz způsobilosti dráhy",
+      "from": "",
+      "to": "",
+      "gesce": "",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": {
+        "pid": "dupzutz",
+        "mode": "after"
+      }
+    }
+  ]
+}

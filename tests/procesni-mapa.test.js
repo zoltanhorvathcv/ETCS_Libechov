@@ -28,6 +28,23 @@ function serve() {
   });
 }
 
+const DEMO = {
+  version: 1,
+  streams: [
+    { id: 's1', name: 'Příprava stavby', color: '#2f6fde', lanes: 2 },
+    { id: 's2', name: 'Realizace', color: '#e07b00', lanes: 1 },
+    { id: 's3', name: 'Schvalování a bezpečnost', color: '#1f9d6b', lanes: 1 },
+  ],
+  processes: [
+    { id: 'p1', streamId: 's1', lane: 0, name: 'Studie proveditelnosti', from: '2025-01-01', to: '2025-09-30', gesce: 'Odbor přípravy staveb', roles: ['Projektový manažer', 'Projektant'] },
+    { id: 'p2', streamId: 's1', lane: 0, name: 'Dokumentace pro povolení', from: '2025-10-01', to: '2026-06-30', gesce: 'Odbor přípravy staveb', roles: ['Projektant'] },
+    { id: 'p3', streamId: 's1', lane: 1, name: 'Majetkoprávní vypořádání', from: '2025-11-01', to: '2026-08-31', gesce: 'Odbor správy majetku', roles: ['Inženýr', 'Právník'] },
+    { id: 'p4', streamId: 's2', lane: 0, name: 'Výběr zhotovitele', from: '2026-07-01', to: '2026-12-31', gesce: 'Odbor veřejných zakázek', roles: ['Zadavatel'] },
+    { id: 'p5', streamId: 's2', lane: 0, name: 'Stavba', from: '2027-02-01', to: '2028-10-31', gesce: 'Stavební správa', roles: ['Stavbyvedoucí', 'TDS'] },
+    { id: 'p6', streamId: 's3', lane: 0, name: 'Posouzení bezpečnosti', from: '2027-06-01', to: '2028-12-31', gesce: 'Odbor bezpečnosti', roles: ['Posuzovatel'] },
+  ],
+};
+
 (async () => {
   const srv = await serve();
   const URL = `http://localhost:${srv.address().port}/procesni-mapa.html`;
@@ -90,7 +107,8 @@ function serve() {
   // ------------------------------------------------------------------
   current = '1 Načtení a ukázková data';
   await page.goto(URL);
-  await page.evaluate(() => localStorage.clear());
+  // původní testy běží nad malou ukázkovou mapou (výchozí obsah = mapa stavby, testuje se v části 24b)
+  await page.evaluate(demo => { localStorage.clear(); localStorage.setItem('procesni-mapa:data:v1', JSON.stringify(demo)); }, DEMO);
   await page.reload();
   let d = await D();
   eq(d.streams.length, 3, 'tři ukázkové streamy');
@@ -563,7 +581,7 @@ function serve() {
     await page.evaluate(pid => {
       const pm = window.procesniMapa, sc = document.getElementById('scroller');
       const p = pm.data.processes.find(q => q.id === pid);
-      sc.scrollTop = pm.dToY(pm.parseISO(p.from)) - 250;
+      sc.scrollTop = pm.dToY(pm.parseISO(pm.eff(pid).from)) - 250;
       const col = document.querySelector(`.scol[data-sid="${p.streamId}"]`);
       sc.scrollLeft = Math.max(0, col.offsetLeft + p.lane * pm.view.laneW - 250);
     }, pid);
@@ -752,8 +770,9 @@ function serve() {
   await submit();
   d = await D();
   eq(d.streams.map(s => [s.name, s.lanes]), [['Importovaný', 2]], 'import nahradil mapu; kolize vyřešena 2. dráhou');
-  eq(d.processes.map(p => [p.name, p.lane]), [['I1', 0], ['I2', 1], ['obrácené', 0]], 'neplatné záznamy vynechány');
-  eq(d.processes[2] && [d.processes[2].from, d.processes[2].to], ['2025-05-01', '2025-05-31'], 'obrácené datum opraveno');
+  eq(d.processes.map(p => [p.name, p.lane]), [['I1', 0], ['I2', 1], ['špatné datum', 0], ['obrácené', 0]], 'proces bez streamu vynechán');
+  eq([d.processes[2].from, d.processes[2].to], ['', ''], 'neplatné datum → proces bez termínu (nic se neztratí)');
+  eq(d.processes[3] && [d.processes[3].from, d.processes[3].to], ['2025-05-01', '2025-05-31'], 'obrácené datum opraveno');
   const bad = path.join(scratch, 'bad.json');
   fs.writeFileSync(bad, '{ nic');
   await page.setInputFiles('#fileIn', bad);
@@ -787,7 +806,7 @@ function serve() {
   eq((await D()).streams.length, 1, 'prázdná/nová mapa se po načtení nenahradí ukázkou');
   await page.click('#bNew'); await submit();
   await page.click('#eSample');
-  eq((await D()).processes.length, 6, 'ukázková data načtena');
+  eq((await D()).processes.length, 20, 'mapa stavby podle zadání načtena');
   await page.mouse.click(900, 500, { button: 'right' });
   ok(await page.isVisible('#ctx'), 'pravé tlačítko funguje i po načtení ukázky');
   await page.keyboard.press('Escape');
@@ -801,6 +820,215 @@ function serve() {
   const mb = await page.locator('#ctx').boundingBox();
   ok(mb && mb.y >= 0 && mb.y + mb.height <= 900 && mb.x + mb.width <= 1400, 'menu se vejde do okna');
   await page.keyboard.press('Escape');
+
+  current = '24b Mapa stavby podle zadání (výchozí obsah)';
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  d = await D();
+  const nm = id => d.processes.find(p => p.id === id);
+  eq(d.streams.map(s => s.name), ['Příprava stavby a dokumentace stavby', 'Realizace', 'Schvalování a přezkoušení'], 'tři streamy podle zadání');
+  eq(d.processes.length, 20, 'dvacet procesů');
+  const byS = sid => d.processes.filter(p => p.streamId === sid).map(p => p.name.split(' – ')[0]);
+  eq(byS('s1'), ['PDPS', 'Inženýrská činnost', 'Souhrnný rozpočet', 'Autorizace', 'RDS', 'DSPS'], 'stream 1');
+  eq(byS('s2'), ['Předání staveniště', 'Stavební deník', 'Výkopové práce', 'Kabelizace', 'Montáž technologie'], 'stream 2');
+  eq(byS('s3'), ['DLZT', 'AsBo', 'NoBo', 'Dokončení schválení přípustnosti LEU jednotek a balíz Siemens Mobility dle SM 008', 'TPaZ UTZ', 'TBZ', 'NoBo', 'Drážní úřad', 'Drážní úřad'], 'stream 3');
+  eq([nm('pdps').from, nm('pdps').to], ['2026-03-01', '2027-03-31'], 'PDPS 1. 3. 2026 – 31. 3. 2027');
+  eq([nm('dlzt').from, nm('dlzt').to, nm('dlzt').gesce, nm('asbo').from, nm('asbo').to, nm('asbo').gesce], ['2026-11-15', '2026-12-15', 'CTD', '2026-11-15', '2026-12-15', 'CTD'], 'DLZT a AsBo paralelně, gesce CTD');
+  ok(nm('dlzt').lane !== nm('asbo').lane, 'DLZT a AsBo jsou vedle sebe v různých drahách');
+  eq([nm('ic').from, nm('ic').to, nm('sr').from, nm('sr').to], ['2026-12-01', '2027-03-31', '2026-11-15', '2026-12-15'], 'Inženýrská činnost a Souhrnný rozpočet (opravené termíny)');
+  eq([nm('aut').from, nm('aut').to, nm('aut').gesce], ['2026-12-01', '2027-02-28', 'Aleš Cipris'], 'Autorizace');
+  eq([nm('noboisv').from, nm('noboisv').to, nm('noboisv').gesce], ['2027-02-01', '2027-03-31', 'O26, O25, SSZ'], 'NoBo – ISV');
+  eq(nm('pdps').inputs.map(i => [i.pid, i.need]), [['dlzt', 'finish'], ['asbo', 'finish'], ['ic', 'finish'], ['sr', 'finish'], ['aut', 'finish']], 'dokončení PDPS podmiňují DLZT, AsBo, IČ, rozpočet a autorizace');
+  eq(nm('noboisv').inputs.map(i => i.pid), ['pdps'], 'PDPS je vstupem NoBo – ISV');
+  eq(nm('montaz').inputs.map(i => i.pid), ['sm008'], 'schválení LEU a balíz (SM 008) je vstupem Montáže technologie');
+  eq([nm('rds').from, nm('rds').gesce, nm('dsps').from], ['', '', ''], 'RDS a DSPS bez termínu a gestora');
+  const ef = id => page.evaluate(id => window.procesniMapa.eff(id), id);
+  let e1 = await ef('rds');
+  eq([e1.from, e1.est], ['2027-04-01', true], 'RDS orientačně hned za PDPS');
+  eq((await ef('dsps')).from, '2027-05-01', 'DSPS orientačně za RDS');
+  const esm = await ef('sm008');
+  eq([esm.from, esm.to], ['2027-02-01', '2027-03-31'], 'SM 008 orientačně souběžně s NoBo – ISV');
+  ok(nm('sm008').lane !== nm('noboisv').lane, 'SM 008 je v paralelní dráze vedle NoBo – ISV');
+  eq((await ef('tpaz')).from, '2027-04-01', 'TPaZ UTZ orientačně za NoBo – ISV');
+  let iss = await page.evaluate(() => window.procesniMapa.issues);
+  eq(iss.conflicts.length, 0, 'žádné konflikty vazeb');
+  eq(iss.miss.rds, ['gestor', 'od–do', 'vstup', 'výstup'], 'u RDS chybí gestor, od–do, vstup i výstup');
+  eq(iss.miss.pdps, ['gestor'], 'u PDPS chybí jen gestor');
+  eq(iss.miss.noboisv, ['výstup'], 'u NoBo – ISV chybí výstup');
+  eq(await page.locator('.proc.nodate').count(), 13, '13 procesů bez termínu je šrafovaných');
+  ok((await page.textContent('.proc[data-pid="rds"] .p-miss')).includes('gestor, od–do, vstup, výstup'), 'na boxu RDS je vidět, co chybí');
+  ok((await page.textContent('.proc[data-pid="rds"] .p-dates')).includes('orientačně za „PDPS'), 'na boxu RDS je vidět orientační umístění');
+  eq(await page.locator('svg.links path.lk').count(), 7, 'sedm šipek vazeb (5× do PDPS, PDPS → NoBo – ISV, SM 008 → montáž)');
+  eq(await page.textContent('#checkCnt'), '20', 'Kontrola ukazuje počet problémů');
+
+  current = '24c Vazby – zvýraznění, skrytí, kontrola';
+  await page.locator('.proc[data-pid="pdps"]').click({ position: { x: 40, y: 10 } });
+  eq(await page.locator('svg.links path.lk.rel').count(), 6, 'vybraný PDPS zvýrazní svých 6 vazeb');
+  await page.click('#bLinks');
+  eq(await page.locator('svg.links').count(), 0, 'tlačítko Vazby šipky skryje');
+  await page.click('#bLinks');
+  eq(await page.locator('svg.links path.lk').count(), 7, 'a znovu zobrazí');
+  await page.click('#bCheck');
+  ok((await page.textContent('#modal')).includes('Chybějící parametry (20)'), 'kontrola vypíše chybějící parametry');
+  await page.click('#modal [data-goto="rds"]');
+  ok(!(await modalOpen()), 'klik na řádek kontrolu zavře');
+  ok(await page.evaluate(() => document.querySelector('.proc[data-pid="rds"]').classList.contains('sel')), 'a vybere proces v mapě');
+
+  current = '24d Vstupy a výstupy přes pravé tlačítko';
+  const pickIO = async (which, kind, val, need) => {
+    await page.selectOption(`#modal [data-io=${which}] [data-k]`, kind);
+    if (kind === 'proc') { await page.selectOption(`#modal [data-io=${which}] [data-p]`, val); if (need) await page.selectOption(`#modal [data-io=${which}] [data-need]`, need); }
+    else await page.fill(`#modal [data-io=${which}] [data-t]`, val);
+    await page.click(`#modal [data-io=${which}] [data-add]`);
+  };
+  await page.locator('.proc[data-pid="noboisv"]').click({ button: 'right', position: { x: 40, y: 10 } });
+  ok((await page.textContent('#ctx')).includes('Vstupy… (1)') && (await page.textContent('#ctx')).includes('Výstupy… (0)'), 'menu procesu nabízí Vstupy a Výstupy s počty');
+  await menuItem('Výstupy');
+  ok((await page.textContent('#modal .io-list')).includes('Žádný výstup'), 'prázdný výstup je v dialogu označen');
+  await pickIO('out', 'doc', 'Zpráva ISV');
+  await page.selectOption('#modal [data-io=out] [data-k]', 'sub');
+  await page.fill('#modal [data-io=out] [data-t]', 'Předání podkladů NoBo');   // nepřidáno tlačítkem – má se uložit
+  await submit();
+  let nb = await byName('NoBo – ISV');
+  eq(nb.outputs, [{ kind: 'doc', text: 'Zpráva ISV' }, { kind: 'sub', text: 'Předání podkladů NoBo' }], 'výstup dokument a podproces uloženy');
+  ok(!(await page.evaluate(() => window.procesniMapa.issues.miss.noboisv)), 'NoBo – ISV už nemá chybějící parametry');
+  // seznam procesů ve výběru odpovídá aktuální mapě
+  await page.click('#bStream'); await page.fill('#modal input[name=name]', 'Pomocný'); await submit();
+  const pom = await streamBy('Pomocný');
+  await page.click('#bProc'); await page.selectOption('#modal select[name=stream]', pom.id);
+  await page.fill('#modal input[name=name]', 'Nový proces Q'); await page.fill('#modal input[name=from]', '2026-05-01'); await page.fill('#modal input[name=to]', '2026-06-30');
+  await submit();
+  await page.locator('.proc[data-pid="noboisv"]').click({ button: 'right', position: { x: 40, y: 10 } });
+  await menuItem('Vstupy');
+  const opts2 = await page.$$eval('#modal [data-io=in] [data-p] option', o => o.map(x => x.textContent));
+  ok(opts2.includes('Nový proces Q'), 'nově přidaný proces je hned v nabídce vstupů');
+  ok(!opts2.includes('NoBo – ISV'), 'proces nenabízí sám sebe');
+  eq(await page.$$eval('#modal [data-io=in] [data-p] optgroup', o => o.map(x => x.label)), ['Příprava stavby a dokumentace stavby', 'Realizace', 'Schvalování a přezkoušení', 'Pomocný'], 'nabídka je seskupená podle streamů');
+  const q = await byName('Nový proces Q');
+  await pickIO('in', 'proc', q.id, 'start');
+  await pickIO('in', 'doc', 'Smlouva s NoBo');
+  await submit();
+  nb = await byName('NoBo – ISV');
+  eq(nb.inputs, [{ kind: 'proc', pid: 'pdps', need: 'finish' }, { kind: 'proc', pid: q.id, need: 'start' }, { kind: 'doc', text: 'Smlouva s NoBo' }], 'vstupy: PDPS, nový proces (zahájení) a dokument');
+  eq(await page.locator('svg.links path.lk').count(), 8, 'přibyla šipka vazby');
+  eq(await page.locator(`svg.links path.lk[data-src="${q.id}"][data-need=start]`).count(), 1, 'šipka vazby na zahájení');
+  ok((await page.evaluate(() => window.procesniMapa.issues.miss[(window.procesniMapa.data.processes.find(p => p.name === 'Nový proces Q')).id])).indexOf('výstup') < 0, 'nový proces má teď výstup (je vstupem NoBo – ISV)');
+
+  current = '24e Konflikt vazby a kruh';
+  await page.locator('.proc[data-pid="noboisv"]').click({ button: 'right', position: { x: 40, y: 10 } });
+  await menuItem('Vstupy');
+  await pickIO('in', 'proc', 'ic', 'start');
+  await submit();
+  iss = await page.evaluate(() => window.procesniMapa.issues);
+  eq(iss.conflicts.length, 1, 'IČ končí až 31. 3. 2027 – nemůže podmiňovat zahájení NoBo – ISV 1. 2. 2027');
+  ok(iss.conflicts[0].msg.includes('Inženýrská činnost') && iss.conflicts[0].msg.includes('zahájení'), 'text konfliktu: ' + iss.conflicts[0].msg);
+  eq(await page.locator('svg.links path.lk.bad').count(), 1, 'konfliktní šipka je červená');
+  ok(await page.evaluate(() => document.querySelector('.proc[data-pid="noboisv"]').classList.contains('conflict')), 'proces s konfliktem je orámován');
+  await page.click('#bCheck');
+  ok((await page.textContent('#modal')).includes('Konflikty vazeb (1)'), 'kontrola ukazuje konflikt');
+  await page.keyboard.press('Escape');
+  await page.click('#bUndo');
+  eq((await page.evaluate(() => window.procesniMapa.issues)).conflicts.length, 0, 'Zpět konflikt odstraní');
+  await page.locator('.proc[data-pid="pdps"]').click({ button: 'right', position: { x: 40, y: 10 } });
+  await menuItem('Vstupy');
+  await pickIO('in', 'proc', 'noboisv');
+  await submit();
+  ok((await errText()).includes('kruh'), 'vazba do kruhu (PDPS ↔ NoBo – ISV) je odmítnuta: ' + await errText());
+  await page.keyboard.press('Escape');
+  eq((await byName('PDPS – projektová dokumentace pro provádění stavby')).inputs.length, 5, 'PDPS beze změny');
+
+  current = '24f Výstup do procesu a odebrání';
+  await page.locator('.proc[data-pid="dsps"]').click({ button: 'right', position: { x: 40, y: 10 } });
+  await menuItem('Výstupy');
+  await pickIO('out', 'proc', 'nobo');
+  await submit();
+  ok(d = await D(), '');
+  eq(d.processes.find(p => p.id === 'nobo').inputs, [{ kind: 'proc', pid: 'dsps', need: 'finish' }], 'výstup DSPS → vstup procesu NoBo');
+  await page.locator('.proc[data-pid="nobo"]').click({ button: 'right', position: { x: 40, y: 10 } });
+  await menuItem('Vstupy');
+  ok((await page.textContent('#modal .io-list')).includes('Dokončení „DSPS'), 'u NoBo je DSPS vidět jako vstup');
+  await page.click('#modal .io-list [data-rm="0"]');
+  await submit();
+  eq((await D()).processes.find(p => p.id === 'nobo').inputs, [], 'odebrání vstupu × zruší i výstup DSPS');
+
+  current = '24g Proces bez termínu – zakotvení tažením a dialogem';
+  await page.click('#scaleSeg button[data-scale=month]');
+  const before24 = await D();
+  await dragProc('rds', 'move', 0, 6);
+  let r1 = (await D()).processes.find(p => p.id === 'rds');
+  eq([r1.from, r1.to, r1.anchor], ['2027-04-01', '2027-04-30', null], 'uchopením a puštěním se RDS zakotví na orientační termín');
+  ok((await toastText()).includes('Zakotveno'), 'hlášení o zakotvení');
+  ok(!(await page.evaluate(() => document.querySelector('.proc[data-pid="rds"]').classList.contains('nodate'))), 'RDS už není šrafovaný');
+  await page.click('#bUndo');
+  await dragProc('rds', 'bot', 0, (await px('2027-04-30', '2027-09-30')) + 3);
+  r1 = (await D()).processes.find(p => p.id === 'rds');
+  eq([r1.from, r1.to], ['2027-04-01', '2027-09-30'], 'tažením dolní hrany se RDS zakotví s délkou do září');
+  eq((await ef('dsps')).from, '2027-10-01', 'DSPS se orientačně posunul za nový konec RDS');
+  await page.click('#bUndo');
+  await page.locator('.proc[data-pid="aut"]').click({ button: 'right', position: { x: 40, y: 10 } });
+  await menuItem('Změnit od – do');
+  await page.check('#modal input[name=nodate]');
+  ok(await page.isHidden('#modal input[name=from]'), 'zaškrtnutí „termín neznámý“ skryje data');
+  await page.selectOption('#modal select[name=amode]', 'after');
+  await submit();
+  ok((await errText()).includes('Vyberte proces'), 'orientace „za procesem“ vyžaduje proces');
+  await page.selectOption('#modal select[name=apid]', 'sr');
+  await submit();
+  r1 = (await D()).processes.find(p => p.id === 'aut');
+  eq([r1.from, r1.to, r1.anchor], ['', '', { pid: 'sr', mode: 'after' }], 'termín Autorizace zrušen, orientačně za Souhrnným rozpočtem');
+  eq((await ef('aut')).from, '2026-12-16', 'orientační začátek den po konci rozpočtu');
+  ok((await page.evaluate(() => window.procesniMapa.issues.miss.aut)).includes('od–do'), 'chybějící termín je hlášen');
+  await page.click('#bUndo');
+  // nový proces bez termínu se vším v jednom dialogu
+  await page.click('#bProc');
+  await page.fill('#modal input[name=name]', 'Revize projektu');
+  await page.fill('#modal input[name=gesce]', 'O26');
+  await page.check('#modal input[name=nodate]');
+  await page.selectOption('#modal select[name=amode]', 'with');
+  await page.selectOption('#modal select[name=apid]', 'pdps');
+  await page.selectOption('#modal select[name=stream]', 's1');
+  await pickIO('in', 'sub', 'Kontrolní den');
+  await pickIO('out', 'proc', 'pdps');
+  await submit();
+  const rv = await byName('Revize projektu');
+  eq([rv.from, rv.gesce, rv.anchor, rv.inputs], ['', 'O26', { pid: 'pdps', mode: 'with' }, [{ kind: 'sub', text: 'Kontrolní den' }]], 'nový proces bez termínu, souběžně s PDPS');
+  ok((await D()).processes.find(p => p.id === 'pdps').inputs.some(i => i.pid === rv.id), 'jeho výstup je vstupem PDPS');
+  eq(await page.evaluate(id => window.procesniMapa.issues.miss[id], rv.id), ['od–do'], 'chybí mu jen termín');
+  await page.dblclick(`.proc[data-pid="${rv.id}"]`, { position: { x: 40, y: 10 } });
+  ok(await page.isChecked('#modal input[name=nodate]'), 'úprava: „termín neznámý“ je zaškrtnutý');
+  eq(await page.inputValue('#modal select[name=apid]'), 'pdps', 'úprava: orientační proces předvyplněn');
+  ok((await page.textContent('#modal [data-io=out] .io-list')).includes('Vstup pro „PDPS'), 'úprava: výstupy předvyplněny');
+  await page.keyboard.press('Escape');
+
+  current = '24h Mazání procesu odebere vazby';
+  await page.locator('.proc[data-pid="dlzt"]').click({ button: 'right', position: { x: 40, y: 10 } });
+  await menuItem('Smazat proces');
+  ok((await toastText()).includes('odebrány vazby (1)'), 'hlášení o odebraných vazbách');
+  ok(!(await D()).processes.find(p => p.id === 'pdps').inputs.some(i => i.pid === 'dlzt'), 'PDPS už nemá vstup DLZT');
+  await page.click('#bUndo');
+  ok((await D()).processes.find(p => p.id === 'pdps').inputs.some(i => i.pid === 'dlzt'), 'Zpět vrátí proces i vazbu');
+  await page.locator('.proc[data-pid="noboisv"]').click({ button: 'right', position: { x: 40, y: 10 } });
+  await menuItem('Smazat proces');
+  eq((await D()).processes.find(p => p.id === 'sm008').anchor, null, 'proces orientovaný souběžně se smazaným ztratí orientaci');
+  await page.click('#bUndo');
+
+  current = '24i Uložení a import vazeb';
+  const snap2 = await D();
+  await page.reload();
+  eq(await D(), snap2, 'vstupy, výstupy a orientace přežijí znovunačtení');
+  const impIO = { version: 1, streams: [{ id: 'a', name: 'A', lanes: 1 }], processes: [
+    { id: 'x', streamId: 'a', name: 'X', from: '2026-01-01', to: '2026-01-31', outputs: [{ kind: 'proc', pid: 'y', need: 'start' }, { kind: 'doc', text: 'Protokol' }] },
+    { id: 'y', streamId: 'a', name: 'Y', from: '', to: '', anchor: { pid: 'x', mode: 'after' }, inputs: [{ kind: 'proc', pid: 'neni' }, { kind: 'doc', text: ' ' }, { kind: 'sub', text: 'Kontrola' }] },
+  ] };
+  const impF = path.join(require('os').tmpdir(), 'pm-io-' + Date.now() + '.json');
+  fs.writeFileSync(impF, JSON.stringify(impIO));
+  await page.setInputFiles('#fileIn', impF);
+  await page.waitForSelector('#modal form'); await submit();
+  d = await D();
+  eq(d.processes.find(p => p.name === 'Y').inputs, [{ kind: 'sub', text: 'Kontrola' }, { kind: 'proc', pid: d.processes.find(p => p.name === 'X').id, need: 'start' }], 'import: výstup do procesu se převede na vstup, neplatné vstupy vynechány');
+  eq(d.processes.find(p => p.name === 'X').outputs, [{ kind: 'doc', text: 'Protokol' }], 'import: výstup dokument');
+  eq((await ef(d.processes.find(p => p.name === 'Y').id)).from, '2026-02-01', 'import: orientační umístění funguje');
+  await page.click('#bUndo');
 
   current = '25 Mobilní zobrazení a dotyk (⋯)';
   const mob = await browser.newContext({ viewport: { width: 390, height: 800 }, hasTouch: true, isMobile: true });

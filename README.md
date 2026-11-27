@@ -28,7 +28,20 @@ Jednoduchý editor procesní mapy na jedné stránce, bez přihlášení a bez S
   dnech, Esc tažení zruší. Na obsazeném místě se proces uloží do volné dráhy.
 - **Vodorovná osa = streamy**; každý stream může mít více **paralelních drah**,
   takže procesy mohou běžet souběžně vedle sebe.
-- Proces má **název, role, od–do a gesci**.
+- **Základní parametry procesu: název, gestor (gesce), od–do, vstup a výstup**
+  (role jsou nepovinné). Co chybí, je na procesu označeno „⚠ chybí: …“ a
+  oranžovým rohem; přehled a konflikty ukáže tlačítko **⚠ Kontrola**.
+- **Vstup** = dokončení jiného procesu z mapy (výběr z aktuálního seznamu
+  procesů; vazba „podmiňuje dokončení“ nebo „podmiňuje zahájení“), dokument,
+  nebo podproces, který v mapě není. **Výstup** = vstup pro jiný proces,
+  dokument nebo podproces.
+- **Vazby** mezi procesy (i napříč streamy) jsou vidět jako šipky (🔗 Vazby);
+  červená šipka = termíny vazbu porušují.
+- **Proces bez termínu** se zobrazí šrafovaně jen orientačně (za zvoleným
+  procesem, souběžně s ním, za vstupy nebo za předchozím v dráze); přetažením
+  myší se zakotví na konkrétní termín.
+- Výchozí obsah je **mapa stavby podle zadání** (také „Nová mapa“ nebo soubor
+  [`data/procesni-mapa-stavby.json`](data/procesni-mapa-stavby.json) pro Import).
 - **Pravé tlačítko na stream**: přidat proces do kliknutého období a dráhy,
   přidat / odebrat dráhu, přejmenovat, posunout nebo smazat stream.
 - **Pravé tlačítko na proces**: přidat roli, změnit od–do, změnit gesci,
