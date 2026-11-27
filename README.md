@@ -9,6 +9,28 @@ automatický deploy.
 
 ---
 
+## Samostatná procesní mapa (`procesni-mapa.html`)
+
+Jednoduchý editor procesní mapy na jedné stránce, bez přihlášení a bez Supabase
+(ukládá se v prohlížeči, záloha přes **Export / Import** JSON).
+
+- **Svislá osa = čas** od ledna 2020 do prosince 2030, měřítko **Týdny / Měsíce /
+  Kvartály**, české zkratky měsíců (led, úno, bře, …).
+- **Vodorovná osa = streamy**; každý stream může mít více **paralelních drah**,
+  takže procesy mohou běžet souběžně vedle sebe.
+- Proces má **název, role, od–do a gesci**.
+- **Pravé tlačítko na stream**: přidat proces do kliknutého období a dráhy,
+  přidat / odebrat dráhu, přejmenovat, posunout nebo smazat stream.
+- **Pravé tlačítko na proces**: přidat roli, změnit od–do, změnit gesci,
+  upravit vše, přidat paralelní proces, smazat. Na dotykových zařízeních
+  stejné menu otevře tlačítko ⋯.
+- Zpět / Znovu (Ctrl+Z / Ctrl+Y), Delete smaže vybraný proces.
+
+Automatický test všech funkcí: `node tests/procesni-mapa.test.js`
+(potřebuje Node.js a balíček `playwright` s Chromiem).
+
+---
+
 ## Úpravy projektu přímo ve webu
 
 1. Otevřete aplikaci (tlačítko **„Otevřít aplikaci"** na úvodní stránce).
