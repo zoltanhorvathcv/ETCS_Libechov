@@ -806,7 +806,7 @@ const DEMO = {
   eq((await D()).streams.length, 1, 'prázdná/nová mapa se po načtení nenahradí ukázkou');
   await page.click('#bNew'); await submit();
   await page.click('#eSample');
-  eq((await D()).processes.length, 20, 'mapa stavby podle zadání načtena');
+  eq((await D()).processes.length, 22, 'mapa stavby podle zadání načtena');
   await page.mouse.click(900, 500, { button: 'right' });
   ok(await page.isVisible('#ctx'), 'pravé tlačítko funguje i po načtení ukázky');
   await page.keyboard.press('Escape');
@@ -827,11 +827,11 @@ const DEMO = {
   d = await D();
   const nm = id => d.processes.find(p => p.id === id);
   eq(d.streams.map(s => s.name), ['Příprava stavby a dokumentace stavby', 'Realizace', 'Schvalování a přezkoušení'], 'tři streamy podle zadání');
-  eq(d.processes.length, 20, 'dvacet procesů');
+  eq(d.processes.length, 22, 'dvacet dva procesů');
   const byS = sid => d.processes.filter(p => p.streamId === sid).map(p => p.name.split(' – ')[0]);
   eq(byS('s1'), ['PDPS', 'Inženýrská činnost', 'Souhrnný rozpočet', 'Autorizace', 'RDS', 'DSPS'], 'stream 1');
   eq(byS('s2'), ['Předání staveniště', 'Stavební deník', 'Výkopové práce', 'Kabelizace', 'Montáž technologie'], 'stream 2');
-  eq(byS('s3'), ['DLZT', 'AsBo', 'NoBo', 'Dokončení schválení přípustnosti LEU jednotek a balíz Siemens Mobility dle SM 008', 'TPaZ UTZ', 'TBZ', 'NoBo', 'Drážní úřad', 'Drážní úřad'], 'stream 3');
+  eq(byS('s3'), ['DLZT', 'AsBo', 'NoBo', 'Dokončení schválení přípustnosti LEU jednotek a balíz Siemens Mobility dle SM 008', 'TPaZ UTZ', 'TBZ', 'NoBo', 'DeBo', 'ERA Trackside Approval', 'Drážní úřad', 'Drážní úřad'], 'stream 3');
   eq([nm('pdps').from, nm('pdps').to], ['2026-03-01', '2027-03-31'], 'PDPS 1. 3. 2026 – 31. 3. 2027');
   eq([nm('dlzt').from, nm('dlzt').to, nm('dlzt').gesce, nm('asbo').from, nm('asbo').to, nm('asbo').gesce], ['2026-11-15', '2026-12-15', 'CTD', '2026-11-15', '2026-12-15', 'CTD'], 'DLZT a AsBo paralelně, gesce CTD');
   ok(nm('dlzt').lane !== nm('asbo').lane, 'DLZT a AsBo jsou vedle sebe v různých drahách');
@@ -850,16 +850,24 @@ const DEMO = {
   eq([esm.from, esm.to], ['2027-02-01', '2027-03-31'], 'SM 008 orientačně souběžně s NoBo – ISV');
   ok(nm('sm008').lane !== nm('noboisv').lane, 'SM 008 je v paralelní dráze vedle NoBo – ISV');
   eq((await ef('tpaz')).from, '2027-04-01', 'TPaZ UTZ orientačně za NoBo – ISV');
+  const eNobo = await ef('nobo'), eDebo = await ef('debo'), eEra = await ef('era');
+  eq([eDebo.from, eDebo.to], [eNobo.from, eNobo.to], 'DeBo orientačně souběžně s NoBo');
+  ok(nm('debo').lane !== nm('nobo').lane, 'DeBo je v paralelní dráze vedle NoBo');
+  ok(eEra.from > eNobo.to, 'ERA Trackside Approval orientačně za NoBo');
+  eq([nm('era').gesce, nm('era').inputs.map(i => i.pid)], ['O6', ['nobo', 'debo']], 'ERA TA: gestor O6, vstupy NoBo a DeBo');
+  eq(nm('dupzdr').inputs.map(i => i.pid), ['era'], 'ERA TA je vstupem průkazu způsobilosti dráhy');
   let iss = await page.evaluate(() => window.procesniMapa.issues);
   eq(iss.conflicts.length, 0, 'žádné konflikty vazeb');
   eq(iss.miss.rds, ['gestor', 'od–do', 'vstup', 'výstup'], 'u RDS chybí gestor, od–do, vstup i výstup');
   eq(iss.miss.pdps, ['gestor'], 'u PDPS chybí jen gestor');
   eq(iss.miss.noboisv, ['výstup'], 'u NoBo – ISV chybí výstup');
-  eq(await page.locator('.proc.nodate').count(), 13, '13 procesů bez termínu je šrafovaných');
+  eq(await page.locator('.proc.nodate').count(), 15, '15 procesů bez termínu je šrafovaných');
+  eq(iss.miss.debo, ['gestor', 'od–do', 'vstup'], 'u DeBo chybí gestor, od–do a vstup');
+  eq(iss.miss.era, ['od–do'], 'u ERA Trackside Approval chybí jen termín');
   ok((await page.textContent('.proc[data-pid="rds"] .p-miss')).includes('gestor, od–do, vstup, výstup'), 'na boxu RDS je vidět, co chybí');
   ok((await page.textContent('.proc[data-pid="rds"] .p-dates')).includes('orientačně za „PDPS'), 'na boxu RDS je vidět orientační umístění');
-  eq(await page.locator('svg.links path.lk').count(), 7, 'sedm šipek vazeb (5× do PDPS, PDPS → NoBo – ISV, SM 008 → montáž)');
-  eq(await page.textContent('#checkCnt'), '20', 'Kontrola ukazuje počet problémů');
+  eq(await page.locator('svg.links path.lk').count(), 10, 'deset šipek vazeb (5× do PDPS, PDPS → NoBo – ISV, SM 008 → montáž, NoBo a DeBo → ERA, ERA → DÚ)');
+  eq(await page.textContent('#checkCnt'), '22', 'Kontrola ukazuje počet problémů');
 
   current = '24c Vazby – zvýraznění, skrytí, kontrola';
   await page.locator('.proc[data-pid="pdps"]').click({ position: { x: 40, y: 10 } });
@@ -867,9 +875,9 @@ const DEMO = {
   await page.click('#bLinks');
   eq(await page.locator('svg.links').count(), 0, 'tlačítko Vazby šipky skryje');
   await page.click('#bLinks');
-  eq(await page.locator('svg.links path.lk').count(), 7, 'a znovu zobrazí');
+  eq(await page.locator('svg.links path.lk').count(), 10, 'a znovu zobrazí');
   await page.click('#bCheck');
-  ok((await page.textContent('#modal')).includes('Chybějící parametry (20)'), 'kontrola vypíše chybějící parametry');
+  ok((await page.textContent('#modal')).includes('Chybějící parametry (22)'), 'kontrola vypíše chybějící parametry');
   await page.click('#modal [data-goto="rds"]');
   ok(!(await modalOpen()), 'klik na řádek kontrolu zavře');
   ok(await page.evaluate(() => document.querySelector('.proc[data-pid="rds"]').classList.contains('sel')), 'a vybere proces v mapě');
@@ -910,7 +918,7 @@ const DEMO = {
   await submit();
   nb = await byName('NoBo – ISV');
   eq(nb.inputs, [{ kind: 'proc', pid: 'pdps', need: 'finish' }, { kind: 'proc', pid: q.id, need: 'start' }, { kind: 'doc', text: 'Smlouva s NoBo' }], 'vstupy: PDPS, nový proces (zahájení) a dokument');
-  eq(await page.locator('svg.links path.lk').count(), 8, 'přibyla šipka vazby');
+  eq(await page.locator('svg.links path.lk').count(), 11, 'přibyla šipka vazby');
   eq(await page.locator(`svg.links path.lk[data-src="${q.id}"][data-need=start]`).count(), 1, 'šipka vazby na zahájení');
   ok((await page.evaluate(() => window.procesniMapa.issues.miss[(window.procesniMapa.data.processes.find(p => p.name === 'Nový proces Q')).id])).indexOf('výstup') < 0, 'nový proces má teď výstup (je vstupem NoBo – ISV)');
 

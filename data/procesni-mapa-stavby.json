@@ -327,6 +327,49 @@
       }
     },
     {
+      "id": "debo",
+      "streamId": "s3",
+      "lane": 1,
+      "name": "DeBo",
+      "from": "",
+      "to": "",
+      "gesce": "",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": {
+        "pid": "nobo",
+        "mode": "with"
+      }
+    },
+    {
+      "id": "era",
+      "streamId": "s3",
+      "lane": 1,
+      "name": "ERA Trackside Approval",
+      "from": "",
+      "to": "",
+      "gesce": "O6",
+      "roles": [],
+      "inputs": [
+        {
+          "kind": "proc",
+          "pid": "nobo",
+          "need": "finish"
+        },
+        {
+          "kind": "proc",
+          "pid": "debo",
+          "need": "finish"
+        }
+      ],
+      "outputs": [],
+      "anchor": {
+        "pid": "nobo",
+        "mode": "after"
+      }
+    },
+    {
       "id": "dupzutz",
       "streamId": "s3",
       "lane": 0,
@@ -351,7 +394,13 @@
       "to": "",
       "gesce": "",
       "roles": [],
-      "inputs": [],
+      "inputs": [
+        {
+          "kind": "proc",
+          "pid": "era",
+          "need": "finish"
+        }
+      ],
       "outputs": [],
       "anchor": {
         "pid": "dupzutz",

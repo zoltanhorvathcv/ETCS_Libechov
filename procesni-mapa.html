@@ -428,8 +428,10 @@ function projectMap() {
       P_('tpaz', 's3', 0, 'TPaZ UTZ – technické prohlídky a zkoušky UTZ', '', '', '', after('noboisv')),
       P_('tbz', 's3', 0, 'TBZ – technicko-bezpečnostní zkouška', '', '', '', after('tpaz')),
       P_('nobo', 's3', 0, 'NoBo', '', '', '', after('tbz')),
+      P_('debo', 's3', 1, 'DeBo', '', '', '', { anchor: { pid: 'nobo', mode: 'with' } }),
+      P_('era', 's3', 1, 'ERA Trackside Approval', '', '', 'O6', { ...after('nobo'), inputs: [fin('nobo'), fin('debo')] }),
       P_('dupzutz', 's3', 0, 'Drážní úřad – průkaz způsobilosti UTZ', '', '', '', after('nobo')),
-      P_('dupzdr', 's3', 0, 'Drážní úřad – průkaz způsobilosti dráhy', '', '', '', after('dupzutz')),
+      P_('dupzdr', 's3', 0, 'Drážní úřad – průkaz způsobilosti dráhy', '', '', '', { ...after('dupzutz'), inputs: [fin('era')] }),
     ],
   };
 }
