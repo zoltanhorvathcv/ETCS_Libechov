@@ -11,7 +11,7 @@
       "id": "s2",
       "name": "Realizace",
       "color": "#e07b00",
-      "lanes": 1
+      "lanes": 2
     },
     {
       "id": "s3",
@@ -102,18 +102,25 @@
     {
       "id": "rds",
       "streamId": "s1",
-      "lane": 0,
+      "lane": 2,
       "name": "RDS – realizační dokumentace stavby",
-      "from": "",
-      "to": "",
+      "from": "2027-03-01",
+      "to": "2027-05-31",
       "gesce": "",
       "roles": [],
-      "inputs": [],
+      "inputs": [
+        {
+          "kind": "proc",
+          "pid": "pdps",
+          "need": "finish"
+        },
+        {
+          "kind": "doc",
+          "text": "Obchodně technická dokumentace (OTD) Siemens Mobility dle SM008"
+        }
+      ],
       "outputs": [],
-      "anchor": {
-        "pid": "pdps",
-        "mode": "after"
-      }
+      "anchor": null
     },
     {
       "id": "dsps",
@@ -124,7 +131,13 @@
       "to": "",
       "gesce": "",
       "roles": [],
-      "inputs": [],
+      "inputs": [
+        {
+          "kind": "proc",
+          "pid": "vykop",
+          "need": "finish"
+        }
+      ],
       "outputs": [],
       "anchor": {
         "pid": "rds",
@@ -134,7 +147,7 @@
     {
       "id": "predani",
       "streamId": "s2",
-      "lane": 0,
+      "lane": 1,
       "name": "Předání staveniště",
       "from": "",
       "to": "",
@@ -150,7 +163,7 @@
     {
       "id": "denik",
       "streamId": "s2",
-      "lane": 0,
+      "lane": 1,
       "name": "Stavební deník",
       "from": "",
       "to": "",
@@ -166,7 +179,7 @@
     {
       "id": "vykop",
       "streamId": "s2",
-      "lane": 0,
+      "lane": 1,
       "name": "Výkopové práce",
       "from": "",
       "to": "",
@@ -182,7 +195,7 @@
     {
       "id": "kabel",
       "streamId": "s2",
-      "lane": 0,
+      "lane": 1,
       "name": "Kabelizace",
       "from": "",
       "to": "",
@@ -200,8 +213,8 @@
       "streamId": "s2",
       "lane": 0,
       "name": "Montáž technologie",
-      "from": "",
-      "to": "",
+      "from": "2027-06-01",
+      "to": "2027-07-31",
       "gesce": "",
       "roles": [],
       "inputs": [
@@ -209,13 +222,15 @@
           "kind": "proc",
           "pid": "sm008",
           "need": "finish"
+        },
+        {
+          "kind": "proc",
+          "pid": "rds",
+          "need": "start"
         }
       ],
       "outputs": [],
-      "anchor": {
-        "pid": "kabel",
-        "mode": "after"
-      }
+      "anchor": null
     },
     {
       "id": "dlzt",
@@ -283,32 +298,38 @@
       "streamId": "s3",
       "lane": 0,
       "name": "TPaZ UTZ – technické prohlídky a zkoušky UTZ",
-      "from": "",
-      "to": "",
-      "gesce": "",
+      "from": "2027-06-01",
+      "to": "2027-07-31",
+      "gesce": "CTD",
       "roles": [],
-      "inputs": [],
+      "inputs": [
+        {
+          "kind": "proc",
+          "pid": "montaz",
+          "need": "finish"
+        }
+      ],
       "outputs": [],
-      "anchor": {
-        "pid": "noboisv",
-        "mode": "after"
-      }
+      "anchor": null
     },
     {
       "id": "tbz",
       "streamId": "s3",
-      "lane": 0,
+      "lane": 1,
       "name": "TBZ – technicko-bezpečnostní zkouška",
-      "from": "",
-      "to": "",
-      "gesce": "",
+      "from": "2027-06-01",
+      "to": "2027-07-31",
+      "gesce": "O14 / CTD",
       "roles": [],
-      "inputs": [],
+      "inputs": [
+        {
+          "kind": "proc",
+          "pid": "tpaz",
+          "need": "finish"
+        }
+      ],
       "outputs": [],
-      "anchor": {
-        "pid": "tpaz",
-        "mode": "after"
-      }
+      "anchor": null
     },
     {
       "id": "nobo",
@@ -378,7 +399,13 @@
       "to": "",
       "gesce": "",
       "roles": [],
-      "inputs": [],
+      "inputs": [
+        {
+          "kind": "proc",
+          "pid": "tpaz",
+          "need": "finish"
+        }
+      ],
       "outputs": [],
       "anchor": {
         "pid": "nobo",
@@ -398,6 +425,11 @@
         {
           "kind": "proc",
           "pid": "era",
+          "need": "finish"
+        },
+        {
+          "kind": "proc",
+          "pid": "nobo",
           "need": "finish"
         }
       ],
