@@ -11,13 +11,13 @@
       "id": "s2",
       "name": "Realizace",
       "color": "#e07b00",
-      "lanes": 2
+      "lanes": 1
     },
     {
       "id": "s3",
       "name": "Schvalování a přezkoušení",
       "color": "#1f9d6b",
-      "lanes": 2
+      "lanes": 6
     }
   ],
   "processes": [
@@ -104,7 +104,7 @@
       "streamId": "s1",
       "lane": 2,
       "name": "RDS – realizační dokumentace stavby",
-      "from": "2027-03-01",
+      "from": "2027-01-01",
       "to": "2027-05-31",
       "gesce": "",
       "roles": [],
@@ -147,7 +147,7 @@
     {
       "id": "predani",
       "streamId": "s2",
-      "lane": 1,
+      "lane": 0,
       "name": "Předání staveniště",
       "from": "",
       "to": "",
@@ -156,57 +156,45 @@
       "inputs": [],
       "outputs": [],
       "anchor": {
-        "pid": "pdps",
-        "mode": "after"
-      }
-    },
-    {
-      "id": "denik",
-      "streamId": "s2",
-      "lane": 1,
-      "name": "Stavební deník",
-      "from": "",
-      "to": "",
-      "gesce": "",
-      "roles": [],
-      "inputs": [],
-      "outputs": [],
-      "anchor": {
-        "pid": "predani",
-        "mode": "after"
+        "pid": "vykop",
+        "mode": "before"
       }
     },
     {
       "id": "vykop",
       "streamId": "s2",
-      "lane": 1,
+      "lane": 0,
       "name": "Výkopové práce",
-      "from": "",
-      "to": "",
+      "from": "2027-04-01",
+      "to": "2027-04-30",
       "gesce": "",
       "roles": [],
-      "inputs": [],
+      "inputs": [
+        {
+          "kind": "sub",
+          "text": "RDS – část pro kabelizaci (schémata a tabulky kabelů, kabelové plány)"
+        }
+      ],
       "outputs": [],
-      "anchor": {
-        "pid": "denik",
-        "mode": "after"
-      }
+      "anchor": null
     },
     {
       "id": "kabel",
       "streamId": "s2",
-      "lane": 1,
+      "lane": 0,
       "name": "Kabelizace",
-      "from": "",
-      "to": "",
+      "from": "2027-05-01",
+      "to": "2027-05-31",
       "gesce": "",
       "roles": [],
-      "inputs": [],
+      "inputs": [
+        {
+          "kind": "sub",
+          "text": "RDS – část pro kabelizaci (schémata a tabulky kabelů, kabelové plány)"
+        }
+      ],
       "outputs": [],
-      "anchor": {
-        "pid": "vykop",
-        "mode": "after"
-      }
+      "anchor": null
     },
     {
       "id": "montaz",
@@ -220,13 +208,12 @@
       "inputs": [
         {
           "kind": "proc",
-          "pid": "sm008",
-          "need": "finish"
-        },
-        {
-          "kind": "proc",
           "pid": "rds",
           "need": "start"
+        },
+        {
+          "kind": "doc",
+          "text": "Rozhodnutí o provozním ověřování dle SM 008 (čl. 46)"
         }
       ],
       "outputs": [],
@@ -237,19 +224,6 @@
       "streamId": "s3",
       "lane": 0,
       "name": "DLZT",
-      "from": "2026-11-15",
-      "to": "2026-12-15",
-      "gesce": "CTD",
-      "roles": [],
-      "inputs": [],
-      "outputs": [],
-      "anchor": null
-    },
-    {
-      "id": "asbo",
-      "streamId": "s3",
-      "lane": 1,
-      "name": "AsBo",
       "from": "2026-11-15",
       "to": "2026-12-15",
       "gesce": "CTD",
@@ -278,22 +252,6 @@
       "anchor": null
     },
     {
-      "id": "sm008",
-      "streamId": "s3",
-      "lane": 1,
-      "name": "Dokončení schválení přípustnosti LEU jednotek a balíz Siemens Mobility dle SM 008",
-      "from": "",
-      "to": "",
-      "gesce": "",
-      "roles": [],
-      "inputs": [],
-      "outputs": [],
-      "anchor": {
-        "pid": "noboisv",
-        "mode": "with"
-      }
-    },
-    {
       "id": "tpaz",
       "streamId": "s3",
       "lane": 0,
@@ -313,25 +271,6 @@
       "anchor": null
     },
     {
-      "id": "tbz",
-      "streamId": "s3",
-      "lane": 1,
-      "name": "TBZ – technicko-bezpečnostní zkouška",
-      "from": "2027-06-01",
-      "to": "2027-07-31",
-      "gesce": "O14 / CTD",
-      "roles": [],
-      "inputs": [
-        {
-          "kind": "proc",
-          "pid": "tpaz",
-          "need": "finish"
-        }
-      ],
-      "outputs": [],
-      "anchor": null
-    },
-    {
       "id": "nobo",
       "streamId": "s3",
       "lane": 0,
@@ -341,52 +280,14 @@
       "gesce": "",
       "roles": [],
       "inputs": [],
-      "outputs": [],
-      "anchor": {
-        "pid": "tbz",
-        "mode": "after"
-      }
-    },
-    {
-      "id": "debo",
-      "streamId": "s3",
-      "lane": 1,
-      "name": "DeBo",
-      "from": "",
-      "to": "",
-      "gesce": "",
-      "roles": [],
-      "inputs": [],
-      "outputs": [],
-      "anchor": {
-        "pid": "nobo",
-        "mode": "with"
-      }
-    },
-    {
-      "id": "era",
-      "streamId": "s3",
-      "lane": 1,
-      "name": "ERA Trackside Approval",
-      "from": "",
-      "to": "",
-      "gesce": "O6",
-      "roles": [],
-      "inputs": [
+      "outputs": [
         {
-          "kind": "proc",
-          "pid": "nobo",
-          "need": "finish"
-        },
-        {
-          "kind": "proc",
-          "pid": "debo",
-          "need": "finish"
+          "kind": "doc",
+          "text": "ES certifikát o ověření subsystému"
         }
       ],
-      "outputs": [],
       "anchor": {
-        "pid": "nobo",
+        "pid": "tbz",
         "mode": "after"
       }
     },
@@ -424,13 +325,17 @@
       "inputs": [
         {
           "kind": "proc",
-          "pid": "era",
+          "pid": "nobo",
           "need": "finish"
         },
         {
           "kind": "proc",
-          "pid": "nobo",
+          "pid": "asbostavba",
           "need": "finish"
+        },
+        {
+          "kind": "doc",
+          "text": "Kladné rozhodnutí ERA (Trackside Approval)"
         }
       ],
       "outputs": [],
@@ -438,6 +343,158 @@
         "pid": "dupzutz",
         "mode": "after"
       }
+    },
+    {
+      "id": "tbz",
+      "streamId": "s3",
+      "lane": 1,
+      "name": "TBZ – technicko-bezpečnostní zkouška",
+      "from": "2027-06-01",
+      "to": "2027-07-31",
+      "gesce": "O14 / CTD",
+      "roles": [],
+      "inputs": [
+        {
+          "kind": "proc",
+          "pid": "tpaz",
+          "need": "finish"
+        }
+      ],
+      "outputs": [],
+      "anchor": null
+    },
+    {
+      "id": "asbo",
+      "streamId": "s3",
+      "lane": 2,
+      "name": "AsBo – výrobek (LEU, v rámci SM 008)",
+      "from": "2026-11-15",
+      "to": "2026-12-15",
+      "gesce": "CTD",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": null
+    },
+    {
+      "id": "asboimpl",
+      "streamId": "s3",
+      "lane": 2,
+      "name": "AsBo – konkrétní implementace (LEU v SZZ AŽD 71)",
+      "from": "",
+      "to": "",
+      "gesce": "",
+      "roles": [],
+      "inputs": [
+        {
+          "kind": "proc",
+          "pid": "asbo",
+          "need": "finish"
+        }
+      ],
+      "outputs": [],
+      "anchor": null
+    },
+    {
+      "id": "asbostavba",
+      "streamId": "s3",
+      "lane": 2,
+      "name": "AsBo – stavba (závěrečná zpráva)",
+      "from": "",
+      "to": "",
+      "gesce": "",
+      "roles": [],
+      "inputs": [
+        {
+          "kind": "proc",
+          "pid": "asboimpl",
+          "need": "finish"
+        },
+        {
+          "kind": "proc",
+          "pid": "tbz",
+          "need": "finish"
+        }
+      ],
+      "outputs": [],
+      "anchor": {
+        "pid": "tbz",
+        "mode": "after"
+      }
+    },
+    {
+      "id": "debo",
+      "streamId": "s3",
+      "lane": 3,
+      "name": "DeBo",
+      "from": "",
+      "to": "",
+      "gesce": "",
+      "roles": [],
+      "inputs": [],
+      "outputs": [],
+      "anchor": {
+        "pid": "nobo",
+        "mode": "with"
+      }
+    },
+    {
+      "id": "sm008",
+      "streamId": "s3",
+      "lane": 4,
+      "name": "Schválení přípustnosti LEU jednotek a balíz Siemens Mobility dle SM 008 (vč. provozního ověřování)",
+      "from": "2026-09-01",
+      "to": "2028-08-31",
+      "gesce": "",
+      "roles": [],
+      "inputs": [
+        {
+          "kind": "proc",
+          "pid": "asbo",
+          "need": "finish"
+        },
+        {
+          "kind": "proc",
+          "pid": "asboimpl",
+          "need": "finish"
+        }
+      ],
+      "outputs": [
+        {
+          "kind": "doc",
+          "text": "Schválení přípustnosti použití produktu (LEU, balízy)"
+        }
+      ],
+      "anchor": null
+    },
+    {
+      "id": "era",
+      "streamId": "s3",
+      "lane": 5,
+      "name": "ERA Trackside Approval",
+      "from": "2026-03-01",
+      "to": "2028-08-31",
+      "gesce": "O6",
+      "roles": [],
+      "inputs": [
+        {
+          "kind": "proc",
+          "pid": "nobo",
+          "need": "finish"
+        },
+        {
+          "kind": "proc",
+          "pid": "debo",
+          "need": "finish"
+        }
+      ],
+      "outputs": [
+        {
+          "kind": "doc",
+          "text": "Rozhodnutí ERA – Trackside Approval"
+        }
+      ],
+      "anchor": null
     }
   ]
 }

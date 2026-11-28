@@ -400,40 +400,48 @@ function projectMap() {
     ({ id, streamId, lane, name, from, to, gesce, roles: [], inputs: [], outputs: [], anchor: null, ...extra });
   const fin = pid => ({ kind: 'proc', pid, need: 'finish' });
   const after = pid => ({ anchor: { pid, mode: 'after' } });
+  const RDS_KABEL = { kind: 'sub', text: 'RDS – část pro kabelizaci (schémata a tabulky kabelů, kabelové plány)' };
   return {
     version: 1,
     streams: [
       { id: 's1', name: 'Příprava stavby a dokumentace stavby', color: COLORS[0], lanes: 4 },
-      { id: 's2', name: 'Realizace', color: COLORS[1], lanes: 2 },
-      { id: 's3', name: 'Schvalování a přezkoušení', color: COLORS[2], lanes: 2 },
+      { id: 's2', name: 'Realizace', color: COLORS[1], lanes: 1 },
+      { id: 's3', name: 'Schvalování a přezkoušení', color: COLORS[2], lanes: 6 },
     ],
     processes: [
+      // stream 1 – příprava a dokumentace
       P_('pdps', 's1', 0, 'PDPS – projektová dokumentace pro provádění stavby', '2026-03-01', '2027-03-31', '',
         { inputs: ['dlzt', 'asbo', 'ic', 'sr', 'aut'].map(fin) }),
       P_('ic', 's1', 1, 'Inženýrská činnost', '2026-12-01', '2027-03-31', ''),
       P_('sr', 's1', 2, 'Souhrnný rozpočet', '2026-11-15', '2026-12-15', ''),
       P_('aut', 's1', 3, 'Autorizace', '2026-12-01', '2027-02-28', 'Aleš Cipris'),
-      P_('rds', 's1', 2, 'RDS – realizační dokumentace stavby', '2027-03-01', '2027-05-31', '',
+      P_('rds', 's1', 2, 'RDS – realizační dokumentace stavby', '2027-01-01', '2027-05-31', '',
         { inputs: [fin('pdps'), { kind: 'doc', text: 'Obchodně technická dokumentace (OTD) Siemens Mobility dle SM008' }] }),
       P_('dsps', 's1', 0, 'DSPS – dokumentace skutečného provedení stavby', '', '', '', { ...after('rds'), inputs: [fin('vykop')] }),
-      P_('predani', 's2', 1, 'Předání staveniště', '', '', '', after('pdps')),
-      P_('denik', 's2', 1, 'Stavební deník', '', '', '', after('predani')),
-      P_('vykop', 's2', 1, 'Výkopové práce', '', '', '', after('denik')),
-      P_('kabel', 's2', 1, 'Kabelizace', '', '', '', after('vykop')),
+      // stream 2 – realizace
+      P_('predani', 's2', 0, 'Předání staveniště', '', '', '', { anchor: { pid: 'vykop', mode: 'before' } }),
+      P_('vykop', 's2', 0, 'Výkopové práce', '2027-04-01', '2027-04-30', '', { inputs: [RDS_KABEL] }),
+      P_('kabel', 's2', 0, 'Kabelizace', '2027-05-01', '2027-05-31', '', { inputs: [RDS_KABEL] }),
       P_('montaz', 's2', 0, 'Montáž technologie', '2027-06-01', '2027-07-31', '',
-        { inputs: [fin('sm008'), { kind: 'proc', pid: 'rds', need: 'start' }] }),
+        { inputs: [{ kind: 'proc', pid: 'rds', need: 'start' }, { kind: 'doc', text: 'Rozhodnutí o provozním ověřování dle SM 008 (čl. 46)' }] }),
+      // stream 3 – schvalování a přezkoušení: dráha 1 hlavní posloupnost, 2 TBZ, 3 AsBo, 4 DeBo, 5 SM 008, 6 ERA
       P_('dlzt', 's3', 0, 'DLZT', '2026-11-15', '2026-12-15', 'CTD'),
-      P_('asbo', 's3', 1, 'AsBo', '2026-11-15', '2026-12-15', 'CTD'),
       P_('noboisv', 's3', 0, 'NoBo – ISV', '2027-02-01', '2027-03-31', 'O26, O25, SSZ', { inputs: [fin('pdps')] }),
-      P_('sm008', 's3', 1, 'Dokončení schválení přípustnosti LEU jednotek a balíz Siemens Mobility dle SM 008', '', '', '',
-        { anchor: { pid: 'noboisv', mode: 'with' } }),
       P_('tpaz', 's3', 0, 'TPaZ UTZ – technické prohlídky a zkoušky UTZ', '2027-06-01', '2027-07-31', 'CTD', { inputs: [fin('montaz')] }),
-      P_('tbz', 's3', 1, 'TBZ – technicko-bezpečnostní zkouška', '2027-06-01', '2027-07-31', 'O14 / CTD', { inputs: [fin('tpaz')] }),
-      P_('nobo', 's3', 0, 'NoBo', '', '', '', after('tbz')),
-      P_('debo', 's3', 1, 'DeBo', '', '', '', { anchor: { pid: 'nobo', mode: 'with' } }),
-      P_('era', 's3', 1, 'ERA Trackside Approval', '', '', 'O6', { ...after('nobo'), inputs: [fin('nobo'), fin('debo')] }),
+      P_('nobo', 's3', 0, 'NoBo', '', '', '', { ...after('tbz'), outputs: [{ kind: 'doc', text: 'ES certifikát o ověření subsystému' }] }),
       P_('dupzutz', 's3', 0, 'Drážní úřad – průkaz způsobilosti UTZ', '', '', '', { ...after('nobo'), inputs: [fin('tpaz')] }),
-      P_('dupzdr', 's3', 0, 'Drážní úřad – průkaz způsobilosti dráhy', '', '', '', { ...after('dupzutz'), inputs: [fin('era'), fin('nobo')] }),
+      P_('dupzdr', 's3', 0, 'Drážní úřad – průkaz způsobilosti dráhy', '', '', '',
+        { ...after('dupzutz'), inputs: [fin('nobo'), fin('asbostavba'), { kind: 'doc', text: 'Kladné rozhodnutí ERA (Trackside Approval)' }] }),
+      P_('tbz', 's3', 1, 'TBZ – technicko-bezpečnostní zkouška', '2027-06-01', '2027-07-31', 'O14 / CTD', { inputs: [fin('tpaz')] }),
+      P_('asbo', 's3', 2, 'AsBo – výrobek (LEU, v rámci SM 008)', '2026-11-15', '2026-12-15', 'CTD'),
+      P_('asboimpl', 's3', 2, 'AsBo – konkrétní implementace (LEU v SZZ AŽD 71)', '', '', '', { inputs: [fin('asbo')] }),
+      P_('asbostavba', 's3', 2, 'AsBo – stavba (závěrečná zpráva)', '', '', '', { ...after('tbz'), inputs: [fin('asboimpl'), fin('tbz')] }),
+      P_('debo', 's3', 3, 'DeBo', '', '', '', { anchor: { pid: 'nobo', mode: 'with' } }),
+      P_('sm008', 's3', 4, 'Schválení přípustnosti LEU jednotek a balíz Siemens Mobility dle SM 008 (vč. provozního ověřování)',
+        '2026-09-01', '2028-08-31', '', { inputs: [fin('asbo'), fin('asboimpl')],
+          outputs: [{ kind: 'doc', text: 'Schválení přípustnosti použití produktu (LEU, balízy)' }] }),
+      P_('era', 's3', 5, 'ERA Trackside Approval', '2026-03-01', '2028-08-31', 'O6', { inputs: [fin('nobo'), fin('debo')],
+        outputs: [{ kind: 'doc', text: 'Rozhodnutí ERA – Trackside Approval' }] }),
     ],
   };
 }
@@ -513,7 +521,7 @@ function normalize(d) {
     });
     if (p.anchor && typeof p.anchor === 'object') {
       const q = byOld(p.anchor.pid);
-      if (q && q !== proc) proc.anchor = { pid: q.id, mode: p.anchor.mode === 'with' ? 'with' : 'after' };
+      if (q && q !== proc) proc.anchor = { pid: q.id, mode: ['with', 'before'].includes(p.anchor.mode) ? p.anchor.mode : 'after' };
     }
   });
   // výstup „vstup pro proces X“ se ukládá jen jednou – jako vstup procesu X
@@ -579,6 +587,7 @@ function effMap() {
     const a = p.anchor && P(p.anchor.pid), ea = a && get(a);
     if (ea) {
       if (p.anchor.mode === 'with') { f = ea.f; t = ea.t; why = `souběžně s „${a.name}“`; }
+      else if (p.anchor.mode === 'before') { t = ea.f - 1; f = addMonths(ea.f, -1); why = `před „${a.name}“`; }
       else { f = ea.t + 1; why = `za „${a.name}“`; }
     }
     if (f == null) {
@@ -1435,6 +1444,7 @@ function termHTML(p, from, to, nodate) {
       <label>Orientačně umístit<select name="amode">
         <option value="">automaticky (za vstupy / předchozím)</option>
         <option value="after"${a && a.mode === 'after' ? ' selected' : ''}>za procesem</option>
+        <option value="before"${a && a.mode === 'before' ? ' selected' : ''}>před procesem</option>
         <option value="with"${a && a.mode === 'with' ? ' selected' : ''}>souběžně s procesem</option></select></label>
       <label>Proces<select name="apid">${procOptions(p && p.id)}</select></label>
     </div>`;
@@ -1667,7 +1677,7 @@ function helpDialog() {
       <li><b>Základní parametry procesu</b> jsou název, gestor, od–do, vstup a výstup. Co chybí, je přímo na procesu označeno <b>⚠ chybí: …</b> a oranžovým rohem; přehled dává tlačítko <b>⚠ Kontrola</b>.</li>
       <li><b>Vstup</b> je dokončení jiného procesu z mapy (vybírá se ze seznamu, který odpovídá aktuální mapě), dokument nebo podproces, který v mapě není. U vazby na proces zvolíte, zda jeho dokončení <b>podmiňuje dokončení</b>, nebo <b>zahájení</b> tohoto procesu. <b>Výstup</b> je vstup pro jiný proces, dokument nebo podproces.</li>
       <li><b>Šipky vazeb</b> (🔗 Vazby) vedou od konce vstupního procesu ke konci (nebo začátku) navazujícího procesu. <b>Červená</b> šipka = konflikt: vstup končí později, než dovolují termíny. Vybraný proces zvýrazní své vazby modře.</li>
-      <li><b>Proces bez termínu</b> (zaškrtnete „Termín zatím neznámý“) se zobrazí šrafovaně jen orientačně – za zvoleným procesem, souběžně s ním, za svými vstupy nebo za předchozím procesem v dráze. Přetažením myší ho zakotvíte na konkrétní termín.</li>
+      <li><b>Proces bez termínu</b> (zaškrtnete „Termín zatím neznámý“) se zobrazí šrafovaně jen orientačně – za zvoleným procesem, před ním, souběžně s ním, za svými vstupy nebo za předchozím procesem v dráze. Přetažením myší ho zakotvíte na konkrétní termín.</li>
       <li>Kliknutím proces vyberete, dvojklikem ho upravíte. Klávesy: <b>Delete</b> smaže vybraný proces, <b>Ctrl+Z / Ctrl+Y</b> vrátí / zopakuje změnu.</li>
       <li>Mapa se ukládá automaticky v tomto prohlížeči. Pro zálohu nebo předání použijte <b>Export</b> a <b>Import</b> (soubor JSON).</li></ul>`,
     onSubmit: () => {},
